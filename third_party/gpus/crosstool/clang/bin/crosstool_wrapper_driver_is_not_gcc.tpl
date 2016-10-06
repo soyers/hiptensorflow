@@ -79,9 +79,41 @@ def GetOptionValue(argv, option):
   else:
     return sum(vars(args)[option], [])
 
+#GET HIPCC specfic host compiler options
+
+def GetHipccHostCompilerOptions(argv):
+  """Collect the -isystem, -I, and --sysroot option values from argv.
+
+  Args:
+    argv: A list of strings, possibly the argv passed to main().
+
+  Returns:
+    The string that can be used as the --compiler-options to nvcc.
+  """
+
+  parser = ArgumentParser()
+  parser.add_argument('-isystem', nargs='*', action='append')
+  parser.add_argument('-iquote', nargs='*', action='append')
+  parser.add_argument('--sysroot', nargs=1)
+  parser.add_argument('-g', nargs='*', action='append')
+
+  args, _ = parser.parse_known_args(argv)
+
+  opts = ''
+
+  if args.isystem:
+    opts += ' -isystem ' + ' -isystem '.join(sum(args.isystem, []))
+  if args.iquote:
+    opts += ' -iquote ' + ' -iquote '.join(sum(args.iquote, []))
+  if args.g:
+    opts += ' -g' + ' -g'.join(sum(args.g, []))
+  if args.sysroot:
+    opts += ' --sysroot ' + args.sysroot[0]
+
+  return opts
 
 def GetHostCompilerOptions(argv):
-  """Collect the -isystem, -iquote, and --sysroot option values from argv.
+  """Collect the -isystem, -I, and --sysroot option values from argv.
 
   Args:
     argv: A list of strings, possibly the argv passed to main().
@@ -188,6 +220,7 @@ def InvokeNvcc(argv, log=False):
   """
 
   host_compiler_options = GetHostCompilerOptions(argv)
+  hipcc_host_compiler_options = GetHipccHostCompilerOptions(argv)
   nvcc_compiler_options = GetNvccOptions(argv)
   opt_option = GetOptionValue(argv, 'O')
   m_options = GetOptionValue(argv, 'm')
@@ -232,8 +265,8 @@ def InvokeNvcc(argv, log=False):
   nvccopts = ''
   for capability in supported_cuda_compute_capabilities:
     capability = capability.replace('.', '')
-    nvccopts += r'-gencode=arch=compute_%s,\"code=sm_%s,compute_%s\" ' % (
-        capability, capability, capability)
+    nvccopts += r'-gencode=arch=compute_%s,\"code=sm_%s\" ' % (
+        capability, capability)
   nvccopts += ' ' + nvcc_compiler_options
   nvccopts += undefines
   nvccopts += defines
@@ -242,9 +275,12 @@ def InvokeNvcc(argv, log=False):
 
   if depfiles:
     # Generate the dependency file
+    print('************')
+    print('Generate the dependency file')
     depfile = depfiles[0]
+    print(NVCC_PATH)
     cmd = (NVCC_PATH + ' ' + nvccopts +
-           ' --compiler-options "' + host_compiler_options + '"' +
+           ' --compiler-options "' + hipcc_host_compiler_options + '"' +
            ' --compiler-bindir=' + GCC_HOST_COMPILER_PATH +
            ' -I .' +
            ' -x cu ' + includes + ' ' + srcs + ' -M -o ' + depfile)
@@ -253,6 +289,8 @@ def InvokeNvcc(argv, log=False):
     if exit_status != 0:
       return exit_status
 
+    print('************')
+    print(NVCC_PATH)
   cmd = (NVCC_PATH + ' ' + nvccopts +
          ' --compiler-options "' + host_compiler_options + ' -fPIC"' +
          ' --compiler-bindir=' + GCC_HOST_COMPILER_PATH +
