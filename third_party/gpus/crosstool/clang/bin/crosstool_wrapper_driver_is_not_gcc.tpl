@@ -50,7 +50,7 @@ CPU_COMPILER = ('%{cpu_compiler}')
 GCC_HOST_COMPILER_PATH = ('%{gcc_host_compiler_path}')
 
 CURRENT_DIR = os.path.dirname(sys.argv[0])
-NVCC_PATH = CURRENT_DIR + '/../../../cuda/bin/nvcc'
+NVCC_PATH = CURRENT_DIR + '/../../../cuda/bin/hipcc'
 LLVM_HOST_COMPILER_PATH = ('/usr/bin/gcc')
 PREFIX_DIR = os.path.dirname(GCC_HOST_COMPILER_PATH)
 
@@ -78,39 +78,6 @@ def GetOptionValue(argv, option):
     return []
   else:
     return sum(vars(args)[option], [])
-
-#GET HIPCC specfic host compiler options
-
-def GetHipccHostCompilerOptions(argv):
-  """Collect the -isystem, -I, and --sysroot option values from argv.
-
-  Args:
-    argv: A list of strings, possibly the argv passed to main().
-
-  Returns:
-    The string that can be used as the --compiler-options to nvcc.
-  """
-
-  parser = ArgumentParser()
-  parser.add_argument('-isystem', nargs='*', action='append')
-  parser.add_argument('-iquote', nargs='*', action='append')
-  parser.add_argument('--sysroot', nargs=1)
-  parser.add_argument('-g', nargs='*', action='append')
-
-  args, _ = parser.parse_known_args(argv)
-
-  opts = ''
-
-  if args.isystem:
-    opts += ' -isystem ' + ' -isystem '.join(sum(args.isystem, []))
-  if args.iquote:
-    opts += ' -iquote ' + ' -iquote '.join(sum(args.iquote, []))
-  if args.g:
-    opts += ' -g' + ' -g'.join(sum(args.g, []))
-  if args.sysroot:
-    opts += ' --sysroot ' + args.sysroot[0]
-
-  return opts
 
 def GetHostCompilerOptions(argv):
   """Collect the -isystem, -I, and --sysroot option values from argv.
@@ -220,7 +187,6 @@ def InvokeNvcc(argv, log=False):
   """
 
   host_compiler_options = GetHostCompilerOptions(argv)
-  hipcc_host_compiler_options = GetHipccHostCompilerOptions(argv)
   nvcc_compiler_options = GetNvccOptions(argv)
   opt_option = GetOptionValue(argv, 'O')
   m_options = GetOptionValue(argv, 'm')
@@ -275,12 +241,10 @@ def InvokeNvcc(argv, log=False):
 
   if depfiles:
     # Generate the dependency file
-    print('************')
-    print('Generate the dependency file')
     depfile = depfiles[0]
     print(NVCC_PATH)
     cmd = (NVCC_PATH + ' ' + nvccopts +
-           ' --compiler-options "' + hipcc_host_compiler_options + '"' +
+           ' --compiler-options ' + '\\"' + host_compiler_options + '\\"' +
            ' --compiler-bindir=' + GCC_HOST_COMPILER_PATH +
            ' -I .' +
            ' -x cu ' + includes + ' ' + srcs + ' -M -o ' + depfile)
@@ -289,10 +253,9 @@ def InvokeNvcc(argv, log=False):
     if exit_status != 0:
       return exit_status
 
-    print('************')
     print(NVCC_PATH)
   cmd = (NVCC_PATH + ' ' + nvccopts +
-         ' --compiler-options "' + host_compiler_options + ' -fPIC"' +
+         ' --compiler-options \\"' + host_compiler_options + ' -fPIC \\"' +
          ' --compiler-bindir=' + GCC_HOST_COMPILER_PATH +
          ' -I .' +
          ' -x cu ' + opt + includes + ' -c ' + srcs + out)
