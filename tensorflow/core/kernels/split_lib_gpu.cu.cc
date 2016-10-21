@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 /* Copyright 2015 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -53,8 +54,8 @@ __global__ void SplitOpKernel(const T* input, int32 prefix_dim_size,
   const int32 num_split = output_ptr_data.size;
   T** output_ptrs = GetCudaDeviceArrayOnDevice(&output_ptr_data);
 
-  eigen_assert(blockDim.y == 1);
-  eigen_assert(blockDim.z == 1);
+  eigen_assert(hipBlockDim_y == 1);
+  eigen_assert(hipBlockDim_z == 1);
   eigen_assert(split_dim_size % num_split == 0);
 
   int32 size = prefix_dim_size * split_dim_size * suffix_dim_size;

@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 /* Copyright 2015 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -48,8 +49,7 @@ namespace {
 // To call the forward and backward functions, use e.g.:
 // const int kThreadsPerBlock = 1024
 // const int output_size = batch * channels * pooled_height * pooled_width;
-// MaxPoolForwardNCHW<<<(output_size + kThreadsPerBlock - 1) / kThreadsPerBlock,
-//                      kThreadsPerBlock, 0, cuda_stream>>>(...);
+// hipLaunchKernel(HIP_KERNEL_NAME(MaxPoolForwardNCHW), dim3((output_size + kThreadsPerBlock - 1) / kThreadsPerBlock), dim3(//                      kThreadsPerBlock), 0, cuda_stream, ...);
 template <typename dtype>
 __global__ void MaxPoolForwardNCHW(const int nthreads, const dtype* bottom_data,
                                    const int channels, const int height,
@@ -211,8 +211,7 @@ bool MaxPoolForwardWithOptionalArgmax(
   const int kThreadsPerBlock = 1024;
   const int output_size = batch * channels * pooled_height * pooled_width;
 
-  MaxPoolForwardNHWC<<<(output_size + kThreadsPerBlock - 1) / kThreadsPerBlock,
-                       kThreadsPerBlock, 0, d.stream()>>>(
+  hipLaunchKernel(HIP_KERNEL_NAME(MaxPoolForwardNHWC), dim3((output_size + kThreadsPerBlock - 1) / kThreadsPerBlock), dim3(kThreadsPerBlock), 0, d.stream(), 
       output_size, bottom_data, height, width, channels, pooled_height,
       pooled_width, kernel_h, kernel_w, stride_h, stride_w, pad_t, pad_l,
       top_data, mask);
@@ -228,8 +227,7 @@ bool MaxPoolForwardWithOptionalArgmax(
   const int kThreadsPerBlock = 1024;
   const int output_size = batch * channels * pooled_height * pooled_width;
 
-  MaxPoolForwardNHWC<<<(output_size + kThreadsPerBlock - 1) / kThreadsPerBlock,
-                       kThreadsPerBlock, 0, d.stream()>>>(
+  hipLaunchKernel(HIP_KERNEL_NAME(MaxPoolForwardNHWC), dim3((output_size + kThreadsPerBlock - 1) / kThreadsPerBlock), dim3(kThreadsPerBlock), 0, d.stream(), 
       output_size, bottom_data, height, width, channels, pooled_height,
       pooled_width, kernel_h, kernel_w, stride_h, stride_w, pad_t, pad_l,
       top_data, mask);
@@ -248,8 +246,7 @@ bool MaxPoolBackwardNoMask(const float* bottom_data, const int batch,
   const int bottom_size = batch * channels * height * width;
   const int top_size = batch * channels * pooled_height * pooled_width;
 
-  SetZero<<<(bottom_size + kThreadsPerBlock - 1) / kThreadsPerBlock,
-            kThreadsPerBlock, 0, d.stream()>>>(bottom_size, bottom_diff);
+  hipLaunchKernel(HIP_KERNEL_NAME(SetZero), dim3((bottom_size + kThreadsPerBlock - 1) / kThreadsPerBlock), dim3(kThreadsPerBlock), 0, d.stream(), bottom_size, bottom_diff);
 
   MaxPoolBackwardNoMaskNHWC<<<(top_size + kThreadsPerBlock - 1) /
                                   kThreadsPerBlock,
@@ -272,8 +269,7 @@ bool MaxPoolBackwardNoMask(const Eigen::half* bottom_data, const int batch,
   const int bottom_size = batch * channels * height * width;
   const int top_size = batch * channels * pooled_height * pooled_width;
 
-  SetZero<<<(bottom_size + kThreadsPerBlock - 1) / kThreadsPerBlock,
-            kThreadsPerBlock, 0, d.stream()>>>(bottom_size, bottom_diff);
+  hipLaunchKernel(HIP_KERNEL_NAME(SetZero), dim3((bottom_size + kThreadsPerBlock - 1) / kThreadsPerBlock), dim3(kThreadsPerBlock), 0, d.stream(), bottom_size, bottom_diff);
 
   MaxPoolBackwardNoMaskNHWC<<<(top_size + kThreadsPerBlock - 1) /
                                   kThreadsPerBlock,
@@ -289,10 +285,8 @@ bool MaxPoolBackwardWithArgmax(const int output_size, const int input_size,
                                const int top_offset, const int bottom_offset,
                                float* bottom_diff, const Eigen::GpuDevice& d) {
   const int kThreadsPerBlock = 1024;
-  SetZero<<<(input_size + kThreadsPerBlock - 1) / kThreadsPerBlock,
-            kThreadsPerBlock, 0, d.stream()>>>(input_size, bottom_diff);
-  MaxPoolBackward<<<(output_size + kThreadsPerBlock - 1) / kThreadsPerBlock,
-                    kThreadsPerBlock, 0, d.stream()>>>(
+  hipLaunchKernel(HIP_KERNEL_NAME(SetZero), dim3((input_size + kThreadsPerBlock - 1) / kThreadsPerBlock), dim3(kThreadsPerBlock), 0, d.stream(), input_size, bottom_diff);
+  hipLaunchKernel(HIP_KERNEL_NAME(MaxPoolBackward), dim3((output_size + kThreadsPerBlock - 1) / kThreadsPerBlock), dim3(kThreadsPerBlock), 0, d.stream(), 
       output_size, top_diff, mask, top_offset, bottom_offset, bottom_diff);
   return d.ok();
 }
@@ -303,10 +297,8 @@ bool MaxPoolBackwardWithArgmax(const int output_size, const int input_size,
                                Eigen::half* bottom_diff,
                                const Eigen::GpuDevice& d) {
   const int kThreadsPerBlock = 1024;
-  SetZero<<<(input_size + kThreadsPerBlock - 1) / kThreadsPerBlock,
-            kThreadsPerBlock, 0, d.stream()>>>(input_size, bottom_diff);
-  MaxPoolBackward<<<(output_size + kThreadsPerBlock - 1) / kThreadsPerBlock,
-                    kThreadsPerBlock, 0, d.stream()>>>(
+  hipLaunchKernel(HIP_KERNEL_NAME(SetZero), dim3((input_size + kThreadsPerBlock - 1) / kThreadsPerBlock), dim3(kThreadsPerBlock), 0, d.stream(), input_size, bottom_diff);
+  hipLaunchKernel(HIP_KERNEL_NAME(MaxPoolBackward), dim3((output_size + kThreadsPerBlock - 1) / kThreadsPerBlock), dim3(kThreadsPerBlock), 0, d.stream(), 
       output_size, top_diff, mask, top_offset, bottom_offset, bottom_diff);
   return d.ok();
 }

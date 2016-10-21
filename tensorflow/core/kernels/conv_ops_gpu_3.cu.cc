@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 /* Copyright 2015 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -186,7 +187,7 @@ __global__ void SwapDimension1And2InTensor3UsingTiles(const T* input,
   // One extra line in the inner dimension to avoid share memory bank conflict.
   __shared__ T shared_memory_tile[TileSize][TileSize + 1];
 
-  int x = threadIdx.x;
+  int x = hipThreadIdx_x;
   if (x >= TileSize) {
     return;
   }
@@ -201,7 +202,7 @@ __global__ void SwapDimension1And2InTensor3UsingTiles(const T* input,
   };
 
   Index<3> input_tile_index =
-      FlatToTensorIndex(blockIdx.x, input_dims_in_tiles);
+      FlatToTensorIndex(hipBlockIdx_x, input_dims_in_tiles);
 
   Index<3> input_tile_origin = {
       input_tile_index[0], input_tile_index[1] * TileSize,
@@ -381,13 +382,11 @@ struct PadInput<GPUDevice, T, int, NDIMS> {
     const Dimension<NDIMS - 2> padding_left_dim(padding_left);
 
     if (format == FORMAT_NHWC) {
-      PadInputCustomKernelNHWC<T, NDIMS><<<
-          config.block_count, config.thread_per_block, 0, d.stream()>>>(
+      hipLaunchKernel(HIP_KERNEL_NAME(PadInputCustomKernelNHWC<T, NDIMS>), dim3(config.block_count), dim3(config.thread_per_block), 0, d.stream(), 
           config.virtual_thread_count, in.data(), input_dims, out.data(),
           output_dims, padding_left_dim);
     } else if (format == FORMAT_NCHW) {
-      PadInputCustomKernelNCHW<T, NDIMS><<<
-          config.block_count, config.thread_per_block, 0, d.stream()>>>(
+      hipLaunchKernel(HIP_KERNEL_NAME(PadInputCustomKernelNCHW<T, NDIMS>), dim3(config.block_count), dim3(config.thread_per_block), 0, d.stream(), 
           config.virtual_thread_count, in.data(), input_dims, out.data(),
           output_dims, padding_left_dim);
     } else {

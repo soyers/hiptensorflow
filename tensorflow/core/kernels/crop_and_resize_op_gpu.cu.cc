@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 /* Copyright 2016 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -338,8 +339,7 @@ struct CropAndResize<GPUDevice, T> {
 
     if (total_count > 0) {
       CudaLaunchConfig config = GetCudaLaunchConfig(total_count, d);
-      CropAndResizeKernel<<<config.block_count, config.thread_per_block, 0,
-                            d.stream()>>>(
+      hipLaunchKernel(HIP_KERNEL_NAME(CropAndResizeKernel), dim3(config.block_count), dim3(config.thread_per_block), 0, d.stream(), 
           config.virtual_thread_count, image.data(), boxes.data(),
           box_ind.data(), num_boxes, batch, image_height, image_width,
           crop_height, crop_width, depth, extrapolation_value, crops.data());
@@ -371,7 +371,7 @@ struct CropAndResizeBackpropImage<GPUDevice, T> {
     total_count = batch * image_height * image_width * depth;
     if (total_count > 0) {
       config = GetCudaLaunchConfig(total_count, d);
-      SetZero<<<config.block_count, config.thread_per_block, 0, d.stream()>>>(
+      hipLaunchKernel(HIP_KERNEL_NAME(SetZero), dim3(config.block_count), dim3(config.thread_per_block), 0, d.stream(), 
           config.virtual_thread_count, grads_image.data());
     }
 
@@ -379,8 +379,7 @@ struct CropAndResizeBackpropImage<GPUDevice, T> {
     total_count = num_boxes * crop_height * crop_width * depth;
     if (total_count > 0) {
       config = GetCudaLaunchConfig(total_count, d);
-      CropAndResizeBackpropImageKernel<<<
-          config.block_count, config.thread_per_block, 0, d.stream()>>>(
+      hipLaunchKernel(HIP_KERNEL_NAME(CropAndResizeBackpropImageKernel), dim3(config.block_count), dim3(config.thread_per_block), 0, d.stream(), 
           config.virtual_thread_count, grads.data(), boxes.data(),
           box_ind.data(), num_boxes, batch, image_height, image_width,
           crop_height, crop_width, depth, grads_image.data());
@@ -413,7 +412,7 @@ struct CropAndResizeBackpropBoxes<GPUDevice, T> {
     total_count = num_boxes * 4;
     if (total_count > 0) {
       config = GetCudaLaunchConfig(total_count, d);
-      SetZero<<<config.block_count, config.thread_per_block, 0, d.stream()>>>(
+      hipLaunchKernel(HIP_KERNEL_NAME(SetZero), dim3(config.block_count), dim3(config.thread_per_block), 0, d.stream(), 
           config.virtual_thread_count, grads_boxes.data());
     }
 
@@ -421,8 +420,7 @@ struct CropAndResizeBackpropBoxes<GPUDevice, T> {
     total_count = num_boxes * crop_height * crop_width * depth;
     if (total_count > 0) {
       config = GetCudaLaunchConfig(total_count, d);
-      CropAndResizeBackpropBoxesKernel<<<
-          config.block_count, config.thread_per_block, 0, d.stream()>>>(
+      hipLaunchKernel(HIP_KERNEL_NAME(CropAndResizeBackpropBoxesKernel), dim3(config.block_count), dim3(config.thread_per_block), 0, d.stream(), 
           config.virtual_thread_count, grads.data(), image.data(), boxes.data(),
           box_ind.data(), num_boxes, batch, image_height, image_width,
           crop_height, crop_width, depth, grads_boxes.data());

@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 /* Copyright 2015 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -80,7 +81,7 @@ struct BatchToSpaceOpFunctor<GPUDevice, T> {
     const int total_count =
         input_batch * input_height * input_width * depth;
     CudaLaunchConfig config = GetCudaLaunchConfig(total_count, d);
-    B2S<<<config.block_count, config.thread_per_block, 0, d.stream()>>>(
+    hipLaunchKernel(HIP_KERNEL_NAME(B2S), dim3(config.block_count), dim3(config.thread_per_block), 0, d.stream(), 
         config.virtual_thread_count, input.data(), block_size, crop_top,
         crop_left, input_batch, input_height, input_width, depth,
         output_batch, output_height, output_width, output.data());
