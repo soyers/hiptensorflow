@@ -1,4 +1,5 @@
 #include "hip/hip_runtime.h"
+#include "hip/hip_runtime.h"
 /* Copyright 2015 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -40,7 +41,7 @@ DEFINE_GPU_KERNELS(float)
 #undef DEFINE_GPU_KERNELS
 
 template <typename dtype>
-__global__ void AvePoolBackwardNHWC(const int nthreads,
+__global__ void AvePoolBackwardNHWC(hipLaunchParm lp, const int nthreads,
                                     const dtype* const top_diff, const int num,
                                     const int height, const int width,
                                     const int channels, const int pooled_height,

@@ -1,4 +1,5 @@
 #include "hip/hip_runtime.h"
+#include "hip/hip_runtime.h"
 /* Copyright 2015 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -48,7 +49,7 @@ TF_CALL_GPU_NUMBER_TYPES(DEFINE_GPU_KERNELS);
 namespace {
 
 template <typename T>
-__global__ void SplitOpKernel(const T* input, int32 prefix_dim_size,
+__global__ void SplitOpKernel(hipLaunchParm lp, const T* input, int32 prefix_dim_size,
                               int32 split_dim_size, int32 suffix_dim_size,
                               CudaDeviceArrayStruct<T*> output_ptr_data) {
   const int32 num_split = output_ptr_data.size;

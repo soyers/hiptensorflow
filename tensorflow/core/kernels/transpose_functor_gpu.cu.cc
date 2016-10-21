@@ -1,4 +1,5 @@
 #include "hip/hip_runtime.h"
+#include "hip/hip_runtime.h"
 /* Copyright 2016 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,7 +27,7 @@ namespace tensorflow {
 namespace internal {
 
 template <typename T>
-__global__ void TransposeKernel(int nthreads, const T* src, const int32* buf,
+__global__ void TransposeKernel(hipLaunchParm lp, int nthreads, const T* src, const int32* buf,
                                 const int32 ndims, T* dst) {
   const int32* in_strides = buf;
   const int32* out_strides = buf + ndims;

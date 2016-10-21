@@ -1,4 +1,5 @@
 #include "hip/hip_runtime.h"
+#include "hip/hip_runtime.h"
 /* Copyright 2016 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -34,7 +35,7 @@ typedef Eigen::GpuDevice GPUDevice;
 namespace {
 
 template <typename T>
-__global__ void CropAndResizeKernel(
+__global__ void CropAndResizeKernel(hipLaunchParm lp, 
     const int32 nthreads, const T* image_ptr, const float* boxes_ptr,
     const int32* box_ind_ptr, int num_boxes, int batch, int image_height,
     int image_width, int crop_height, int crop_width, int depth,
@@ -116,7 +117,7 @@ __global__ void CropAndResizeKernel(
 }
 
 template <typename T>
-__global__ void CropAndResizeBackpropImageKernel(
+__global__ void CropAndResizeBackpropImageKernel(hipLaunchParm lp, 
     const int32 nthreads, const float* grads_ptr, const float* boxes_ptr,
     const int32* box_ind_ptr, int num_boxes, int batch, int image_height,
     int image_width, int crop_height, int crop_width, int depth,
@@ -200,7 +201,7 @@ __global__ void CropAndResizeBackpropImageKernel(
 }
 
 template <typename T>
-__global__ void CropAndResizeBackpropBoxesKernel(
+__global__ void CropAndResizeBackpropBoxesKernel(hipLaunchParm lp, 
     const int32 nthreads, const float* grads_ptr, const T* image_ptr,
     const float* boxes_ptr, const int32* box_ind_ptr, int num_boxes, int batch,
     int image_height, int image_width, int crop_height, int crop_width,

@@ -1,4 +1,5 @@
 #include "hip/hip_runtime.h"
+#include "hip/hip_runtime.h"
 /* Copyright 2016 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -33,7 +34,7 @@ using GPUDevice = Eigen::GpuDevice;
 // Each element is mapped from input to output by a combination of its
 // 'segment_ids' mapping and 'inner_dim_size'.
 template <typename T, typename Index>
-__global__ void UnsortedSegmentSumCustomKernel(
+__global__ void UnsortedSegmentSumCustomKernel(hipLaunchParm lp, 
     const Index input_outer_dim_size, const Index inner_dim_size,
     const Index output_outer_dim_size, const Index* segment_ids, const T* input,
     T* output) {

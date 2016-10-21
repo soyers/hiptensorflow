@@ -1,4 +1,5 @@
 #include "hip/hip_runtime.h"
+#include "hip/hip_runtime.h"
 /* Copyright 2015 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -29,7 +30,7 @@ namespace tensorflow {
 typedef Eigen::GpuDevice GPUDevice;
 
 template <typename T>
-__global__ void B2S(
+__global__ void B2S(hipLaunchParm lp, 
     const int32 nthreads, const T* input_ptr,
     const int block_size, const int crop_top, const int crop_left,
     const int input_batch, const int input_height, const int input_width,

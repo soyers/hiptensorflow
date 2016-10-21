@@ -1,4 +1,5 @@
 #include "hip/hip_runtime.h"
+#include "hip/hip_runtime.h"
 /* Copyright 2016 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -28,7 +29,7 @@ namespace tensorflow {
 typedef Eigen::GpuDevice GPUDevice;
 
 template <typename T, typename Index, int IXDIM>
-__global__ void GatherSliceOpKernel(
+__global__ void GatherSliceOpKernel(hipLaunchParm lp,
     const T* params, const Index* indices, T* out,
     const Eigen::array<int64, IXDIM> batch_strides,
     const Eigen::array<int64, IXDIM> batch_indices, const int64 indices_size,

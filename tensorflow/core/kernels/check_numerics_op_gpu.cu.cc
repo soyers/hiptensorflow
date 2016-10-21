@@ -1,4 +1,5 @@
 #include "hip/hip_runtime.h"
+#include "hip/hip_runtime.h"
 /* Copyright 2015 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -35,7 +36,7 @@ typedef Eigen::GpuDevice GPUDevice;
 // A Cuda kernel to check if each element is Inf or Nan. If any exists, the
 // relevant elements in abnormal_detected will be set
 template <typename T>
-__global__ void CheckNumericsKernel(const T *data, int size,
+__global__ void CheckNumericsKernel(hipLaunchParm lp, const T *data, int size,
                                     int abnormal_detected[2]) {
   const int32 thread_id = hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x;
   const int32 total_thread_count = hipGridDim_x * hipBlockDim_x;

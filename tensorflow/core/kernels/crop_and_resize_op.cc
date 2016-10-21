@@ -661,7 +661,7 @@ inline void CheckValidBoxInd<GPUDevice>(
   stream->BlockHostUntilDone();
 
   OP_REQUIRES(context, stream->ok(),
-              errors::Internal("cudaMemcpy from device to host failed"));
+              errors::Internal("hipMemcpy from device to host failed"));
 
   OP_REQUIRES(context, isvalid_host,
               errors::OutOfRange("box_ind has values outside [0, batch)"));
