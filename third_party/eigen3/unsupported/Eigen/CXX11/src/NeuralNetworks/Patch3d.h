@@ -1,7 +1,7 @@
 #ifndef EIGEN_CXX11_SRC_NEURAL_NETWORKS_PATCH3D_H
 #define EIGEN_CXX11_SRC_NEURAL_NETWORKS_PATCH3D_H
 
-#if not defined(__CUDACC__)
+#if not defined(__HIPCC__)
 #include <type_traits>
 #endif
 

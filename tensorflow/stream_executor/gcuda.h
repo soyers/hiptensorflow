@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 /* Copyright 2015 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -22,7 +23,7 @@ limitations under the License.
 #define TENSORFLOW_STREAM_EXECUTOR_GCUDA_H_
 
 // Symbol glossary:
-//   __CUDACC__: CUDA capable compiler, compiling host or device
+//   __HIPCC__: CUDA capable compiler, compiling host or device
 //   __CUDA_ARCH__: Compiling device code
 //   __GCUDACC__: Using gcudacc
 //   __NVCC__: Using nvcc
@@ -59,7 +60,7 @@ enum CacheConfig {
 
 namespace shared_mem_config {
 // A compatability-layer declaration of CUsharedconfig, needed to support
-// cuFuncSetSharedMemConfig/cudaDeviceSetSharedMemConfig. Declared here for
+// cuFuncSetSharedMemConfig/hipDeviceSetSharedMemConfig. Declared here for
 // compatability with pre-C++11 compilers.
 enum SharedMemConfig {
   // Indicates that the context's shared memory config should be used.
@@ -107,7 +108,7 @@ namespace gputools {
 // dimensions against the cudaConfigureCall() signature, and sits where a dim3
 // usually would in triple angle launches. This supports the kernel launch
 // dimension styles:
-//  kernel<<<1, 1>>>() and
+//  hipLaunchKernel(HIP_KERNEL_NAME(kernel), dim3(1), dim3(1), 0, 0, ) and
 //  kernel<<<BlockDim(...), ThreadDim(...)>>> and
 //  kernel<<<dim3(1), dim3(1)>>>
 // All of these are predicated upon implicit conversions, which are frowned upon
