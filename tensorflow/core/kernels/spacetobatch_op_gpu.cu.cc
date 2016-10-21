@@ -30,7 +30,7 @@ namespace tensorflow {
 typedef Eigen::GpuDevice GPUDevice;
 
 template <typename T>
-__global__ void S2B(
+__global__ void S2B(hipLaunchParm lp, 
     const int32 nthreads, const T* input_ptr,
     const int block_size, const int pad_top, const int pad_left,
     const int output_batch, const int output_height, const int output_width,
