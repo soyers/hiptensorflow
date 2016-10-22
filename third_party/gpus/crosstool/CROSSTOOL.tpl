@@ -121,6 +121,7 @@ toolchain {
 
   # Include directory for cuda headers.
   cxx_builtin_include_directory: "/usr/local/cuda%{cuda_version}/include"
+  cxx_builtin_include_directory: "/usr/local/cuda/include"
   cxx_builtin_include_directory: "/opt/rocm/hip/include"
 
   compilation_mode_flags {
