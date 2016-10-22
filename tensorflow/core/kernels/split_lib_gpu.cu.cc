@@ -91,8 +91,7 @@ struct SplitOpGPULaunch {
     CudaLaunchConfig config = GetCudaLaunchConfig(
         prefix_dim_size * split_dim_size * suffix_dim_size, d);
 
-    SplitOpKernel<
-        T><<<config.block_count, config.thread_per_block, 0, d.stream()>>>(
+   hipLaunchKernel(HIP_KERNEL_NAME(SplitOpKernel<T>), config.block_count, config.thread_per_block, 0, d.stream(),
         input, prefix_dim_size, split_dim_size, suffix_dim_size,
         output_ptr_data);
   }

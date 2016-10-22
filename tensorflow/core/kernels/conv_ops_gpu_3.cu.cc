@@ -333,8 +333,8 @@ struct TransformFilter<GPUDevice, T, int, NDIMS> {
     combined_dims[1] = in.dimension(NDIMS - 2);  // input filters
     combined_dims[2] = in.dimension(NDIMS - 1);  // output filters
     CudaLaunchConfig config = GetCudaLaunchConfig(out.size(), d);
-    SwapDimension0And2InTensor3<
-        T><<<config.block_count, config.thread_per_block, 0, d.stream()>>>(
+    hipLaunchKernel(HIP_KERNEL_NAME(SwapDimension0And2InTensor3<
+        T>), dim3(config.block_count), dim3(config.thread_per_block), 0, d.stream(), 
         config.virtual_thread_count, in.data(), combined_dims, out.data());
   }
 };
@@ -353,8 +353,7 @@ struct ReverseTransformFilter<GPUDevice, T, NDIMS> {
       combined_dims[2] *= in.dimension(i);
     }
     CudaLaunchConfig config = GetCudaLaunchConfig(out.size(), d);
-    SwapDimension0And2InTensor3<
-        T><<<config.block_count, config.thread_per_block, 0, d.stream()>>>(
+    hipLaunchKernel(HIP_KERNEL_NAME(SwapDimension0And2InTensor3<T>), dim3(config.block_count), dim3(config.thread_per_block), 0, d.stream(),
         config.virtual_thread_count, in.data(), combined_dims, out.data());
   }
 };
@@ -417,14 +416,13 @@ void RunSwapDimension1And2InTensor3(const GPUDevice& d, const T* input,
     };
     int total_tiles_count = input_dims_in_tiles[0] * input_dims_in_tiles[1] *
                             input_dims_in_tiles[2];
-    SwapDimension1And2InTensor3UsingTiles<
-        T, TileSize><<<total_tiles_count, TileSize, 0, d.stream()>>>(
+    hipLaunchKernel(HIP_KERNEL_NAME(SwapDimension1And2InTensor3UsingTiles<
+        T, TileSize>), total_tiles_count, TileSize, 0, d.stream(),
         input, input_dims, output);
   } else {
     int total_element_count = input_dims[0] * input_dims[1] * input_dims[2];
     CudaLaunchConfig config = GetCudaLaunchConfig(total_element_count, d);
-    SwapDimension1And2InTensor3<
-        T><<<config.block_count, config.thread_per_block, 0, d.stream()>>>(
+    hipLaunchKernel(HIP_KERNEL_NAME(SwapDimension1And2InTensor3<T>), config.block_count, config.thread_per_block, 0, d.stream(),
         config.virtual_thread_count, input, input_dims, output);
   }
 }

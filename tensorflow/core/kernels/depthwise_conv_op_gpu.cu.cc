@@ -122,8 +122,7 @@ struct DepthwiseConv2dGPULaunch {
         args.batch * args.out_rows * args.out_cols * args.out_depth;
     CudaLaunchConfig config = GetCudaLaunchConfig(num_outputs, d);
 
-    DepthwiseConv2dGPUKernel<
-        T><<<config.block_count, config.thread_per_block, 0, d.stream()>>>(
+    hipLaunchKernel(HIP_KERNEL_NAME(DepthwiseConv2dGPUKernel<T>), config.block_count, config.thread_per_block, 0, d.stream(),
         args, input, filter, output, num_outputs);
   }
 };
@@ -203,8 +202,7 @@ struct DepthwiseConv2dBackpropInputGPULaunch {
         args.batch * args.in_rows * args.in_cols * args.in_depth;
     CudaLaunchConfig config = GetCudaLaunchConfig(num_in_backprop, d);
 
-    DepthwiseConv2dBackpropInputGPUKernel<
-        T><<<config.block_count, config.thread_per_block, 0, d.stream()>>>(
+    hipLaunchKernel(HIP_KERNEL_NAME(DepthwiseConv2dBackpropInputGPUKernel<T>), config.block_count, config.thread_per_block, 0, d.stream(),
         args, out_backprop, filter, in_backprop, num_in_backprop);
   }
 };
@@ -314,8 +312,8 @@ struct DepthwiseConv2dBackpropFilterGPULaunch {
         args.batch * args.out_rows * args.out_cols * args.out_depth;
     CudaLaunchConfig config = GetCudaLaunchConfig(num_out_backprop, d);
 
-    DepthwiseConv2dBackpropFilterGPUKernel<
-        T><<<config.block_count, config.thread_per_block, 0, d.stream()>>>(
+    hipLaunchKernel(HIP_KERNEL_NAME(DepthwiseConv2dBackpropFilterGPUKernel<T>),
+        config.block_count, config.thread_per_block, 0, d.stream(),
         args, out_backprop, input, filter_backprop, num_out_backprop);
   }
 };

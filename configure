@@ -280,7 +280,7 @@ EOF
   TF_CUDA_COMPUTE_CAPABILITIES=""
 done
 
-bazel clean ##--expunge
+bazel clean --expunge
 bazel fetch //...
 
 echo "Configuration finished"
