@@ -26,7 +26,7 @@ limitations under the License.
 #include "tensorflow/core/framework/register_types.h"
 #include "tensorflow/core/framework/tensor_types.h"
 #include "tensorflow/core/kernels/cuda_device_array_gpu.h"
-#include "tensorflow/core/util/cuda_kernel_helper.h"
+#include "tensorflow/core/util/hip_kernel_helper.h"
 
 namespace tensorflow {
 namespace functor {
@@ -62,7 +62,7 @@ __global__ void SplitOpKernel(hipLaunchParm lp, const T* input, int32 prefix_dim
   int32 size = prefix_dim_size * split_dim_size * suffix_dim_size;
   int32 piece_size = split_dim_size / num_split;
 
-  CUDA_1D_KERNEL_LOOP(offset, size) {
+  HIP_1D_KERNEL_LOOP(offset, size) {
     // Calculate the index into input from offset.
     int32 i = offset / (split_dim_size * suffix_dim_size);
     int32 j = (offset % (split_dim_size * suffix_dim_size)) / suffix_dim_size;

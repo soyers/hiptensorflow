@@ -24,7 +24,7 @@ limitations under the License.
 
 #include "tensorflow/core/framework/register_types.h"
 #include "tensorflow/core/kernels/conv_2d.h"
-#include "tensorflow/core/util/cuda_kernel_helper.h"
+#include "tensorflow/core/util/hip_kernel_helper.h"
 #include "tensorflow/core/util/tensor_format.h"
 
 namespace tensorflow {
@@ -135,7 +135,7 @@ __global__ void SwapDimension0And2InTensor3(hipLaunchParm lp, int nthreads, cons
   output_dims[1] = input_dims[1];
   output_dims[2] = input_dims[0];
 
-  CUDA_1D_KERNEL_LOOP(index, nthreads) {
+  HIP_1D_KERNEL_LOOP(index, nthreads) {
     int output_index = index;
 
     Index<3> output_tensor_index = FlatToTensorIndex(output_index, output_dims);
@@ -161,7 +161,7 @@ __global__ void SwapDimension1And2InTensor3(hipLaunchParm lp, int nthreads, cons
   output_dims[1] = input_dims[2];
   output_dims[2] = input_dims[1];
 
-  CUDA_1D_KERNEL_LOOP(index, nthreads) {
+  HIP_1D_KERNEL_LOOP(index, nthreads) {
     int output_index = index;
     Index<3> output_tensor_index = FlatToTensorIndex(output_index, output_dims);
 
@@ -264,7 +264,7 @@ __global__ void PadInputCustomKernelNHWC(hipLaunchParm lp, int nthreads, const T
                                          Dimension<NDIMS> input_dims, T* output,
                                          Dimension<NDIMS> output_dims,
                                          Dimension<NDIMS - 2> padding_left) {
-  CUDA_1D_KERNEL_LOOP(index, nthreads) {
+  HIP_1D_KERNEL_LOOP(index, nthreads) {
     int output_index = index;
     Index<NDIMS> output_tensor_index =
         FlatToTensorIndex(output_index, output_dims);
@@ -293,7 +293,7 @@ __global__ void PadInputCustomKernelNCHW(hipLaunchParm lp, int nthreads, const T
                                          Dimension<NDIMS> input_dims, T* output,
                                          Dimension<NDIMS> output_dims,
                                          Dimension<NDIMS - 2> padding_left) {
-  CUDA_1D_KERNEL_LOOP(index, nthreads) {
+  HIP_1D_KERNEL_LOOP(index, nthreads) {
     int output_index = index;
     Index<NDIMS> output_tensor_index =
         FlatToTensorIndex(output_index, output_dims);

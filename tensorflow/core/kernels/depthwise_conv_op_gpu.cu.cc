@@ -21,7 +21,7 @@ limitations under the License.
 #include "tensorflow/core/kernels/depthwise_conv_op.h"
 #include "third_party/eigen3/unsupported/Eigen/CXX11/Tensor"
 #include "tensorflow/core/platform/types.h"
-#include "tensorflow/core/util/cuda_kernel_helper.h"
+#include "tensorflow/core/util/hip_kernel_helper.h"
 
 #define UNROLL _Pragma("unroll")
 
@@ -49,7 +49,7 @@ __global__ void DepthwiseConv2dGPUKernel(hipLaunchParm lp, const DepthwiseArgs a
   const int out_cols = args.out_cols;
   const int out_depth = args.out_depth;
 
-  CUDA_1D_KERNEL_LOOP(thread_id, num_outputs) {
+  HIP_1D_KERNEL_LOOP(thread_id, num_outputs) {
     // Compute the indexes of this thread in the output.
     const int OD = thread_id % out_depth;
     const int OC = (thread_id / out_depth) % out_cols;
@@ -150,7 +150,7 @@ __global__ void DepthwiseConv2dBackpropInputGPUKernel(hipLaunchParm lp, const De
   const int out_cols = args.out_cols;
   const int out_depth = args.out_depth;
 
-  CUDA_1D_KERNEL_LOOP(thread_id, num_in_backprop) {
+  HIP_1D_KERNEL_LOOP(thread_id, num_in_backprop) {
     // Compute the indexes of this thread in the output.
     const int in_d = thread_id % in_depth;
     const int in_c = (thread_id / in_depth) % in_cols;
@@ -230,7 +230,7 @@ __global__ void DepthwiseConv2dBackpropFilterGPUKernel(hipLaunchParm lp, const D
   const int out_cols = args.out_cols;
   const int out_depth = args.out_depth;
 
-  CUDA_1D_KERNEL_LOOP(thread_id, num_out_backprop) {
+  HIP_1D_KERNEL_LOOP(thread_id, num_out_backprop) {
     // Compute the indexes of this thread in the output.
     const int out_d = thread_id % out_depth;
     const int out_c = (thread_id / out_depth) % out_cols;

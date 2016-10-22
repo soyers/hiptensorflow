@@ -29,7 +29,7 @@ limitations under the License.
 #include "tensorflow/core/kernels/random_op.h"
 #include "tensorflow/core/lib/random/philox_random.h"
 #include "tensorflow/core/lib/random/random_distributions.h"
-#include "tensorflow/core/util/cuda_kernel_helper.h"
+#include "tensorflow/core/util/hip_kernel_helper.h"
 
 namespace tensorflow {
 
@@ -42,7 +42,7 @@ using GPUDevice = Eigen::GpuDevice;
 __global__ void MultinomialKernel(hipLaunchParm lp, int32 nthreads, const int32 num_classes,
                                   const int32 num_samples, const float* scores,
                                   const float* maxima, int64* output) {
-  CUDA_1D_KERNEL_LOOP(index, nthreads) {
+  HIP_1D_KERNEL_LOOP(index, nthreads) {
     const int maxima_idx = index / num_classes;
     if (ldg(maxima + maxima_idx) == ldg(scores + index)) {
       CudaAtomicMax(reinterpret_cast<uint64*>(output + maxima_idx),

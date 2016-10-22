@@ -22,7 +22,7 @@ limitations under the License.
 #include "tensorflow/core/kernels/gather_op.h"
 #include "tensorflow/core/framework/register_types.h"
 #include "tensorflow/core/platform/types.h"
-#include "tensorflow/core/util/cuda_kernel_helper.h"
+#include "tensorflow/core/util/hip_kernel_helper.h"
 
 namespace tensorflow {
 
@@ -33,7 +33,7 @@ __global__ void GatherOpKernel(hipLaunchParm lp, const T* params, const Index* i
                                int64 first_dim_size, int64 indices_size,
                                int64 out_size) {
   const int32 slice_size = out_size / indices_size;
-  CUDA_1D_KERNEL_LOOP(i, out_size) {
+  HIP_1D_KERNEL_LOOP(i, out_size) {
     Index indices_i = i / slice_size;
     Index indices_slice_i = i - indices_i * slice_size;
     Index params_first_index = ldg(indices + indices_i);

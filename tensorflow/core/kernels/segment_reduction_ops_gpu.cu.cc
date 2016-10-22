@@ -24,7 +24,7 @@ limitations under the License.
 #include <stdio.h>
 
 #include "tensorflow/core/framework/register_types.h"
-#include "tensorflow/core/util/cuda_kernel_helper.h"
+#include "tensorflow/core/util/hip_kernel_helper.h"
 
 namespace tensorflow {
 
@@ -40,7 +40,7 @@ __global__ void UnsortedSegmentSumCustomKernel(hipLaunchParm lp,
     T* output) {
   const Index input_total_size = input_outer_dim_size * inner_dim_size;
   const Index output_total_size = output_outer_dim_size * inner_dim_size;
-  CUDA_1D_KERNEL_LOOP(input_index, input_total_size) {
+  HIP_1D_KERNEL_LOOP(input_index, input_total_size) {
     const Index input_segment_index = input_index / inner_dim_size;
     const Index segment_offset = input_index % inner_dim_size;
     const Index output_segment_index = segment_ids[input_segment_index];

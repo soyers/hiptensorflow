@@ -29,7 +29,7 @@ limitations under the License.
 #include "tensorflow/core/framework/register_types.h"
 #include "tensorflow/core/framework/tensor_types.h"
 #include "tensorflow/core/platform/types.h"
-#include "tensorflow/core/util/cuda_kernel_helper.h"
+#include "tensorflow/core/util/hip_kernel_helper.h"
 
 namespace tensorflow {
 
@@ -45,7 +45,7 @@ __global__ void DilationKernel(hipLaunchParm lp, const int32 nthreads, const T* 
                                int output_cols, int stride_rows,
                                int stride_cols, int rate_rows, int rate_cols,
                                int pad_top, int pad_left, T* output_ptr) {
-  CUDA_1D_KERNEL_LOOP(out_idx, nthreads) {
+  HIP_1D_KERNEL_LOOP(out_idx, nthreads) {
     // out_idx = d + depth * (w_out + output_cols * (h_out + output_rows * b))
     const int d = out_idx % depth;
     const int out_idx2 = out_idx / depth;
@@ -85,7 +85,7 @@ __global__ void DilationBackpropInputKernel(hipLaunchParm lp,
     int depth, int filter_rows, int filter_cols, int output_rows,
     int output_cols, int stride_rows, int stride_cols, int rate_rows,
     int rate_cols, int pad_top, int pad_left, T* in_backprop_ptr) {
-  CUDA_1D_KERNEL_LOOP(out_idx, nthreads) {
+  HIP_1D_KERNEL_LOOP(out_idx, nthreads) {
     // out_idx = d + depth * (w_out + output_cols * (h_out + output_rows * b))
     const int d = out_idx % depth;
     const int out_idx2 = out_idx / depth;
@@ -135,7 +135,7 @@ __global__ void DilationBackpropFilterKernel(hipLaunchParm lp,
     int depth, int filter_rows, int filter_cols, int output_rows,
     int output_cols, int stride_rows, int stride_cols, int rate_rows,
     int rate_cols, int pad_top, int pad_left, T* filter_backprop_ptr) {
-  CUDA_1D_KERNEL_LOOP(out_idx, nthreads) {
+  HIP_1D_KERNEL_LOOP(out_idx, nthreads) {
     // out_idx = d + depth * (w_out + output_cols * (h_out + output_rows * b))
     const int d = out_idx % depth;
     const int out_idx2 = out_idx / depth;

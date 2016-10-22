@@ -22,7 +22,7 @@ limitations under the License.
 #include "tensorflow/core/framework/register_types.h"
 #include "tensorflow/core/kernels/gather_nd_op.h"
 #include "tensorflow/core/platform/types.h"
-#include "tensorflow/core/util/cuda_kernel_helper.h"
+#include "tensorflow/core/util/hip_kernel_helper.h"
 
 namespace tensorflow {
 
@@ -36,7 +36,7 @@ __global__ void GatherSliceOpKernel(hipLaunchParm lp,
     const int64 slice_size, const int64 out_size) {
   // TODO(ebrevdo): reduce inner loop into two loops:
   // one over the number of locs, and one over the offsets inside the locs.
-  CUDA_1D_KERNEL_LOOP(i, out_size) {
+  HIP_1D_KERNEL_LOOP(i, out_size) {
     const Index loc = i / slice_size;
     const auto indices_i = indices + IXDIM * loc;
     bool out_of_bounds = false;

@@ -26,7 +26,7 @@ limitations under the License.
 
 #include "tensorflow/core/framework/register_types.h"
 #include "tensorflow/core/framework/tensor_types.h"
-#include "tensorflow/core/util/cuda_kernel_helper.h"
+#include "tensorflow/core/util/hip_kernel_helper.h"
 
 namespace tensorflow {
 
@@ -49,7 +49,7 @@ __global__ void AvePoolBackwardNHWC(hipLaunchParm lp, const int nthreads,
                                     const int kernel_w, const int stride_h,
                                     const int stride_w, const int pad_t,
                                     const int pad_l, dtype* const bottom_diff) {
-  CUDA_1D_KERNEL_LOOP(index, nthreads) {
+  HIP_1D_KERNEL_LOOP(index, nthreads) {
     // find out the local index
     // find out the local offset
     const int c = index % channels;

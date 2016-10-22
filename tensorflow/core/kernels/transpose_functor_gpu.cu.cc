@@ -21,7 +21,7 @@ limitations under the License.
 
 #include "third_party/eigen3/unsupported/Eigen/CXX11/Tensor"
 #include "tensorflow/core/kernels/transpose_functor.h"
-#include "tensorflow/core/util/cuda_kernel_helper.h"
+#include "tensorflow/core/util/hip_kernel_helper.h"
 
 namespace tensorflow {
 namespace internal {
@@ -32,7 +32,7 @@ __global__ void TransposeKernel(hipLaunchParm lp, int nthreads, const T* src, co
   const int32* in_strides = buf;
   const int32* out_strides = buf + ndims;
   const int32* perm = buf + ndims * 2;
-  CUDA_1D_KERNEL_LOOP(o_idx, nthreads) {
+  HIP_1D_KERNEL_LOOP(o_idx, nthreads) {
     int32 i_idx = 0;
     int32 t = o_idx;
     for (int i = 0; i < ndims; ++i) {

@@ -15,8 +15,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#ifndef TENSORFLOW_CORE_UTIL_CUDA_KERNEL_HELPER_H_
-#define TENSORFLOW_CORE_UTIL_CUDA_KERNEL_HELPER_H_
+#ifndef TENSORFLOW_CORE_UTIL_HIP_KERNEL_HELPER_H_
+#define TENSORFLOW_CORE_UTIL_HIP_KERNEL_HELPER_H_
 
 #if GOOGLE_CUDA
 
@@ -26,7 +26,7 @@ limitations under the License.
 #include "third_party/eigen3/unsupported/Eigen/CXX11/Tensor"
 #include "tensorflow/core/platform/types.h"
 
-#define CUDA_1D_KERNEL_LOOP(i, n)                            \
+#define HIP_1D_KERNEL_LOOP(i, n)                            \
   for (int i = hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x; i < n; \
        i += hipBlockDim_x * hipGridDim_x)
 
@@ -207,7 +207,7 @@ CUDA_ATOMIC_WRAPPER(Add, Eigen::half) {
 
 template <typename T>
 __global__ void SetZero(hipLaunchParm lp, const int nthreads, T* bottom_diff) {
-  CUDA_1D_KERNEL_LOOP(index, nthreads) { *(bottom_diff + index) = T(0); }
+  HIP_1D_KERNEL_LOOP(index, nthreads) { *(bottom_diff + index) = T(0); }
 }
 
 // For atomicSub.
@@ -241,4 +241,4 @@ EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE T tf_max(const T& x, const T& y) {
 
 #endif  // GOOGLE_CUDA
 
-#endif  // TENSORFLOW_CORE_UTIL_CUDA_KERNEL_HELPER_H_
+#endif  // TENSORFLOW_CORE_UTIL_HIP_KERNEL_HELPER_H_

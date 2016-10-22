@@ -23,7 +23,7 @@ limitations under the License.
 
 #include "tensorflow/core/framework/tensor_types.h"
 #include "tensorflow/core/platform/types.h"
-#include "tensorflow/core/util/cuda_kernel_helper.h"
+#include "tensorflow/core/util/hip_kernel_helper.h"
 
 namespace tensorflow {
 
@@ -36,7 +36,7 @@ __global__ void S2B(hipLaunchParm lp,
     const int output_batch, const int output_height, const int output_width,
     const int depth, const int input_batch, const int input_height,
     const int input_width, T* output_ptr) {
-  CUDA_1D_KERNEL_LOOP(out_idx, nthreads) {
+  HIP_1D_KERNEL_LOOP(out_idx, nthreads) {
     // out_idx = d + depth * (w + output_width * (h + output_height * b))
     const int d = out_idx % depth;
     const int out_idx2 = out_idx / depth;

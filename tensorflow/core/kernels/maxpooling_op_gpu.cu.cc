@@ -26,7 +26,7 @@ limitations under the License.
 #include "tensorflow/core/framework/tensor_types.h"
 #include "tensorflow/core/kernels/maxpooling_op.h"
 #include "tensorflow/core/kernels/maxpooling_op_gpu.h"
-#include "tensorflow/core/util/cuda_kernel_helper.h"
+#include "tensorflow/core/util/hip_kernel_helper.h"
 
 namespace tensorflow {
 namespace {
@@ -60,7 +60,7 @@ __global__ void MaxPoolForwardNCHW(hipLaunchParm lp, const int nthreads, const d
                                    const int stride_w, const int pad_t,
                                    const int pad_l, dtype* top_data,
                                    int64* mask) {
-  CUDA_1D_KERNEL_LOOP(index, nthreads) {
+  HIP_1D_KERNEL_LOOP(index, nthreads) {
     int pw = index % pooled_width;
     int ph = (index / pooled_width) % pooled_height;
     int c = (index / pooled_width / pooled_height) % channels;
@@ -99,7 +99,7 @@ __global__ void MaxPoolForwardNHWC(hipLaunchParm lp, const int nthreads, const d
                                    const int stride_w, const int pad_t,
                                    const int pad_l, dtype* top_data,
                                    int64* mask) {
-  CUDA_1D_KERNEL_LOOP(index, nthreads) {
+  HIP_1D_KERNEL_LOOP(index, nthreads) {
     int n = index;
     int c = n % channels;
     n /= channels;
@@ -137,7 +137,7 @@ __global__ void MaxPoolBackwardNoMaskNHWC(hipLaunchParm lp,
     const int pooled_width, const int kernel_h, const int kernel_w,
     const int stride_h, const int stride_w, const int pad_t, const int pad_l,
     const dtype* top_diff, dtype* bottom_diff) {
-  CUDA_1D_KERNEL_LOOP(index, nthreads) {
+  HIP_1D_KERNEL_LOOP(index, nthreads) {
     // First find out the index to the maximum, since we have no mask.
     int n = index;
     int c = n % channels;
@@ -193,14 +193,14 @@ template <typename dtype>
 __global__ void MaxPoolBackward(hipLaunchParm lp, const int nthreads, const dtype* top_diff,
                                 const int64* mask, const int top_offset,
                                 const int bottom_offset, dtype* bottom_diff) {
-  CUDA_1D_KERNEL_LOOP(index, nthreads) {
+  HIP_1D_KERNEL_LOOP(index, nthreads) {
     int image_id = (index / top_offset);
     CudaAtomicAdd(bottom_diff + image_id * bottom_offset + mask[index],
                   top_diff[index]);
   }
 }
 
-#undef CUDA_1D_KERNEL_LOOP
+#undef HIP_1D_KERNEL_LOOP
 }  // namespace
 
 bool MaxPoolForwardWithOptionalArgmax(

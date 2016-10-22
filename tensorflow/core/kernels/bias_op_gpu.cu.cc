@@ -24,7 +24,7 @@ limitations under the License.
 #include "tensorflow/core/framework/register_types.h"
 #include "tensorflow/core/kernels/bias_op.h"
 #include "tensorflow/core/kernels/bias_op_gpu.h"
-#include "tensorflow/core/util/cuda_kernel_helper.h"
+#include "tensorflow/core/util/hip_kernel_helper.h"
 
 namespace tensorflow {
 
@@ -49,7 +49,7 @@ struct AccumulatorType<Eigen::half> {
 template <typename T>
 __global__ void BiasNHWCKernel(hipLaunchParm lp, int32 nthreads, const T* input, const T* bias,
                                T* output, int32 bias_size) {
-  CUDA_1D_KERNEL_LOOP(index, nthreads) {
+  HIP_1D_KERNEL_LOOP(index, nthreads) {
     int32 bias_offset = index % bias_size;
     output[index] = ldg(input + index) + ldg(bias + bias_offset);
   }
@@ -58,7 +58,7 @@ __global__ void BiasNHWCKernel(hipLaunchParm lp, int32 nthreads, const T* input,
 template <typename T>
 __global__ void BiasNCHWKernel(hipLaunchParm lp, int32 nthreads, const T* input, const T* bias,
                                T* output, int32 bias_size, int32 image_size) {
-  CUDA_1D_KERNEL_LOOP(index, nthreads) {
+  HIP_1D_KERNEL_LOOP(index, nthreads) {
     int32 index2 = index / image_size;
     int32 bias_offset = index2 % bias_size;
     output[index] = ldg(input + index) + ldg(bias + bias_offset);
@@ -92,7 +92,7 @@ void BiasGPU<T>::compute(const GPUDevice& d, const T* input, const T* bias,
 template <typename T>
 __global__ void BiasGradNHWC_Naive(hipLaunchParm lp, int32 nthreads, const T* output_backprop,
                                    T* bias_backprop, int32 bias_size) {
-  CUDA_1D_KERNEL_LOOP(index, nthreads) {
+  HIP_1D_KERNEL_LOOP(index, nthreads) {
     int32 bias_offset = index % bias_size;
     CudaAtomicAdd(bias_backprop + bias_offset, ldg(output_backprop + index));
   }
@@ -103,7 +103,7 @@ template <typename T>
 __global__ void BiasGradNCHW_Naive(hipLaunchParm lp, int32 nthreads, const T* output_backprop,
                                    T* bias_backprop, int32 bias_size,
                                    int32 image_size) {
-  CUDA_1D_KERNEL_LOOP(index, nthreads) {
+  HIP_1D_KERNEL_LOOP(index, nthreads) {
     int32 index2 = index / image_size;
     int32 bias_offset = index2 % bias_size;
     CudaAtomicAdd(bias_backprop + bias_offset, ldg(output_backprop + index));

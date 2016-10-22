@@ -25,7 +25,7 @@ limitations under the License.
 
 #include "tensorflow/core/framework/register_types.h"
 #include "tensorflow/core/framework/tensor_types.h"
-#include "tensorflow/core/util/cuda_kernel_helper.h"
+#include "tensorflow/core/util/hip_kernel_helper.h"
 
 namespace tensorflow {
 namespace {
@@ -36,7 +36,7 @@ __global__ void ResizeNearestNeighborNHWC(hipLaunchParm lp, const int nthreads, 
                                           const int channels, const int out_height,
                                           const int out_width, const float height_scale,
                                           const float width_scale, T* top_data) {
-  CUDA_1D_KERNEL_LOOP(index, nthreads) {
+  HIP_1D_KERNEL_LOOP(index, nthreads) {
     int n = index;
     int c = n % channels;
     n /= channels;
@@ -60,7 +60,7 @@ __global__ void ResizeNearestNeighborBackwardNHWC(hipLaunchParm lp,
                                    const int channels, const int out_height,
                                    const int out_width, const float height_scale,
                                    const float width_scale, T* bottom_diff) {
-  CUDA_1D_KERNEL_LOOP(index, nthreads) {
+  HIP_1D_KERNEL_LOOP(index, nthreads) {
     int n = index;
     int c = n % channels;
     n /= channels;

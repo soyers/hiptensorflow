@@ -264,7 +264,7 @@ tf_cuda_library(
         "framework/types.h",
         "public/version.h",
         "util/bcast.h",
-        "util/cuda_kernel_helper.h",
+        "util/hip_kernel_helper.h",
         "util/device_name_utils.h",
         "util/events_writer.h",
         "util/example_proto_fast_parsing.h",

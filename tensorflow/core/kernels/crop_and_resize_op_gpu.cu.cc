@@ -26,7 +26,7 @@ limitations under the License.
 #include "tensorflow/core/framework/register_types.h"
 #include "tensorflow/core/framework/tensor_types.h"
 #include "tensorflow/core/platform/types.h"
-#include "tensorflow/core/util/cuda_kernel_helper.h"
+#include "tensorflow/core/util/hip_kernel_helper.h"
 
 namespace tensorflow {
 
@@ -40,7 +40,7 @@ __global__ void CropAndResizeKernel(hipLaunchParm lp,
     const int32* box_ind_ptr, int num_boxes, int batch, int image_height,
     int image_width, int crop_height, int crop_width, int depth,
     float extrapolation_value, float* crops_ptr) {
-  CUDA_1D_KERNEL_LOOP(out_idx, nthreads) {
+  HIP_1D_KERNEL_LOOP(out_idx, nthreads) {
     // out_idx = d + depth * (w + crop_width * (h + crop_height * b))
     int idx = out_idx;
     const int d = idx % depth;
@@ -122,7 +122,7 @@ __global__ void CropAndResizeBackpropImageKernel(hipLaunchParm lp,
     const int32* box_ind_ptr, int num_boxes, int batch, int image_height,
     int image_width, int crop_height, int crop_width, int depth,
     T* grads_image_ptr) {
-  CUDA_1D_KERNEL_LOOP(out_idx, nthreads) {
+  HIP_1D_KERNEL_LOOP(out_idx, nthreads) {
     // out_idx = d + depth * (w + crop_width * (h + crop_height * b))
     int idx = out_idx;
     const int d = idx % depth;
@@ -206,7 +206,7 @@ __global__ void CropAndResizeBackpropBoxesKernel(hipLaunchParm lp,
     const float* boxes_ptr, const int32* box_ind_ptr, int num_boxes, int batch,
     int image_height, int image_width, int crop_height, int crop_width,
     int depth, float* grads_boxes_ptr) {
-  CUDA_1D_KERNEL_LOOP(out_idx, nthreads) {
+  HIP_1D_KERNEL_LOOP(out_idx, nthreads) {
     // out_idx = d + depth * (w + crop_width * (h + crop_height * b))
     int idx = out_idx;
     const int d = idx % depth;

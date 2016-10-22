@@ -23,7 +23,7 @@ limitations under the License.
 
 #include "tensorflow/core/framework/tensor_types.h"
 #include "tensorflow/core/platform/types.h"
-#include "tensorflow/core/util/cuda_kernel_helper.h"
+#include "tensorflow/core/util/hip_kernel_helper.h"
 
 namespace tensorflow {
 
@@ -34,7 +34,7 @@ __global__ void ScatterOpCustomKernel(hipLaunchParm lp,
     T* params, const T* updates, const Index* indices,
     Index first_dim_size, Index updates_size, Index indices_size) {
   Index update_block = updates_size / indices_size;
-  CUDA_1D_KERNEL_LOOP(i, updates_size) {
+  HIP_1D_KERNEL_LOOP(i, updates_size) {
     int indices_i = i / update_block;
     int updates_i = i;
     int param_first_index = indices[indices_i];
