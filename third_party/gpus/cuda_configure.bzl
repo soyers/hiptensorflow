@@ -374,7 +374,7 @@ def _create_cuda_repository(repository_ctx):
   # level not at the directory level. This is because the external library may
   # have a different file layout from our desired structure.
   _symlink_dir(repository_ctx, cuda_toolkit_path + "/include", "cuda/include")
-  _symlink_dir(repository_ctx, "/opt/rocm/hip/include", "cuda/include/hip")
+  _symlink_dir(repository_ctx, "/opt/rocm/hip/include", "cuda/include/")
   _symlink_dir(repository_ctx,
                cuda_toolkit_path + "/" + symlink_files.cuda_lib_path,
                "cuda/" + symlink_files.cuda_lib_path)
