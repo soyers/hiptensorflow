@@ -197,6 +197,7 @@ def _cuda_symlink_files(cpu_value, cuda_version, cudnn_version):
         cuda_dnn_lib_alt = "libcudnn.so%s" % cudnn_ext,
         cuda_rand_lib = "lib64/libcurand.so%s" % cuda_ext,
         cuda_fft_lib = "lib64/libcufft.so%s" % cuda_ext,
+	hip_fft_lib = "fft/libhipfft_nvcc.so",
         cuda_cupti_lib = "extras/CUPTI/lib64/libcupti.so%s" % cuda_ext)
   elif cpu_value == "Darwin":
     return struct(
@@ -375,9 +376,12 @@ def _create_cuda_repository(repository_ctx):
   # have a different file layout from our desired structure.
   _symlink_dir(repository_ctx, cuda_toolkit_path + "/include", "cuda/include")
   _symlink_dir(repository_ctx, "/opt/rocm/hip/include", "cuda/include/hip")
+  _symlink_dir(repository_ctx, "/opt/san/fft/include", "cuda/include/hip")
   _symlink_dir(repository_ctx,
                cuda_toolkit_path + "/" + symlink_files.cuda_lib_path,
                "cuda/" + symlink_files.cuda_lib_path)
+  _symlink_dir(repository_ctx, "/opt/san/fft", 
+    	       "cuda/" + symlink_files.hip_fft_lib)
   _symlink_dir(repository_ctx, cuda_toolkit_path + "/bin", "cuda/bin")
   _symlink_dir(repository_ctx, "/opt/rocm/hip/bin", "cuda/bin")
   _symlink_dir(repository_ctx, cuda_toolkit_path + "/nvvm", "cuda/nvvm")

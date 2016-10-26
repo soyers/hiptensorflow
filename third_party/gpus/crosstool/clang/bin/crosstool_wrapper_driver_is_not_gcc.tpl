@@ -47,11 +47,10 @@ import pipes
 
 # Template values set by cuda_autoconf.
 CPU_COMPILER = ('%{cpu_compiler}')
-GCC_HOST_COMPILER_PATH = ('%{gcc_host_compiler_path}')
-
 CURRENT_DIR = os.path.dirname(sys.argv[0])
+GCC_HOST_COMPILER_PATH = CURRENT_DIR + '/../../../cuda/bin/hipcc'
 NVCC_PATH = CURRENT_DIR + '/../../../cuda/bin/hipcc'
-LLVM_HOST_COMPILER_PATH = ('/usr/bin/gcc')
+LLVM_HOST_COMPILER_PATH = CURRENT_DIR + '/../../../cuda/bin/hipcc'
 PREFIX_DIR = os.path.dirname(GCC_HOST_COMPILER_PATH)
 
 def Log(s):

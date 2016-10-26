@@ -63,8 +63,8 @@ string GetCudnnVersion() { return TF_CUDNN_VERSION; }
 
 /* static */ port::Status DsoLoader::GetCufftDsoHandle(void** dso_handle) {
   return GetDsoHandle(FindDsoPath(tensorflow::internal::FormatLibraryFileName(
-                                      "cufft", GetCudaVersion()),
-                                  GetCudaLibraryDirPath()),
+                                      "cufft", ""),
+                                  GetHipLibraryDirPath()),
                       dso_handle);
 }
 
@@ -196,6 +196,14 @@ static std::vector<string>* CreatePrimordialRpaths() {
   return "external/local_config_cuda/cuda/lib";
 #else
   return "external/local_config_cuda/cuda/lib64";
+#endif
+}
+
+/* static */ string DsoLoader::GetHipLibraryDirPath() {
+#if defined(__APPLE__)
+  return "external/local_config_cuda/cuda/fft";
+#else
+  return "external/local_config_cuda/cuda/fft";
 #endif
 }
 
