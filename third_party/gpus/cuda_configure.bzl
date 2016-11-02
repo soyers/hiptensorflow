@@ -22,6 +22,8 @@ _TF_CUDA_VERSION = "TF_CUDA_VERSION"
 _TF_CUDNN_VERSION = "TF_CUDNN_VERSION"
 _CUDNN_INSTALL_PATH = "CUDNN_INSTALL_PATH"
 _TF_CUDA_COMPUTE_CAPABILITIES = "TF_CUDA_COMPUTE_CAPABILITIES"
+_HIPFFT_SO_PATH = "HIPFFT_SO_PATH"
+_HIPFFT_INCLUDE_PATH = "HIPFFT_INCLUDE_PATH"
 
 _DEFAULT_CUDA_VERSION = ""
 _DEFAULT_CUDNN_VERSION = ""
@@ -197,7 +199,7 @@ def _cuda_symlink_files(cpu_value, cuda_version, cudnn_version):
         cuda_dnn_lib_alt = "libcudnn.so%s" % cudnn_ext,
         cuda_rand_lib = "lib64/libcurand.so%s" % cuda_ext,
         cuda_fft_lib = "lib64/libcufft.so%s" % cuda_ext,
-	hip_fft_lib = "fft/libhipfft_nvcc.so",
+ 	hip_fft_lib = "fft/libhipfft_nvcc.so",
         cuda_cupti_lib = "extras/CUPTI/lib64/libcupti.so%s" % cuda_ext)
   elif cpu_value == "Darwin":
     return struct(
@@ -374,14 +376,24 @@ def _create_cuda_repository(repository_ctx):
   # Set up symbolic links for the cuda toolkit. We link at the individual file
   # level not at the directory level. This is because the external library may
   # have a different file layout from our desired structure.
+
+  if _HIPFFT_SO_PATH in repository_ctx.os.environ:
+    hipfft_so_path = repository_ctx.os.environ[_HIPFFT_SO_PATH].strip()
+  if not repository_ctx.path(hipfft_so_path).exists:
+    auto_configure_fail("Cannot find libhipfft.so path.")
+  if _HIPFFT_INCLUDE_PATH in repository_ctx.os.environ:
+    hipfft_include_path = repository_ctx.os.environ[_HIPFFT_INCLUDE_PATH].strip()
+  if not repository_ctx.path(hipfft_include_path).exists:
+    auto_configure_fail("Cannot find hipfft include path.")
+
   _symlink_dir(repository_ctx, cuda_toolkit_path + "/include", "cuda/include")
-  _symlink_dir(repository_ctx, "/opt/rocm/hip/include", "cuda/include/hip")
-  _symlink_dir(repository_ctx, "/opt/san/fft/include", "cuda/include/hip")
+  _symlink_dir(repository_ctx, "/opt/rocm/hip/include", "cuda/include")
+  _symlink_dir(repository_ctx, hipfft_include_path, "cuda/include")
   _symlink_dir(repository_ctx,
                cuda_toolkit_path + "/" + symlink_files.cuda_lib_path,
                "cuda/" + symlink_files.cuda_lib_path)
-  _symlink_dir(repository_ctx, "/opt/san/fft", 
-    	       "cuda/" + symlink_files.hip_fft_lib)
+  _symlink_dir(repository_ctx, hipfft_so_path,
+               "cuda/" + symlink_files.hip_fft_lib)
   _symlink_dir(repository_ctx, cuda_toolkit_path + "/bin", "cuda/bin")
   _symlink_dir(repository_ctx, "/opt/rocm/hip/bin", "cuda/bin")
   _symlink_dir(repository_ctx, cuda_toolkit_path + "/nvvm", "cuda/nvvm")

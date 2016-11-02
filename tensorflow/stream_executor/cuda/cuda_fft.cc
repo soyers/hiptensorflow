@@ -282,18 +282,18 @@ bool CUDAFft::DoFftWithDirectionInternal(Stream *stream, fft::Plan *plan,
                       const DeviceMemory<std::complex<__type>> &input,         \
                       DeviceMemory<std::complex<__type>> *output) {            \
     return DoFftWithDirectionInternal(                                         \
-        stream, plan, dynload::cufftExec##__fft_type1, input, output);         \
+        stream, plan, dynload::hipfftExec##__fft_type1, input, output);         \
   }                                                                            \
   bool CUDAFft::DoFft(Stream *stream, fft::Plan *plan,                         \
                       const DeviceMemory<__type> &input,                       \
                       DeviceMemory<std::complex<__type>> *output) {            \
-    return DoFftInternal(stream, plan, dynload::cufftExec##__fft_type2, input, \
+    return DoFftInternal(stream, plan, dynload::hipfftExec##__fft_type2, input, \
                          output);                                              \
   }                                                                            \
   bool CUDAFft::DoFft(Stream *stream, fft::Plan *plan,                         \
                       const DeviceMemory<std::complex<__type>> &input,         \
                       DeviceMemory<__type> *output) {                          \
-    return DoFftInternal(stream, plan, dynload::cufftExec##__fft_type3, input, \
+    return DoFftInternal(stream, plan, dynload::hipfftExec##__fft_type3, input, \
                          output);                                              \
   }
 
