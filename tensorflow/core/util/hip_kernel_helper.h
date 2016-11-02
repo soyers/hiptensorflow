@@ -68,7 +68,7 @@ inline CudaLaunchConfig GetCudaLaunchConfig(int work_element_count,
 
 template <typename T>
 __device__ __host__ inline T ldg(const T* address) {
-#if defined(__CUDA_ARCH__) && __CUDA_ARCH__ >= 350
+#if (__HIP_DEVICE_COMPILE__ == 1) && defined(__HIP_ARCH_HAS_DYNAMIC_PARALLEL__) && defined(__HIP_ARCH_HAS_WARP_FUNNEL_SHIFT__)
   return __ldg(address);
 #else
   return *address;
@@ -98,7 +98,7 @@ USE_CUDA_ATOMIC(Add, float);
 // For atomicMax.
 USE_CUDA_ATOMIC(Max, int32);
 USE_CUDA_ATOMIC(Max, uint32);
-#if defined(__CUDA_ARCH__) && __CUDA_ARCH__ >= 350
+#if (__HIP_DEVICE_COMPILE__ == 1) && defined(__HIP_ARCH_HAS_DYNAMIC_PARALLEL__) && defined(__HIP_ARCH_HAS_WARP_FUNNEL_SHIFT__)
 USE_CUDA_ATOMIC(Max, uint64);
 #else
 // The uint64 overload of atomicMax() is only available for __CUDA_ARCH__ >=

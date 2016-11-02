@@ -23,7 +23,7 @@ limitations under the License.
 
 // Symbol glossary:
 //   __HIPCC__: CUDA capable compiler, compiling host or device
-//   __CUDA_ARCH__: Compiling device code
+//   __HIP_DEVICE_COMPILE__: Compiling device code
 //   __GCUDACC__: Using gcudacc
 //   __NVCC__: Using nvcc
 
@@ -31,7 +31,7 @@ limitations under the License.
 // that it may assume that X is true. This can enable further optimization.
 // It is undefined behavior if X is not true. X should not have side-effects
 // and gcudacc will try to warn you if it does.
-#if defined(__CUDA_ARCH__) && defined(__GCUDACC__)
+#if (__HIP_DEVICE_COMPILE__ == 1) && defined(__GCUDACC__)
 #define CUDA_ASSUME(X) __builtin_assume(X)
 #else
 #define CUDA_ASSUME(X) do {} while (false)
@@ -259,11 +259,11 @@ __forceinline__ __device__ unsigned int __gcuda_nvcc__umulhi(
   return __umulhi(x, y);
 }
 
-#if __CUDA_ARCH__ >= 200 || !defined(__CUDA_ARCH__)
+#if ((__HIP_DEVICE_COMPILE__ == 1) && defined(__HIP_ARCH_HAS_WARP_BALLOT__) && defined(__HIP_ARCH_HAS_THREAD_FENCE_SYSTEM__) && defined(__HIP_ARCH_HAS_SYNC_THREAD_EXT__) && defined(__HIP_ARCH_HAS_SURFACE_FUNCS__) && defined(__HIP_ARCH_HAS_3DGRID__) && defined(__HIP_ARCH_HAS_GLOBAL_INT64_ATOMICS__)) || #if (__HIP_DEVICE_COMPILE__ == 0)
 __forceinline__ __device__ unsigned int __gcuda_nvcc__ballot(int x) {
   return __ballot(x);
 }
-#endif  // __CUDA_ARCH__ >= 200 || !defined(__CUDA_ARCH__)
+#endif  // #if ((__HIP_DEVICE_COMPILE__ == 1) && defined(__HIP_ARCH_HAS_WARP_BALLOT__) && defined(__HIP_ARCH_HAS_THREAD_FENCE_SYSTEM__) && defined(__HIP_ARCH_HAS_SYNC_THREAD_EXT__) && defined(__HIP_ARCH_HAS_SURFACE_FUNCS__) && defined(__HIP_ARCH_HAS_3DGRID__) && defined(__HIP_ARCH_HAS_GLOBAL_INT64_ATOMICS__)) || #if (__HIP_DEVICE_COMPILE__ == 0)
 
 // Forward-declare printf as nvcc does not declare it by itself and we
 // need this file to compile even if it is included before including
@@ -319,7 +319,7 @@ using ::trunc;
 // Add these functions to gcuda.h such that it is also host device. In device
 // side they correspond to intrinsics while explicit definitions are provided
 // below for host side.
-#ifdef __CUDA_ARCH__
+#if (__HIP_DEVICE_COMPILE__  == 1)
 using ::rsqrt;
 using ::rsqrtf;
 #else
@@ -366,30 +366,30 @@ __forceinline__ __device__ unsigned int __umulhi(unsigned int x,
   return __gcuda_nvcc__umulhi(x, y);
 }
 
-#ifdef __CUDA_ARCH__
+#if (__HIP_DEVICE_COMPILE__ == 1)
 // These symbols are only visible when parsing device code.
 using ::__double_as_longlong;
 using ::__int_as_float;
 using ::__float_as_int;
 using ::__longlong_as_double;
-#endif  // __CUDA_ARCH__
+#endif  // __HIP_DEVICE_COMPILE__
 
-#if __CUDA_ARCH__ >= 200 || !defined(__CUDA_ARCH__)
+#if ((__HIP_DEVICE_COMPILE__ == 1) && defined(__HIP_ARCH_HAS_WARP_BALLOT__) && defined(__HIP_ARCH_HAS_THREAD_FENCE_SYSTEM__) && defined(__HIP_ARCH_HAS_SYNC_THREAD_EXT__) && defined(__HIP_ARCH_HAS_SURFACE_FUNCS__) && defined(__HIP_ARCH_HAS_3DGRID__) && defined(__HIP_ARCH_HAS_GLOBAL_INT64_ATOMICS__)) || (__HIP_DEVICE_COMPILE__ == 0)
 __forceinline__ __device__ unsigned int __ballot(int x) {
   return __gcuda_nvcc__ballot(x);
 }
-#endif  // __CUDA_ARCH__ >= 200 || !defined(__CUDA_ARCH__)
+#endif  // ((__HIP_DEVICE_COMPILE__ == 1) && defined(__HIP_ARCH_HAS_WARP_BALLOT__) && defined(__HIP_ARCH_HAS_THREAD_FENCE_SYSTEM__) && defined(__HIP_ARCH_HAS_SYNC_THREAD_EXT__) && defined(__HIP_ARCH_HAS_SURFACE_FUNCS__) && defined(__HIP_ARCH_HAS_3DGRID__) && defined(__HIP_ARCH_HAS_GLOBAL_INT64_ATOMICS__)) || (__HIP_DEVICE_COMPILE__ == 0)
 
-#if __CUDA_ARCH__ >= 300 || !defined(__CUDA_ARCH__)
+#if ((__HIP_DEVICE_COMPILE__ == 1) && defined(__HIP_ARCH_HAS_WARP_SHUFFLE__)) || #if (__HIP_DEVICE_COMPILE__ == 0)
 using ::__shfl;
 using ::__shfl_down;
 using ::__shfl_up;
 using ::__shfl_xor;
-#endif  // __CUDA_ARCH__ >= 300 || !defined(__CUDA_ARCH__)
+#endif  //((__HIP_DEVICE_COMPILE__ == 1) && defined(__HIP_ARCH_HAS_WARP_SHUFFLE__)) || #if (__HIP_DEVICE_COMPILE__ == 0)
 
-#if __CUDA_ARCH__ >= 320 || !defined(__CUDA_ARCH__)
+#if (defined(__HIP_ARCH_HAS_WARP_FUNNEL_SHIFT__) && defined(__HIP_ARCH_HAS_DYNAMIC_PARALLEL__)) ||  #if (__HIP_DEVICE_COMPILE__ == 0) 
 using ::__ldg;
-#endif  // __CUDA_ARCH__ >= 320 || !defined(__CUDA_ARCH__)
+#endif  // (defined(__HIP_ARCH_HAS_WARP_FUNNEL_SHIFT__) && defined(__HIP_ARCH_HAS_DYNAMIC_PARALLEL__)) ||  #if (__HIP_DEVICE_COMPILE__ == 0
 
 #if __CUDA_API_VERSION < 6050
 // CUDA < 6.5 defines isfinite as a macro, while CUDA >= 6.5 and gcudacc

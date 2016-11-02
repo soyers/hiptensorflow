@@ -47,7 +47,7 @@ class SparseTensorDenseMatMulGPUGenerator {
 
   EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE T
   operator()(const Eigen::array<int, 2>& j_and_ix) const {
-#ifdef __CUDA_ARCH__
+#if (__HIP_DEVICE_COMPILE__ == 1)
     const int j = j_and_ix[0];
     const int ix = j_and_ix[1];
     int m = a_indices_(ix, lhs_index_a_);
