@@ -166,6 +166,53 @@ while true; do
   # Retry
 done
 
+# Set path of libhiprng.so  
+while true; do
+  fromuser=""
+  if [ -z "$HIPRNG_SO_PATH" ]; then
+    default_hiprng_so_path= /opt/rocm/hip/
+    read -p "Please specify the location where libhiprng.so is present. [Default is $default_hiprng_so_path]: " HIPRNG_SO_PATH
+    fromuser="1"
+    if [ -z "$HIPRNG_SO_PATH" ]; then
+      HIPRNG_SO_PATH=$default_hiprng_so_path
+    fi
+  fi
+  if [ -e "$HIPRNG_SO_PATH" ]; then
+    export HIPRNG_SO_PATH
+    break
+  fi
+  echo "Invalid libhiprng.so path. ${HIPRNG_SO_PATH} cannot be found" 1>&2
+  if [ -z "$fromuser" ]; then
+    exit 1
+  fi
+  HIPRNG_SO_PATH=""
+  # Retry
+done
+
+# Set path of hipRNG include files   
+while true; do
+  fromuser=""
+  if [ -z "$HIPRNG_INCLUDE_PATH" ]; then
+    default_hiprng_include_path= /opt/rocm/hip/include 
+    read -p "Please specify the location where hiprng include files are present. [Default is $default_hiprng_include_path]: " HIPRNG_INCLUDE_PATH
+    fromuser="1"
+    if [ -z "$HIPRNG_INCLUDE_PATH" ]; then
+      HIPRNG_INCLUDE_PATH=$default_hiprng_include_path
+    fi
+  fi
+  if [ -e "$HIPRNG_INCLUDE_PATH" ]; then
+    export HIPRNG_INCLUDE_PATH
+    break
+  fi
+  echo "Invalid path to hiprng include files. ${HIPRNG_INCLUDE_PATH} cannot be found" 1>&2
+  if [ -z "$fromuser" ]; then
+    exit 1
+  fi
+  HIPRNG_INCLUDE_PATH=""
+  # Retry
+done
+
+
 # Find out where the CUDA toolkit is installed
 OSNAME=`uname -s`
 

@@ -21,6 +21,7 @@ limitations under the License.
 #include "tensorflow/stream_executor/platform/thread_annotations.h"
 #include "tensorflow/stream_executor/plugin_registry.h"
 #include "tensorflow/stream_executor/rng.h"
+#include "cuda/include/hiprng.h"
 
 typedef struct curandGenerator_st *curandGenerator_t;
 
