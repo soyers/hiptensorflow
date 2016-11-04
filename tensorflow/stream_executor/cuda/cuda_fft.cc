@@ -268,7 +268,7 @@ bool CUDAFft::DoFftWithDirectionInternal(Stream *stream, fft::Plan *plan,
                        CUDAComplex(CUDAMemoryMutable(output)),
                        cuda_fft_plan->GetFftDirection());
 
-  if (ret != CUFFT_SUCCESS) {
+  if (ret != HIPFFT_SUCCESS) {
     LOG(ERROR) << "failed to run cuFFT routine: " << ret;
     return false;
   }

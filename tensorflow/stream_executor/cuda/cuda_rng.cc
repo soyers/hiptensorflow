@@ -28,13 +28,12 @@ limitations under the License.
 #include "tensorflow/stream_executor/lib/status.h"
 #include "tensorflow/stream_executor/platform/logging.h"
 #include "tensorflow/stream_executor/rng.h"
-#include "cuda/include/hiprng.h"
 
 // Formats hiprngStatus_t to output prettified values into a log stream.
 std::ostream &operator<<(std::ostream &in, const hiprngStatus_t &status) {
 #define OSTREAM_CURAND_STATUS(__name) \
-  case CURAND_STATUS_##__name:        \
-    in << "CURAND_STATUS_" #__name;   \
+  case HIPRNG_STATUS_##__name:        \
+    in << "HIPRNG_STATUS_" #__name;   \
     return in;
 
   switch (status) {
@@ -134,7 +133,7 @@ bool CUDARng::Init() {
   CHECK(rng_ == nullptr);
 
   hiprngStatus_t ret =
-      dynload::hiprngCreateGenerator(parent_, &rng_, CURAND_RNG_PSEUDO_DEFAULT);
+      dynload::hiprngCreateGenerator(parent_, &rng_, HIPRNG_RNG_PSEUDO_MRG32K3A);
   if (ret != HIPRNG_STATUS_SUCCESS) {
     LOG(ERROR) << "failed to create random number generator: " << ret;
     return false;

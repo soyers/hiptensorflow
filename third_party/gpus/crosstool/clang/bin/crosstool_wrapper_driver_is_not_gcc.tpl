@@ -268,15 +268,15 @@ def InvokeNvcc(argv, log=False):
 
 def main():
   parser = ArgumentParser()
-  parser.add_argument('-x', nargs=1)
+  parser.add_argument('-t', nargs=1)
   parser.add_argument('--cuda_log', action='store_true')
   parser.add_argument('--use_gcudacc', action='store_true')
   parser.add_argument('--gcudacc_version', action='store', default='v8')
   parser.add_argument('--gcudacc_flag', nargs='*', action='append', default=[])
   args, leftover = parser.parse_known_args(sys.argv[1:])
 
-  if args.x and args.x[0] == 'cuda':
-    if args.cuda_log: Log('-x cuda')
+  if args.t and args.t[0] == 'cuda':
+    if args.cuda_log: Log('-t cuda')
     leftover = [pipes.quote(s) for s in leftover]
     if args.use_gcudacc:
       if args.cuda_log: Log('using gcudacc')

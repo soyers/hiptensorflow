@@ -400,15 +400,15 @@ def _create_cuda_repository(repository_ctx):
 
   _symlink_dir(repository_ctx, cuda_toolkit_path + "/include", "cuda/include")
   _symlink_dir(repository_ctx, "/opt/rocm/hip/include", "cuda/include")
-  _symlink_dir(repository_ctx, hipfft_include_path, "cuda/include")
-  _symlink_dir(repository_ctx, hiprng_include_path, "cuda/include")
+  #_symlink_dir(repository_ctx, "/opt/san/fft/include", "cuda/include")
+  _symlink_dir(repository_ctx, "/opt/san/rng/include/hcRNG", "cuda/include/hcRNG") 
+  _symlink_dir(repository_ctx, "/opt/san/rng/include/nvcc_detail", "cuda/include/nvcc_detail")
+  _symlink_dir(repository_ctx, "/opt/san/rng/include/hcc_detail", "cuda/include/hcc_detail")
+  _symlink_dir(repository_ctx, "/opt/san/fft/include/nvcc_detail", "cuda/include/nvcc_detail")
+  _symlink_dir(repository_ctx, "/opt/san/fft/include/hcc_detail", "cuda/include/hcc_detail")
   _symlink_dir(repository_ctx,
                cuda_toolkit_path + "/" + symlink_files.cuda_lib_path,
                "cuda/" + symlink_files.cuda_lib_path)
-  _symlink_dir(repository_ctx, hipfft_so_path,
-               "cuda/" + symlink_files.hip_fft_lib)
-  _symlink_dir(repository_ctx, hiprng_so_path,
-               "cuda/" + symlink_files.hip_rng_lib)
   _symlink_dir(repository_ctx, cuda_toolkit_path + "/bin", "cuda/bin")
   _symlink_dir(repository_ctx, "/opt/rocm/hip/bin", "cuda/bin")
   _symlink_dir(repository_ctx, cuda_toolkit_path + "/nvvm", "cuda/nvvm")
@@ -416,6 +416,14 @@ def _create_cuda_repository(repository_ctx):
                "cuda/extras/CUPTI/include")
   repository_ctx.symlink(cuda_toolkit_path + "/" + symlink_files.cuda_cupti_lib,
                          "cuda/" + symlink_files.cuda_cupti_lib)
+  repository_ctx.symlink("/opt/san/rng/include/hiprng.h",
+                         "cuda/include/hiprng.h")
+  repository_ctx.symlink("/opt/san/fft/include/hipfft.h",
+			 "cuda/include/hipfft.h")
+  repository_ctx.symlink("/opt/san/fft/libhipfft_nvcc.so",
+                         "cuda/lib64/libhipfft_nvcc.so")
+  repository_ctx.symlink("/opt/san/rng/libhiprng_nvcc.so",
+                         "cuda/lib64/libhiprng_nvcc.so")
 
   # Set up the symbolic links for cudnn if cudnn was was not installed to
   # CUDA_TOOLKIT_PATH.

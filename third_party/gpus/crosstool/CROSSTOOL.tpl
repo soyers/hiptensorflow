@@ -124,6 +124,8 @@ toolchain {
   cxx_builtin_include_directory: "/usr/local/cuda%{cuda_version}/include"
   cxx_builtin_include_directory: "/usr/local/cuda/include"
   cxx_builtin_include_directory: "/opt/rocm/hip/include"
+  cxx_builtin_include_directory: "/opt/san/rng/include"
+  cxx_builtin_include_directory: "/opt/san/fft/include"
 
   compilation_mode_flags {
     mode: DBG

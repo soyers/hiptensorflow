@@ -23,7 +23,7 @@ limitations under the License.
 #include "tensorflow/stream_executor/rng.h"
 #include "cuda/include/hiprng.h"
 
-typedef struct curandGenerator_st *curandGenerator_t;
+typedef struct curandGenerator_st *hiprngGenerator_t;
 
 namespace perftools {
 namespace gputools {
@@ -93,7 +93,7 @@ class CUDARng : public rng::RngSupport {
   CUDAExecutor *parent_;
 
   // cuRANDalibrary handle on the device.
-  curandGenerator_t rng_ GUARDED_BY(mu_);
+  hiprngGenerator_t rng_ GUARDED_BY(mu_);
 
   SE_DISALLOW_COPY_AND_ASSIGN(CUDARng);
 };
