@@ -27,7 +27,7 @@ limitations under the License.
 #include "tensorflow/stream_executor/platform/thread_annotations.h"
 #include "tensorflow/stream_executor/plugin_registry.h"
 
-typedef struct cublasContext *cublasHandle_t;
+//typedef struct cublasContext *cublasHandle_t;
 
 namespace perftools {
 namespace gputools {
@@ -103,7 +103,7 @@ class CUDABlas : public blas::BlasSupport {
   CUDAExecutor *parent_;
 
   // cuBLAS library handle on the device.
-  cublasHandle_t blas_ GUARDED_BY(mu_);
+  hipblasHandle_t blas_ GUARDED_BY(mu_);
 
   SE_DISALLOW_COPY_AND_ASSIGN(CUDABlas);
 };

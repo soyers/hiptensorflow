@@ -26,6 +26,8 @@ _HIPFFT_SO_PATH = "HIPFFT_SO_PATH"
 _HIPFFT_INCLUDE_PATH = "HIPFFT_INCLUDE_PATH"
 _HIPRNG_SO_PATH = "HIPRNG_SO_PATH"
 _HIPRNG_INCLUDE_PATH = "HIPRNG_INCLUDE_PATH"
+_HIPBLAS_SO_PATH = "HIPBLAS_SO_PATH"
+_HIBLAS_INCLUDE_PATH = "HIPBLAS_INCLUDE_PATH"
 
 _DEFAULT_CUDA_VERSION = ""
 _DEFAULT_CUDNN_VERSION = ""
@@ -202,6 +204,7 @@ def _cuda_symlink_files(cpu_value, cuda_version, cudnn_version):
         cuda_rand_lib = "lib64/libcurand.so%s" % cuda_ext,
         cuda_fft_lib = "lib64/libcufft.so%s" % cuda_ext,
  	hip_fft_lib = "fft/libhipfft_nvcc.so",
+ 	hip_blas_lib = "blas/libhipblas_nvcc.so",
         hip_rng_lib = "rng/libhiprng_nvcc.so",
         cuda_cupti_lib = "extras/CUPTI/lib64/libcupti.so%s" % cuda_ext)
   elif cpu_value == "Darwin":
@@ -406,6 +409,8 @@ def _create_cuda_repository(repository_ctx):
   _symlink_dir(repository_ctx, "/opt/san/rng/include/hcc_detail", "cuda/include/hcc_detail")
   _symlink_dir(repository_ctx, "/opt/san/fft/include/nvcc_detail", "cuda/include/nvcc_detail")
   _symlink_dir(repository_ctx, "/opt/san/fft/include/hcc_detail", "cuda/include/hcc_detail")
+  _symlink_dir(repository_ctx, "/opt/san/blas/include/nvcc_detail", "cuda/include/nvcc_detail")
+  _symlink_dir(repository_ctx, "/opt/san/blas/include/hcc_detail", "cuda/include/hcc_detail")
   _symlink_dir(repository_ctx,
                cuda_toolkit_path + "/" + symlink_files.cuda_lib_path,
                "cuda/" + symlink_files.cuda_lib_path)
@@ -420,8 +425,12 @@ def _create_cuda_repository(repository_ctx):
                          "cuda/include/hiprng.h")
   repository_ctx.symlink("/opt/san/fft/include/hipfft.h",
 			 "cuda/include/hipfft.h")
+  repository_ctx.symlink("/opt/san/blas/include/hipblas.h",
+			 "cuda/include/hipblas.h")
   repository_ctx.symlink("/opt/san/fft/libhipfft_nvcc.so",
                          "cuda/lib64/libhipfft_nvcc.so")
+  repository_ctx.symlink("/opt/san/blas/libhipblas_nvcc.so",
+                         "cuda/lib64/libhipblas_nvcc.so")
   repository_ctx.symlink("/opt/san/rng/libhiprng_nvcc.so",
                          "cuda/lib64/libhiprng_nvcc.so")
 

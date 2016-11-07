@@ -126,7 +126,8 @@ toolchain {
   cxx_builtin_include_directory: "/opt/rocm/hip/include"
   cxx_builtin_include_directory: "/opt/san/rng/include"
   cxx_builtin_include_directory: "/opt/san/fft/include"
-
+  cxx_builtin_include_directory: "/opt/san/blas/include"
+  
   compilation_mode_flags {
     mode: DBG
     # Enable debug symbols.
