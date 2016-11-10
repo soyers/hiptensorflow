@@ -1001,7 +1001,7 @@ class Stream {
                        DeviceMemory<std::complex<double>> *x, int incx);
 
   // See BlasSupport::DoBlasTrmv.
-  Stream &ThenBlasTrmv(blas::UpperLower uplo, blas::Transpose trans,
+ /* Stream &ThenBlasTrmv(blas::UpperLower uplo, blas::Transpose trans,
                        blas::Diagonal diag, uint64 n,
                        const DeviceMemory<float> &a, int lda,
                        DeviceMemory<float> *x, int incx);
@@ -1017,7 +1017,7 @@ class Stream {
                        blas::Diagonal diag, uint64 n,
                        const DeviceMemory<std::complex<double>> &a, int lda,
                        DeviceMemory<std::complex<double>> *x, int incx);
-
+*/
   // See BlasSupport::DoBlasTrsv.
   Stream &ThenBlasTrsv(blas::UpperLower uplo, blas::Transpose trans,
                        blas::Diagonal diag, uint64 n,

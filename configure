@@ -120,98 +120,29 @@ while true; do
   # Retry
 done
 
-# Set path of libhipfft.so  
+
+#  
 while true; do
   fromuser=""
-  if [ -z "$HIPFFT_SO_PATH" ]; then
-    default_hipfft_so_path= /opt/rocm/hip/
-    read -p "Please specify the location where libhipfft.so is present. [Default is $default_hipfft_so_path]: " HIPFFT_SO_PATH
+  if [ -z "$HIP_LIBRARY_PATH" ]; then
+    default_hip_library_path= /opt/rocm/
+    read -p "Please specify the location of the HIP Libraries (FFT,BLAS,RNG). [Default is $default_hip_library_path]: " HIP_LIBRARY_PATH
     fromuser="1"
-    if [ -z "$HIPFFT_SO_PATH" ]; then
-      HIPFFT_SO_PATH=$default_hipfft_so_path
+    if [ -z "$HIP_LIBRARY_PATH" ]; then
+      HIP_LIBRARY_PATH=$default_hip_library_path
     fi
   fi
-  if [ -e "$HIPFFT_SO_PATH" ]; then
-    export HIPFFT_SO_PATH
+  if [ -e "$HIP_LIBRARY_PATH" ]; then
+    export HIP_LIBRARY_PATH
     break
   fi
-  echo "Invalid libhipfft.so path. ${HIPFFT_SO_PATH} cannot be found" 1>&2
+  echo "Invalid HIP Library path. ${HIP_LIBRARY_PATH} cannot be found" 1>&2
   if [ -z "$fromuser" ]; then
     exit 1
   fi
-  HIPFFT_SO_PATH=""
+  HIP_LIBRARY_PATH=""
   # Retry
 done
-
-# Set path of hipFFT include files   
-while true; do
-  fromuser=""
-  if [ -z "$HIPFFT_INCLUDE_PATH" ]; then
-    default_hipfft_include_path= /opt/rocm/hip/include 
-    read -p "Please specify the location where hipfft include files are present. [Default is $default_hipfft_include_path]: " HIPFFT_INCLUDE_PATH
-    fromuser="1"
-    if [ -z "$HIPFFT_INCLUDE_PATH" ]; then
-      HIPFFT_INCLUDE_PATH=$default_hipfft_include_path
-    fi
-  fi
-  if [ -e "$HIPFFT_INCLUDE_PATH" ]; then
-    export HIPFFT_INCLUDE_PATH
-    break
-  fi
-  echo "Invalid path to hipfft include files. ${HIPFFT_INCLUDE_PATH} cannot be found" 1>&2
-  if [ -z "$fromuser" ]; then
-    exit 1
-  fi
-  HIPFFT_INCLUDE_PATH=""
-  # Retry
-done
-
-# Set path of libhiprng.so  
-while true; do
-  fromuser=""
-  if [ -z "$HIPRNG_SO_PATH" ]; then
-    default_hiprng_so_path= /opt/rocm/hip/
-    read -p "Please specify the location where libhiprng.so is present. [Default is $default_hiprng_so_path]: " HIPRNG_SO_PATH
-    fromuser="1"
-    if [ -z "$HIPRNG_SO_PATH" ]; then
-      HIPRNG_SO_PATH=$default_hiprng_so_path
-    fi
-  fi
-  if [ -e "$HIPRNG_SO_PATH" ]; then
-    export HIPRNG_SO_PATH
-    break
-  fi
-  echo "Invalid libhiprng.so path. ${HIPRNG_SO_PATH} cannot be found" 1>&2
-  if [ -z "$fromuser" ]; then
-    exit 1
-  fi
-  HIPRNG_SO_PATH=""
-  # Retry
-done
-
-# Set path of hipRNG include files   
-while true; do
-  fromuser=""
-  if [ -z "$HIPRNG_INCLUDE_PATH" ]; then
-    default_hiprng_include_path= /opt/rocm/hip/include 
-    read -p "Please specify the location where hiprng include files are present. [Default is $default_hiprng_include_path]: " HIPRNG_INCLUDE_PATH
-    fromuser="1"
-    if [ -z "$HIPRNG_INCLUDE_PATH" ]; then
-      HIPRNG_INCLUDE_PATH=$default_hiprng_include_path
-    fi
-  fi
-  if [ -e "$HIPRNG_INCLUDE_PATH" ]; then
-    export HIPRNG_INCLUDE_PATH
-    break
-  fi
-  echo "Invalid path to hiprng include files. ${HIPRNG_INCLUDE_PATH} cannot be found" 1>&2
-  if [ -z "$fromuser" ]; then
-    exit 1
-  fi
-  HIPRNG_INCLUDE_PATH=""
-  # Retry
-done
-
 
 # Find out where the CUDA toolkit is installed
 OSNAME=`uname -s`

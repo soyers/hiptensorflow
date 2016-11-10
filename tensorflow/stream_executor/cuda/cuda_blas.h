@@ -26,8 +26,9 @@ limitations under the License.
 #include "tensorflow/stream_executor/platform/port.h"
 #include "tensorflow/stream_executor/platform/thread_annotations.h"
 #include "tensorflow/stream_executor/plugin_registry.h"
+//#include "cuda/include/hipblas.h"
 
-//typedef struct cublasContext *cublasHandle_t;
+typedef struct cublasContext *hipblasHandle_t;
 
 namespace perftools {
 namespace gputools {
