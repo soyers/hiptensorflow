@@ -1,5 +1,3 @@
-#include "hip/hip_runtime.h"
-#include "hip/hip_runtime.h"
 /* Copyright 2016 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,6 +17,7 @@ limitations under the License.
 
 #if GOOGLE_CUDA
 
+#include "hip/hip_runtime.h"
 #define EIGEN_USE_GPU
 
 #include <cfloat>

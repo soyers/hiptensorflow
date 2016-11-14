@@ -1,4 +1,3 @@
-#include "hip/hip_runtime.h"
 /* Copyright 2015 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,6 +16,7 @@ limitations under the License.
 #if GOOGLE_CUDA
 #define EIGEN_USE_GPU
 #include "third_party/eigen3/unsupported/Eigen/CXX11/Tensor"
+#include "hip/hip_runtime.h"
 
 __global__ void AddOneKernel(hipLaunchParm lp, const int* in, const int N, int* out) {
   for (int i = hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x; i < N;
