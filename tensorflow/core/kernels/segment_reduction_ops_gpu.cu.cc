@@ -1,5 +1,3 @@
-#include "hip/hip_runtime.h"
-#include "hip/hip_runtime.h"
 /* Copyright 2016 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,6 +18,7 @@ limitations under the License.
 #define EIGEN_USE_GPU
 
 #include "tensorflow/core/kernels/segment_reduction_ops.h"
+#include "hip/hip_runtime.h"
 
 #include <stdio.h>
 

@@ -350,7 +350,7 @@ def _cuda_copts():
     compiler.  If we're not doing CUDA compilation, returns an empty list.
 
     """
-    common_cuda_opts = ["-x", "cuda", "-DGOOGLE_CUDA=1"]
+    common_cuda_opts = ["-t", "cuda", "-DGOOGLE_CUDA=1"]
     return select({
         "//conditions:default": [],
         "@local_config_cuda//cuda:using_nvcc": (

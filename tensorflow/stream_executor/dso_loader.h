@@ -94,6 +94,7 @@ class DsoLoader {
 
   // Return platform dependent paths for DSOs
   static string GetCudaLibraryDirPath();
+  static string GetHipLibraryDirPath();
   static string GetCudaDriverLibraryPath();
   static string GetCudaCuptiLibraryPath();
 

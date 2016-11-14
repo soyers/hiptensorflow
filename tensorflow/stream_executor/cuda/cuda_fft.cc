@@ -61,7 +61,7 @@ namespace dynload {
       return reinterpret_cast<FuncPointerT>(f);                            \
     }                                                                      \
     template <typename... Args>                                            \
-    cufftResult operator()(CUDAExecutor * parent, Args... args) {          \
+    hipfftResult operator()(CUDAExecutor * parent, Args... args) {          \
       cuda::ScopedActivateExecutorContext sac{parent};                     \
       return DynLoad()(args...);                                           \
     }                                                                      \
@@ -69,11 +69,11 @@ namespace dynload {
   const char *DynLoadShim__##__name::kName = #__name;
 
 #define CUFFT_ROUTINE_EACH(__macro)                                         \
-  __macro(cufftDestroy) __macro(cufftSetStream) __macro(cufftPlan1d)        \
-      __macro(cufftPlan2d) __macro(cufftPlan3d) __macro(cufftPlanMany)      \
-          __macro(cufftExecD2Z) __macro(cufftExecZ2D) __macro(cufftExecC2C) \
-              __macro(cufftExecC2R) __macro(cufftExecZ2Z)                   \
-                  __macro(cufftExecR2C)
+  __macro(hipfftDestroy) __macro(hipfftSetStream) __macro(hipfftPlan1d)        \
+      __macro(hipfftPlan2d) __macro(hipfftPlan3d) __macro(hipfftPlanMany)      \
+          __macro(hipfftExecD2Z) __macro(hipfftExecZ2D) __macro(hipfftExecC2C) \
+              __macro(hipfftExecC2R) __macro(hipfftExecZ2Z)                   \
+                  __macro(hipfftExecR2C)
 
 CUFFT_ROUTINE_EACH(PERFTOOLS_GPUTOOLS_CUFFT_WRAP)
 
@@ -82,22 +82,22 @@ CUFFT_ROUTINE_EACH(PERFTOOLS_GPUTOOLS_CUFFT_WRAP)
 namespace {
 
 // A helper function transforming gpu_fft arguments into cuFFT arguments.
-cufftType CUDAFftType(fft::Type type) {
+hipfftType CUDAFftType(fft::Type type) {
   switch (type) {
     case fft::Type::kC2CForward:
     case fft::Type::kC2CInverse:
-      return CUFFT_C2C;
+      return HIPFFT_C2C;
     case fft::Type::kC2R:
-      return CUFFT_C2R;
+      return HIPFFT_C2R;
     case fft::Type::kR2C:
-      return CUFFT_R2C;
+      return HIPFFT_R2C;
     case fft::Type::kZ2ZForward:
     case fft::Type::kZ2ZInverse:
-      return CUFFT_Z2Z;
+      return HIPFFT_Z2Z;
     case fft::Type::kZ2D:
-      return CUFFT_Z2D;
+      return HIPFFT_Z2D;
     case fft::Type::kD2Z:
-      return CUFFT_D2Z;
+      return HIPFFT_D2Z;
     default:
       LOG(FATAL) << "Invalid value of fft::Type.";
   }
@@ -105,8 +105,8 @@ cufftType CUDAFftType(fft::Type type) {
 
 // Associates the given stream with the given cuFFT plan.
 bool SetStream(CUDAExecutor *parent, cufftHandle plan, Stream *stream) {
-  auto ret = dynload::cufftSetStream(parent, plan, AsCUDAStreamValue(stream));
-  if (ret != CUFFT_SUCCESS) {
+  auto ret = dynload::hipfftSetStream(parent, plan, AsCUDAStreamValue(stream));
+  if (ret != HIPFFT_SUCCESS) {
     LOG(ERROR) << "failed to run cuFFT routine cufftSetStream: " << ret;
     return false;
   }
@@ -117,9 +117,9 @@ bool SetStream(CUDAExecutor *parent, cufftHandle plan, Stream *stream) {
 
 CUDAFftPlan::CUDAFftPlan(CUDAExecutor *parent, uint64 num_x, fft::Type type)
     : parent_(parent), fft_type_(type) {
-  auto ret = dynload::cufftPlan1d(parent, &plan_, num_x, CUDAFftType(type),
+  auto ret = dynload::hipfftPlan1d(parent, &plan_, num_x, CUDAFftType(type),
                                   1 /* = batch */);
-  if (ret != CUFFT_SUCCESS) {
+  if (ret != HIPFFT_SUCCESS) {
     LOG(ERROR) << "failed to create cuFFT 1d plan:" << ret;
   }
 }
@@ -128,8 +128,8 @@ CUDAFftPlan::CUDAFftPlan(CUDAExecutor *parent, uint64 num_x, uint64 num_y,
                          fft::Type type)
     : parent_(parent), fft_type_(type) {
   auto ret =
-      dynload::cufftPlan2d(parent, &plan_, num_x, num_y, CUDAFftType(type));
-  if (ret != CUFFT_SUCCESS) {
+      dynload::hipfftPlan2d(parent, &plan_, num_x, num_y, CUDAFftType(type));
+  if (ret != HIPFFT_SUCCESS) {
     LOG(ERROR) << "failed to create cuFFT 2d plan:" << ret;
   }
 }
@@ -137,9 +137,9 @@ CUDAFftPlan::CUDAFftPlan(CUDAExecutor *parent, uint64 num_x, uint64 num_y,
 CUDAFftPlan::CUDAFftPlan(CUDAExecutor *parent, uint64 num_x, uint64 num_y,
                          uint64 num_z, fft::Type type)
     : parent_(parent), fft_type_(type) {
-  auto ret = dynload::cufftPlan3d(parent, &plan_, num_x, num_y, num_z,
+  auto ret = dynload::hipfftPlan3d(parent, &plan_, num_x, num_y, num_z,
                                   CUDAFftType(type));
-  if (ret != CUFFT_SUCCESS) {
+  if (ret != HIPFFT_SUCCESS) {
     LOG(ERROR) << "failed to create cuFFT 3d plan:" << ret;
   }
 }
@@ -160,16 +160,16 @@ CUDAFftPlan::CUDAFftPlan(CUDAExecutor *parent, int rank, uint64 *elem_count,
       output_embed_[i] = output_embed[i];
     }
   }
-  auto ret = dynload::cufftPlanMany(
+  auto ret = dynload::hipfftPlanMany(
       parent, &plan_, rank, elem_count_, input_embed ? input_embed_ : nullptr,
       input_stride, input_distance, output_embed ? output_embed_ : nullptr,
       output_stride, output_distance, CUDAFftType(type), batch_count);
-  if (ret != CUFFT_SUCCESS) {
+  if (ret != HIPFFT_SUCCESS) {
     LOG(ERROR) << "failed to create cuFFT batched plan:" << ret;
   }
 }
 
-CUDAFftPlan::~CUDAFftPlan() { dynload::cufftDestroy(parent_, plan_); }
+CUDAFftPlan::~CUDAFftPlan() { dynload::hipfftDestroy(parent_, plan_); }
 
 int CUDAFftPlan::GetFftDirection() const {
   switch (fft_type_) {
@@ -177,12 +177,12 @@ int CUDAFftPlan::GetFftDirection() const {
     case fft::Type::kZ2ZForward:
     case fft::Type::kR2C:
     case fft::Type::kD2Z:
-      return CUFFT_FORWARD;
+      return HIPFFT_FORWARD;
     case fft::Type::kC2CInverse:
     case fft::Type::kZ2ZInverse:
     case fft::Type::kC2R:
     case fft::Type::kZ2D:
-      return CUFFT_INVERSE;
+      return HIPFFT_INVERSE;
     default:
       LOG(FATAL) << "Invalid value of fft::Type.";
   }
@@ -223,7 +223,7 @@ std::unique_ptr<fft::Plan> CUDAFft::CreateBatchedPlan(
 }
 
 template <typename FuncT, typename InputT, typename OutputT>
-bool CUDAFft::DoFftInternal(Stream *stream, fft::Plan *plan, FuncT cufftExec,
+bool CUDAFft::DoFftInternal(Stream *stream, fft::Plan *plan, FuncT hipfftExec,
                             const DeviceMemory<InputT> &input,
                             DeviceMemory<OutputT> *output) {
   CUDAFftPlan *cuda_fft_plan = dynamic_cast<CUDAFftPlan *>(plan);
@@ -236,11 +236,11 @@ bool CUDAFft::DoFftInternal(Stream *stream, fft::Plan *plan, FuncT cufftExec,
     return false;
   }
 
-  auto ret = cufftExec(parent_, cuda_fft_plan->GetPlan(),
+  auto ret = hipfftExec(parent_, cuda_fft_plan->GetPlan(),
                        CUDAComplex(const_cast<InputT *>(CUDAMemory(input))),
                        CUDAComplex(CUDAMemoryMutable(output)));
 
-  if (ret != CUFFT_SUCCESS) {
+  if (ret != HIPFFT_SUCCESS) {
     LOG(ERROR) << "failed to run cuFFT routine: " << ret;
     return false;
   }
@@ -250,7 +250,7 @@ bool CUDAFft::DoFftInternal(Stream *stream, fft::Plan *plan, FuncT cufftExec,
 
 template <typename FuncT, typename InputT, typename OutputT>
 bool CUDAFft::DoFftWithDirectionInternal(Stream *stream, fft::Plan *plan,
-                                         FuncT cufftExec,
+                                         FuncT hipfftExec,
                                          const DeviceMemory<InputT> &input,
                                          DeviceMemory<OutputT> *output) {
   CUDAFftPlan *cuda_fft_plan = dynamic_cast<CUDAFftPlan *>(plan);
@@ -263,12 +263,12 @@ bool CUDAFft::DoFftWithDirectionInternal(Stream *stream, fft::Plan *plan,
     return false;
   }
 
-  auto ret = cufftExec(parent_, cuda_fft_plan->GetPlan(),
+  auto ret = hipfftExec(parent_, cuda_fft_plan->GetPlan(),
                        CUDAComplex(const_cast<InputT *>(CUDAMemory(input))),
                        CUDAComplex(CUDAMemoryMutable(output)),
                        cuda_fft_plan->GetFftDirection());
 
-  if (ret != CUFFT_SUCCESS) {
+  if (ret != HIPFFT_SUCCESS) {
     LOG(ERROR) << "failed to run cuFFT routine: " << ret;
     return false;
   }
@@ -282,18 +282,18 @@ bool CUDAFft::DoFftWithDirectionInternal(Stream *stream, fft::Plan *plan,
                       const DeviceMemory<std::complex<__type>> &input,         \
                       DeviceMemory<std::complex<__type>> *output) {            \
     return DoFftWithDirectionInternal(                                         \
-        stream, plan, dynload::cufftExec##__fft_type1, input, output);         \
+        stream, plan, dynload::hipfftExec##__fft_type1, input, output);         \
   }                                                                            \
   bool CUDAFft::DoFft(Stream *stream, fft::Plan *plan,                         \
                       const DeviceMemory<__type> &input,                       \
                       DeviceMemory<std::complex<__type>> *output) {            \
-    return DoFftInternal(stream, plan, dynload::cufftExec##__fft_type2, input, \
+    return DoFftInternal(stream, plan, dynload::hipfftExec##__fft_type2, input, \
                          output);                                              \
   }                                                                            \
   bool CUDAFft::DoFft(Stream *stream, fft::Plan *plan,                         \
                       const DeviceMemory<std::complex<__type>> &input,         \
                       DeviceMemory<__type> *output) {                          \
-    return DoFftInternal(stream, plan, dynload::cufftExec##__fft_type3, input, \
+    return DoFftInternal(stream, plan, dynload::hipfftExec##__fft_type3, input, \
                          output);                                              \
   }
 
