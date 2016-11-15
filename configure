@@ -258,7 +258,7 @@ if [ "$default_gpu_device" == "NVIDIA" ]; then
 
     if [ -e "$CUDNN_INSTALL_PATH/${CUDA_DNN_LIB_ALT_PATH}" -o -e "$CUDNN_INSTALL_PATH/${CUDA_DNN_LIB_PATH}" ]; then
       export TF_CUDNN_VERSION
-      export CUDNN_INSTALL_PATH="$(dirname ${CUDNN_PATH_FROM_LDCONFIG})"
+      export CUDNN_INSTALL_PATH
       break
     fi
 
