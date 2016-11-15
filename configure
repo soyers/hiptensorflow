@@ -325,8 +325,30 @@ EOF
 else
   #AMD configuration path
   echo "Add code for AMD PATH"
+  # Set up which gcc nvcc should use as the host compiler
+  while true; do
+    fromuser=""
+    if [ -z "$HCC_COMPILER_PATH" ]; then
+      default_hcc_compiler_path="/opt/rocm/hcc-hsail"
+      read -p "Please specify which hcc compiler should. [Default is $default_hcc_compiler_path]: " HCC_COMPILER_PATH
+      fromuser="1"
+      if [ -z "$HCC_COMPILER_PATH" ]; then
+        HCC_COMPILER_PATH=$default_hcc_compiler_path
+      fi
+    fi
+    if [ -e "$HCC_COMPILER_PATH" ]; then
+      export HCC_COMPILER_PATH
+      break
+    fi
+    echo "Invalid gcc path. ${HCC_COMPILER_PATH} cannot be found" 1>&2
+    if [ -z "$fromuser" ]; then
+      exit 1
+    fi
+    HCC_COMPILER_PATH=""
+    # Retry
+  done
 fi
-#bazel clean #--expunge
-#bazel fetch //...
+bazel clean #--expunge
+bazel fetch //...
 
 echo "Configuration finished"
