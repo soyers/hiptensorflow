@@ -46,7 +46,7 @@ string GetCudnnVersion() { return TF_CUDNN_VERSION; }
 
 /* static */ port::Status DsoLoader::GetCublasDsoHandle(void** dso_handle) {
   return GetDsoHandle(FindDsoPath(tensorflow::internal::FormatLibraryFileName(
-                                      "cublas", GetCudaVersion()),
+                                      "hipblas_nvcc", GetCudaVersion()),
                                   GetCudaLibraryDirPath()),
                       dso_handle);
 }
@@ -56,21 +56,21 @@ string GetCudnnVersion() { return TF_CUDNN_VERSION; }
   // different version number than other CUDA libraries.  See b/22397368 for
   // some details about the complications surrounding this.
   return GetDsoHandle(FindDsoPath(tensorflow::internal::FormatLibraryFileName(
-                                      "cudnn", GetCudnnVersion()),
+                                      "hipdnn_nvcc", ""),
                                   GetCudaLibraryDirPath()),
                       dso_handle);
 }
 
 /* static */ port::Status DsoLoader::GetCufftDsoHandle(void** dso_handle) {
   return GetDsoHandle(FindDsoPath(tensorflow::internal::FormatLibraryFileName(
-                                      "cufft", ""),
+                                      "hipfft_nvcc", ""),
                                   GetHipLibraryDirPath()),
                       dso_handle);
 }
 
 /* static */ port::Status DsoLoader::GetCurandDsoHandle(void** dso_handle) {
   return GetDsoHandle(FindDsoPath(tensorflow::internal::FormatLibraryFileName(
-                                      "curand", GetCudaVersion()),
+                                      "hiprng_nvcc", ""),
                                   GetCudaLibraryDirPath()),
                       dso_handle);
 }
