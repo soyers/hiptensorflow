@@ -1160,7 +1160,7 @@ tf_cuda_library(
     deps = [
         ":core_cpu_internal",
         ":framework",
-        ":gpu_tracer",
+        #":gpu_tracer",
         ":lib",
         ":lib_internal",
         ":proto_text",
@@ -1188,22 +1188,22 @@ cc_library(
     alwayslink = 1,
 )
 
-tf_cuda_library(
-    name = "gpu_tracer",
-    srcs = [
-        "common_runtime/gpu/gpu_tracer.cc",
-    ],
-    hdrs = [
-        "common_runtime/gpu/gpu_tracer.h",
-    ],
-    copts = tf_copts(),
-    cuda_deps = tf_additional_cupti_wrapper_deps(),
-    deps = [
-        ":core_cpu_internal",
-        ":lib",
-        ":protos_all_cc",
-    ],
-)
+#tf_cuda_library(
+#    name = "gpu_tracer",
+#    srcs = [
+#        "common_runtime/gpu/gpu_tracer.cc",
+#    ],
+#    hdrs = [
+#        "common_runtime/gpu/gpu_tracer.h",
+#    ],
+#    copts = tf_copts(),
+#    cuda_deps = tf_additional_cupti_wrapper_deps(),
+#    deps = [
+#        ":core_cpu_internal",
+#        ":lib",
+#        ":protos_all_cc",
+#    ],
+#)
 
 tf_cuda_library(
     name = "gpu_runtime",
@@ -1914,32 +1914,32 @@ cc_test(
     ],
 )
 
-tf_cc_test_gpu(
-    name = "common_runtime/gpu/gpu_tracer_test",
-    size = "small",
-    args = ["--heap_check=local"],
-    linkstatic = tf_kernel_tests_linkstatic(),
-    tags = tf_cuda_tests_tags() + ["nomac"],
-    deps = [
-        ":all_kernels",
-        ":core_cpu",
-        ":core_cpu_internal",
-        ":direct_session",
-        ":direct_session_internal",
-        ":framework",
-        ":framework_internal",
-        ":gpu_runtime",
-        ":gpu_tracer",
-        ":lib",
-        ":lib_internal",
-        ":protos_all_cc",
-        ":test",
-        ":test_main",
-        ":testlib",
-        "//tensorflow/cc:cc_ops",
-        "//tensorflow/core/kernels:ops_util",
-    ],
-)
+#tf_cc_test_gpu(
+#    name = "common_runtime/gpu/gpu_tracer_test",
+#    size = "small",
+#    args = ["--heap_check=local"],
+#    linkstatic = tf_kernel_tests_linkstatic(),
+#    tags = tf_cuda_tests_tags() + ["nomac"],
+#    deps = [
+#        ":all_kernels",
+#        ":core_cpu",
+#        ":core_cpu_internal",
+#        ":direct_session",
+#        ":direct_session_internal",
+#        ":framework",
+#        ":framework_internal",
+#        ":gpu_runtime",
+#        ":gpu_tracer",
+#        ":lib",
+#        ":lib_internal",
+#        ":protos_all_cc",
+#        ":test",
+#        ":test_main",
+#        ":testlib",
+#        "//tensorflow/cc:cc_ops",
+#        "//tensorflow/core/kernels:ops_util",
+#    ],
+#)
 
 # Test data
 filegroup(

@@ -3,7 +3,7 @@ licenses(["restricted"])  # MPL2, portions GPL v3, LGPL v3, BSD-like
 load("@local_config_cuda//cuda:platform.bzl", "cuda_library_path")
 load("@local_config_cuda//cuda:platform.bzl", "cuda_static_library_path")
 load("@local_config_cuda//cuda:platform.bzl", "cudnn_library_path")
-load("@local_config_cuda//cuda:platform.bzl", "cupti_library_path")
+#load("@local_config_cuda//cuda:platform.bzl", "cupti_library_path")
 load("@local_config_cuda//cuda:platform.bzl", "readlink_command")
 
 package(default_visibility = ["//visibility:public"])
@@ -151,22 +151,22 @@ cc_library(
     visibility = ["//visibility:public"],
 )
 
-cc_library(
-    name = "cupti_headers",
-    hdrs = glob([
-        "**/*.h",
-    ]),
-    includes = [
-        ".",
-        "extras/CUPTI/include/",
-    ],
-    visibility = ["//visibility:public"],
-)
+#cc_library(
+#    name = "cupti_headers",
+#    hdrs = glob([
+#        "**/*.h",
+#    ]),
+#    includes = [
+#        ".",
+#        "extras/CUPTI/include/",
+#    ],
+#    visibility = ["//visibility:public"],
+#)
 
-cc_library(
-    name = "cupti_dsos",
-    data = [
-        cupti_library_path(),
-    ],
-    visibility = ["//visibility:public"],
-)
+#cc_library(
+#    name = "cupti_dsos",
+#    data = [
+#        cupti_library_path(),
+#    ],
+#    visibility = ["//visibility:public"],
+#)

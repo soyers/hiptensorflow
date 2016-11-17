@@ -198,11 +198,11 @@ def _cuda_symlink_files(cpu_value, cuda_version, cudnn_version):
         cuda_dnn_lib_alt = "libcudnn.so%s" % cudnn_ext,
         cuda_rand_lib = "lib64/libcurand.so%s" % cuda_ext,
         cuda_fft_lib = "lib64/libcufft.so%s" % cuda_ext,
- 	hip_fft_lib_nvcc = "hcfft/build/lib/src/libhipfft_nvcc.so",
- 	hip_blas_lib_nvcc = "hcblas/build/lib/src/libhipblas_nvcc.so",
+        hip_fft_lib_nvcc = "hcfft/build/lib/src/libhipfft_nvcc.so",
+        hip_blas_lib_nvcc = "hcblas/build/lib/src/libhipblas_nvcc.so",
         hip_rng_lib_nvcc = "hcrng/build/lib/src/libhiprng_nvcc.so",
-        hip_dnn_lib_nvcc = "MLOpen/build/src/libhipdnn_nvcc.so",
-        cuda_cupti_lib = "extras/CUPTI/lib64/libcupti.so%s" % cuda_ext)
+        hip_dnn_lib_nvcc = "MLOpen/build/src/libhipdnn_nvcc.so")#,
+        #cuda_cupti_lib = "extras/CUPTI/lib64/libcupti.so%s" % cuda_ext)
   elif cpu_value == "Darwin":
     return struct(
         cuda_lib_path = "lib",
@@ -367,7 +367,7 @@ def _create_cuda_repository(repository_ctx):
   cpu_value = _cpu_value(repository_ctx)
   symlink_files = _cuda_symlink_files(cpu_value, cuda_version, cudnn_version)
   _check_lib(repository_ctx, cuda_toolkit_path, symlink_files.cuda_rt_lib)
-  _check_lib(repository_ctx, cuda_toolkit_path, symlink_files.cuda_cupti_lib)
+  #_check_lib(repository_ctx, cuda_toolkit_path, symlink_files.cuda_cupti_lib)
   _check_dir(repository_ctx, cudnn_install_basedir)
 
   cudnn_header_dir = _find_cudnn_header_dir(repository_ctx,
@@ -403,10 +403,10 @@ def _create_cuda_repository(repository_ctx):
   _symlink_dir(repository_ctx, cuda_toolkit_path + "/bin", "cuda/bin")
   _symlink_dir(repository_ctx, "/opt/rocm/hip/bin", "cuda/bin")
   _symlink_dir(repository_ctx, cuda_toolkit_path + "/nvvm", "cuda/nvvm")
-  _symlink_dir(repository_ctx, cuda_toolkit_path + "/extras/CUPTI/include",
-               "cuda/extras/CUPTI/include")
-  repository_ctx.symlink(cuda_toolkit_path + "/" + symlink_files.cuda_cupti_lib,
-                         "cuda/" + symlink_files.cuda_cupti_lib)
+  #_symlink_dir(repository_ctx, cuda_toolkit_path + "/extras/CUPTI/include",
+  #             "cuda/extras/CUPTI/include")
+  #repository_ctx.symlink(cuda_toolkit_path + "/" + symlink_files.cuda_cupti_lib,
+  #                       "cuda/" + symlink_files.cuda_cupti_lib)
 
   #Including hipRNG header and .so
   repository_ctx.symlink(hiplib_path +  "/hcrng/lib/include/hiprng.h",

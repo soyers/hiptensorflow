@@ -23,7 +23,7 @@ limitations under the License.
 #include "tensorflow/core/common_runtime/device_factory.h"
 #include "tensorflow/core/common_runtime/executor.h"
 #include "tensorflow/core/common_runtime/function.h"
-#include "tensorflow/core/common_runtime/gpu/gpu_tracer.h"
+//#include "tensorflow/core/common_runtime/gpu/gpu_tracer.h"
 #include "tensorflow/core/common_runtime/graph_optimizer.h"
 #include "tensorflow/core/common_runtime/memory_types.h"
 #include "tensorflow/core/common_runtime/simple_placer.h"
@@ -425,13 +425,13 @@ Status DirectSession::Run(const RunOptions& run_options,
   // TODO(pbar) CostModel still gets very confused when presented
   // with trace data from the GPUTracer. This will need fixing if the
   // cost model needs meaningful GPU timing information.
-  std::unique_ptr<GPUTracer> tracer;
-  if (!build_cost_model &&
-      run_options.trace_level() >= RunOptions::HARDWARE_TRACE) {
-    tracer.reset(CreateGPUTracer());
+  //std::unique_ptr<GPUTracer> tracer;
+  //if (!build_cost_model &&
+      //run_options.trace_level() >= RunOptions::HARDWARE_TRACE) {
+    //tracer.reset(CreateGPUTracer());
     // tracer will be NULL on non-GPU platforms.
-    if (tracer) tracer->Start();
-  }
+    //if (tracer) tracer->Start();
+  //}
 
   for (const auto& item : executors_and_keys->items) {
     item.executor->RunAsync(args, barrier->Get());
@@ -441,10 +441,10 @@ Status DirectSession::Run(const RunOptions& run_options,
                                       ? run_options.timeout_in_ms()
                                       : operation_timeout_in_ms_);
 
-  if (tracer) {
-    tracer->Stop();
-    tracer->Collect(args.stats_collector);
-  }
+  //if (tracer) {
+  //  tracer->Stop();
+  //  tracer->Collect(args.stats_collector);
+  //}
 
   {
     mutex_lock l(run_state.mu_);
