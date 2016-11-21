@@ -329,7 +329,7 @@ def _create_dummy_repository(repository_ctx):
   repository_ctx.file("cuda/%s" % symlink_files.cuda_dnn_lib, "")
   repository_ctx.file("cuda/%s" % symlink_files.cuda_rand_lib, "")
   repository_ctx.file("cuda/%s" % symlink_files.cuda_fft_lib, "")
-  repository_ctx.file("cuda/%s" % symlink_files.cuda_cupti_lib, "")
+  #repository_ctx.file("cuda/%s" % symlink_files.cuda_cupti_lib, "")
 
   # Set up cuda_config.h, which is used by
   # tensorflow/stream_executor/dso_loader.cc.
