@@ -23,7 +23,7 @@ limitations under the License.
 #include "tensorflow/stream_executor/rng.h"
 #include "cuda/include/hiprng.h"
 
-typedef struct curandGenerator_st *hiprngGenerator_t;
+//typedef struct curandGenerator_st *hiprngGenerator_t;
 
 namespace perftools {
 namespace gputools {

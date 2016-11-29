@@ -39,7 +39,7 @@ limitations under the License.
 #include "tensorflow/stream_executor/stream.h"
 #include "tensorflow/stream_executor/stream_executor_pimpl.h"
 // clang-format off
-#include "cuda/include/hipdnn.h"
+//#include "cuda/include/hipdnn.h"
 // clang-format on
 
 namespace {

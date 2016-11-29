@@ -28,7 +28,7 @@ limitations under the License.
 #include "tensorflow/stream_executor/lib/casts.h"
 #include "tensorflow/stream_executor/platform/port.h"
 #include "tensorflow/stream_executor/platform/logging.h"
-#include "cuda/include/cuda.h"
+#include "cuda/include/hip/hip_runtime.h"
 
 #ifdef PLATFORMS_GPUS_CUDA_DYNAMIC_LIBCUDA_DYNAMIC_LIBCUDA_H_
 #error \
@@ -60,14 +60,14 @@ class CUDAKernel : public internal::KernelInterface {
   unsigned Arity() const override { return arity_; }
 
   // Returns the CUfunction value for passing to the CUDA API.
-  CUfunction AsCUDAFunctionValue() const {
+  hipFunction_t AsCUDAFunctionValue() const {
     DCHECK(cuda_function_ != nullptr);
-    return const_cast<CUfunction>(cuda_function_);
+    return const_cast<hipFunction_t>(cuda_function_);
   }
 
   // Returns the slot that the CUfunction is stored within for this object,
   // for the CUDA API which wants to load into a CUfunction*.
-  CUfunction *cuda_function_ptr() { return &cuda_function_; }
+  hipFunction_t *cuda_function_ptr() { return &cuda_function_; }
 
   // CUDA supports setting the preferred cache configuration of a CUfunction
   // (more-or-less equivalent to a CUDAKernel). We support this via the below
@@ -87,16 +87,32 @@ class CUDAKernel : public internal::KernelInterface {
 
   // Returns the current kernel cache configuration preference as a
   // CUfunc_cache.
-  CUfunc_cache GetCUDACacheConfig() const {
+  hipFuncCache_t GetCUDACacheConfig() const {
     switch (preferred_cache_config_) {
       case KernelCacheConfig::kNoPreference:
+#ifdef __NVCC__
         return CU_FUNC_CACHE_PREFER_NONE;
+#elif defined(__HCC__)
+        return hipFuncCachePreferNone;
+#endif
       case KernelCacheConfig::kPreferShared:
+#ifdef __NVCC__
         return CU_FUNC_CACHE_PREFER_SHARED;
+#elif defined(__HCC__)
+        return hipFunhipFuncCachePreferShared;
+#endif
       case KernelCacheConfig::kPreferL1:
+#ifdef __NVCC__
         return CU_FUNC_CACHE_PREFER_L1;
+#elif defined(__HCC__)
+        return hipFuncCachePreferL1;
+#endif
       case KernelCacheConfig::kPreferEqual:
+#ifdef __NVCC__
         return CU_FUNC_CACHE_PREFER_EQUAL;
+#elif defined(__HCC__)
+        return hipFuncCachePreferEqual;
+#endif
       default:
         LOG(FATAL) << "Unknown KernelCacheConfig"
                    << static_cast<int32>(preferred_cache_config_);
@@ -104,7 +120,7 @@ class CUDAKernel : public internal::KernelInterface {
   }
 
  private:
-  CUfunction cuda_function_;  // Wrapped CUDA kernel handle.
+  hipFunction_t cuda_function_;  // Wrapped CUDA kernel handle.
   unsigned arity_;            // Number of formal parameters the kernel takes.
 
   // Preferred (but not required) cache configuration for this kernel.

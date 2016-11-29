@@ -91,7 +91,7 @@ filegroup(
 cc_library(
     name = "cuda",
     data = [
-        "@local_config_cuda//cuda:{}".format(cuda_library_path("cudart")),
+        "@local_config_cuda//cuda:{}".format(cuda_library_path("hip_hcc")),
     ],
     linkopts = select({
         "@local_config_cuda//cuda:darwin": [
@@ -100,7 +100,6 @@ cc_library(
         ],
         "//conditions:default": [
             "-Wl,-rpath,../local_config_cuda/cuda/lib64",
-            "-Wl,-rpath,../local_config_cuda/cuda/extras/CUPTI/lib64",
         ],
     }),
     deps = [

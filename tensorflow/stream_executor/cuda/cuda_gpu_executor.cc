@@ -105,12 +105,12 @@ static CUDATimer *AsCUDATimer(Timer *timer) {
 // N.B. we must lose constness in order to pass a suitable type to the existing
 // libcuda APIs, so the caller should take care to only pass the result of const
 // GPU memory conversions to libcuda functions which will honor constness.
-static CUdeviceptr AsCudaDevicePtr(const DeviceMemoryBase &gpu_mem) {
-  return reinterpret_cast<CUdeviceptr>(gpu_mem.opaque());
+static hipDeviceptr_t AsCudaDevicePtr(const DeviceMemoryBase &gpu_mem) {
+  return reinterpret_cast<hipDeviceptr_t>(gpu_mem.opaque());
 }
 
 // See description on const version above.
-static CUdeviceptr AsCudaDevicePtr(DeviceMemoryBase *gpu_mem) {
+static hipDeviceptr_t AsCudaDevicePtr(DeviceMemoryBase *gpu_mem) {
   return AsCudaDevicePtr(*gpu_mem);
 }
 
@@ -222,7 +222,7 @@ static string GetBinaryDir(bool strip_exe) {
 bool CUDAExecutor::GetKernel(const MultiKernelLoaderSpec &spec,
                              KernelBase *kernel) {
   CUDAKernel *cuda_kernel = AsCUDAKernel(kernel);
-  CUmodule module = nullptr;
+  hipModule_t module = nullptr;
   const string *kernelname;
 
   const OnDiskKernelLoaderSpec *on_disk_spec = nullptr;
@@ -342,7 +342,7 @@ bool CUDAExecutor::Launch(Stream *stream, const ThreadDim &thread_dims,
                           const BlockDim &block_dims, const KernelBase &kernel,
                           const std::vector<KernelArg> &args) {
   CHECK_EQ(kernel.Arity(), args.size());
-  CUstream custream = AsCUDAStreamValue(stream);
+  hipStream_t custream = AsCUDAStreamValue(stream);
   const CUDAKernel *cuda_kernel = AsCUDAKernel(&kernel);
   CUfunction cufunc = cuda_kernel->AsCUDAFunctionValue();
 
@@ -595,8 +595,8 @@ bool CUDAExecutor::HostCallback(Stream *stream,
                                        InternalHostCallback, callback_ptr);
 }
 
-/* static */ void CUDAExecutor::InternalHostCallback(CUstream stream,
-                                                     CUresult status,
+/* static */ void CUDAExecutor::InternalHostCallback(hipStream_t stream,
+                                                     hipError_t status,
                                                      void *data) {
   std::function<void()> *callback =
       reinterpret_cast<std::function<void()> *>(data);
@@ -654,7 +654,7 @@ void CUDAExecutor::DeallocateTimer(Timer *timer) {
 }
 
 bool CUDAExecutor::CreateStreamDependency(Stream *dependent, Stream *other) {
-  CUevent other_completed_event = *AsCUDAStream(other)->completed_event();
+  hipEvent_t other_completed_event = *AsCUDAStream(other)->completed_event();
   bool ok = CUDADriver::RecordEvent(context_, other_completed_event,
                                     AsCUDAStreamValue(other))
       .ok();
@@ -802,7 +802,7 @@ bool CUDAExecutor::GetSymbol(const string& symbol_name, void **mem,
     mutex_lock lock{disk_modules_mu_};
     for (auto &it : disk_modules_) {
       if (CUDADriver::GetModuleSymbol(context_, it.second, symbol_name.c_str(),
-                                      reinterpret_cast<CUdeviceptr *>(mem),
+                                      reinterpret_cast<hipDeviceptr_t *>(mem),
                                       bytes)) {
         return true;
       }
@@ -813,7 +813,7 @@ bool CUDAExecutor::GetSymbol(const string& symbol_name, void **mem,
     mutex_lock lock{in_memory_modules_mu_};
     for (auto &it : in_memory_modules_) {
       if (CUDADriver::GetModuleSymbol(context_, it.second, symbol_name.c_str(),
-                                      reinterpret_cast<CUdeviceptr *>(mem),
+                                      reinterpret_cast<hipDeviceptr_t *>(mem),
                                       bytes)) {
         return true;
       }

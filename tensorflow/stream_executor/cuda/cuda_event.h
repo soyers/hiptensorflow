@@ -25,7 +25,7 @@ namespace perftools {
 namespace gputools {
 namespace cuda {
 
-// CUDAEvent wraps a CUevent in the platform-independent EventInterface
+// CUDAEvent wraps a hipEvent_t in the platform-independent EventInterface
 // interface.
 class CUDAEvent : public internal::EventInterface {
  public:
@@ -47,14 +47,14 @@ class CUDAEvent : public internal::EventInterface {
   Event::Status PollForStatus();
 
   // The underyling CUDA event element.
-  const CUevent& cuda_event();
+  const hipEvent_t& cuda_event();
 
  private:
-  // The Executor used to which this object and CUevent are bound.
+  // The Executor used to which this object and hipEvent_t are bound.
   CUDAExecutor* parent_;
 
   // The underlying CUDA event element.
-  CUevent cuda_event_;
+  hipEvent_t cuda_event_;
 };
 
 }  // namespace cuda

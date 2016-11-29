@@ -45,7 +45,7 @@ string GetCudaVersion() { return TF_CUDA_VERSION; }
 string GetCudnnVersion() { return TF_CUDNN_VERSION; }
 
 /* static */ port::Status DsoLoader::GetCublasDsoHandle(void** dso_handle) {
-  return GetDsoHandle(FindDsoPath("libhipblas_nvcc.so",
+  return GetDsoHandle(FindDsoPath("libhipblas_hcc.so",
                                   GetCudaLibraryDirPath()),
                       dso_handle);
 }
@@ -54,26 +54,26 @@ string GetCudnnVersion() { return TF_CUDNN_VERSION; }
   // libcudnn is versioned differently than the other libraries and may have a
   // different version number than other CUDA libraries.  See b/22397368 for
   // some details about the complications surrounding this.
-  return GetDsoHandle(FindDsoPath("libhipdnn_nvcc.so",
+  return GetDsoHandle(FindDsoPath("libhipdnn_hcc.so",
                                   GetCudaLibraryDirPath()),
                       dso_handle);
 }
 
 /* static */ port::Status DsoLoader::GetCufftDsoHandle(void** dso_handle) {
-  return GetDsoHandle(FindDsoPath("libhipfft_nvcc.so",
+  return GetDsoHandle(FindDsoPath("libhipfft_hcc.so",
                                   GetHipLibraryDirPath()),
                       dso_handle);
 }
 
 /* static */ port::Status DsoLoader::GetCurandDsoHandle(void** dso_handle) {
-  return GetDsoHandle(FindDsoPath("libhiprng_nvcc.so",
+  return GetDsoHandle(FindDsoPath("libhiprng_hcc.so",
                                   GetCudaLibraryDirPath()),
                       dso_handle);
 }
 
 /* static */ port::Status DsoLoader::GetLibcudaDsoHandle(void** dso_handle) {
   return GetDsoHandle(
-      FindDsoPath(tensorflow::internal::FormatLibraryFileName("cuda", "1"),
+      FindDsoPath("libhip_hcc.so",
                   GetCudaDriverLibraryPath()),
       dso_handle);
 }

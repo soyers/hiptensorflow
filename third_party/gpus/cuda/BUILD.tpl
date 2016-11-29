@@ -59,27 +59,27 @@ cc_library(
 
 cc_library(
     name = "cudart_static",
-    srcs = [
-        cuda_static_library_path("cudart"),
-    ],
+    #srcs = [
+    #    cuda_static_library_path("cudart"),
+    #],
     includes = ["include/"],
-    linkopts = [
-        "-ldl",
-        "-lpthread",
-    ] + select({
-        "@//tensorflow:darwin": [],
-        "//conditions:default": ["-lrt"],
-    }),
+    #linkopts = [
+    #    "-ldl",
+    #    "-lpthread",
+    #] + select({
+    #    "@//tensorflow:darwin": [],
+    #    "//conditions:default": ["-lrt"],
+    #}),
     visibility = ["//visibility:public"],
 )
 
 cc_library(
     name = "cudart",
     srcs = [
-        cuda_library_path("cudart"),
+        cuda_library_path("hip_hcc"),
     ],
     data = [
-        cuda_library_path("cudart"),
+        cuda_library_path("hip_hcc"),
     ],
     includes = ["include/"],
     linkstatic = 1,
@@ -89,10 +89,10 @@ cc_library(
 cc_library(
     name = "cublas",
     srcs = [
-        cuda_library_path("cublas"),
+       cuda_library_path("hipblas_hcc"),
     ],
     data = [
-        cuda_library_path("cublas"),
+        cuda_library_path("hipblas_hcc"),
     ],
     includes = ["include/"],
     linkstatic = 1,
@@ -101,12 +101,12 @@ cc_library(
 
 cc_library(
     name = "cudnn",
-    srcs = [
-        cudnn_library_path(),
-    ],
-    data = [
-        cudnn_library_path(),
-    ],
+    #srcs = [
+    #    cudnn_library_path(),
+    #],
+    #data = [
+    #    cudnn_library_path(),
+    #],
     includes = ["include/"],
     linkstatic = 1,
     visibility = ["//visibility:public"],
@@ -115,10 +115,10 @@ cc_library(
 cc_library(
     name = "cufft",
     srcs = [
-        cuda_library_path("cufft"),
+        cuda_library_path("hipfft_hcc"),
     ],
     data = [
-        cuda_library_path("cufft"),
+        cuda_library_path("hipfft_hcc"),
     ],
     includes = ["include/"],
     linkstatic = 1,
@@ -128,10 +128,10 @@ cc_library(
 cc_library(
     name = "curand",
     srcs = [
-        cuda_library_path("curand"),
+        cuda_library_path("hiprng_hcc"),
     ],
     data = [
-        cuda_library_path("curand"),
+        cuda_library_path("hiprng_hcc"),
     ],
     includes = ["include/"],
     linkstatic = 1,

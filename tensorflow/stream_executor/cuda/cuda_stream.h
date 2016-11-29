@@ -60,25 +60,25 @@ class CUDAStream : public internal::StreamInterface {
   // Retrieves an event which indicates that all work enqueued into the stream
   // has completed. Ownership of the event is not transferred to the caller, the
   // event is owned by this stream.
-  CUevent* completed_event() { return &completed_event_; }
+  hipEvent_t* completed_event() { return &completed_event_; }
 
   // Returns the CUstream value for passing to the CUDA API.
   //
   // Precond: this CUDAStream has been allocated (otherwise passing a nullptr
   // into the NVIDIA library causes difficult-to-understand faults).
-  CUstream cuda_stream() const {
+  hipStream_t cuda_stream() const {
     DCHECK(cuda_stream_ != nullptr);
-    return const_cast<CUstream>(cuda_stream_);
+    return const_cast<hipStream_t>(cuda_stream_);
   }
 
   CUDAExecutor *parent() const { return parent_; }
 
  private:
   CUDAExecutor *parent_;  // Executor that spawned this stream.
-  CUstream cuda_stream_;  // Wrapped CUDA stream handle.
+  hipStream_t cuda_stream_;  // Wrapped CUDA stream handle.
 
   // Event that indicates this stream has completed.
-  CUevent completed_event_ = nullptr;
+  hipEvent_t completed_event_ = nullptr;
 };
 
 // Helper functions to simplify extremely common flows.
@@ -86,7 +86,7 @@ class CUDAStream : public internal::StreamInterface {
 CUDAStream *AsCUDAStream(Stream *stream);
 
 // Extracts a CUstream from a CUDAStream-backed Stream object.
-CUstream AsCUDAStreamValue(Stream *stream);
+hipStream_t AsCUDAStreamValue(Stream *stream);
 
 }  // namespace cuda
 }  // namespace gputools

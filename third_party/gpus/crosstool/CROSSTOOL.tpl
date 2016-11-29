@@ -80,7 +80,7 @@ toolchain {
   unfiltered_cxx_flag: "-D__DATE__=\"redacted\""
   unfiltered_cxx_flag: "-D__TIMESTAMP__=\"redacted\""
   unfiltered_cxx_flag: "-D__TIME__=\"redacted\""
-  unfiltered_cxx_flag: "-D__HIP_PLATFORM_NVCC__=\"-I/opt/rocm/hip/include -I/usr/local/cuda/include\""
+  unfiltered_cxx_flag: "-D__HIP_PLATFORM_HCC__=\"-I/opt/rocm/hip/include -I/opt/rocm/hcc/include\""
 
   # Security hardening on by default.
   # Conservative choice; -D_FORTIFY_SOURCE=2 may be unsafe in some cases.
@@ -124,9 +124,9 @@ toolchain {
   cxx_builtin_include_directory: "/usr/local/cuda%{cuda_version}/include"
   cxx_builtin_include_directory: "/usr/local/cuda/include"
   cxx_builtin_include_directory: "/opt/rocm/hip/include"
-  cxx_builtin_include_directory: "/opt/san/rng/include"
-  cxx_builtin_include_directory: "/opt/san/fft/include"
-  cxx_builtin_include_directory: "/opt/san/blas/include"
+  cxx_builtin_include_directory: "/opt/san/hcrng/lib/include"
+  cxx_builtin_include_directory: "/opt/san/hcfft/lib/include"
+  cxx_builtin_include_directory: "/opt/san/hcblas/lib/include"
   
   compilation_mode_flags {
     mode: DBG

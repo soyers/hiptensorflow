@@ -232,7 +232,7 @@ class CUDAExecutor : public internal::StreamExecutorInterface {
   // data: User-provided callback provided to HostCallback() above, captured
   //       as a std::function<void()>. Allocated/initialized inside
   //       HostCallback() and owned and deleted by this call.
-  static void InternalHostCallback(CUstream stream, CUresult status,
+  static void InternalHostCallback(hipStream_t stream, hipError_t status,
                                    void *data);
 
   // Collects metadata for the specified kernel.
@@ -252,12 +252,12 @@ class CUDAExecutor : public internal::StreamExecutorInterface {
   // Mapping from filename to CUmodule, if it was already retrieved.
   // Multiple CUfunctions are usually obtained from a single CUmodule so we
   // attempt to hit in this mapping first, before retrieving it.
-  std::map<string, CUmodule> disk_modules_ GUARDED_BY(disk_modules_mu_);
+  std::map<string, hipModule_t> disk_modules_ GUARDED_BY(disk_modules_mu_);
 
   // Guards the in-memory-module mapping.
   mutex in_memory_modules_mu_;
 
-  std::map<const char *, CUmodule> in_memory_modules_
+  std::map<const char *, hipModule_t> in_memory_modules_
       GUARDED_BY(in_memory_modules_mu_);
 
   // Guards the launched kernel set.
@@ -265,11 +265,11 @@ class CUDAExecutor : public internal::StreamExecutorInterface {
 
   // Keeps track of the set of launched kernels. Currently used to suppress the
   // occupancy check on subsequent launches.
-  std::set<CUfunction> launched_kernels_ GUARDED_BY(launched_kernels_mu_);
+  std::set<hipFunction_t> launched_kernels_ GUARDED_BY(launched_kernels_mu_);
 
   // Handle for the CUDA device being operated on. Immutable
   // post-initialization.
-  CUdevice device_;
+  hipDevice_t device_;
 
   // Handle for session with the library/driver. Immutable post-initialization.
   CudaContext* context_;

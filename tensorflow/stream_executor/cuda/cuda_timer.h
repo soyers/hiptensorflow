@@ -71,9 +71,9 @@ class CUDATimer : public internal::TimerInterface {
 
  private:
   CUDAExecutor *parent_;
-  CUevent start_event_;  // Event recorded to indicate the "start" timestamp
+  hipEvent_t start_event_;  // Event recorded to indicate the "start" timestamp
                          // executing in a stream.
-  CUevent stop_event_;   // Event recorded to indicate the "stop" timestamp
+  hipEvent_t stop_event_;   // Event recorded to indicate the "stop" timestamp
                          // executing in a stream.
 };
 

@@ -68,7 +68,7 @@ namespace dynload {
       return reinterpret_cast<FuncPointerT>(f);                              \
     }                                                                        \
     template <typename... Args>                                              \
-    hipError_t operator()(Args... args) {                                      \
+    hipError_t operator()(Args... args) {                                    \
       return DynLoad()(args...);                                             \
     }                                                                        \
   } __name;                                                                  \
@@ -94,13 +94,13 @@ PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipDeviceGetPCIBusId);
 PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipGetDeviceProperties);//Check Syntax
 PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipDeviceTotalMem);
 PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipDriverGetVersion);
-PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipEventCreate);
+PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipEventCreateWithFlags);
 PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipEventDestroy);
 PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipEventElapsedTime);
 PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipEventQuery);
 PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipEventRecord);
 PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipEventSynchronize);
-PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(cuFuncGetAttribute); //ToDo(mcw): Find equivalent Hip routine for cuFuncGetAttribute
+//PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipFuncGetAttribute); //ToDo(mcw): Find equivalent Hip routine for cuFuncGetAttribute
 PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipFuncSetCacheConfig);
 PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipGetErrorName);
 PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipGetErrorString);
@@ -113,7 +113,7 @@ PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipMemcpyHtoD);
 PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipMemcpyDtoDAsync);
 PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipMemcpyDtoHAsync);
 PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipMemcpyHtoDAsync);
-PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(cuMemGetAddressRange_v2);//ToDo(mcw): Find equivalent Hip routine for cuMemGetAddressRange
+PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipMemGetAddressRange);//ToDo(mcw): Find equivalent Hip routine for cuMemGetAddressRange
 PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipFree);
 PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipHostFree);
 PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipMemGetInfo);
@@ -122,16 +122,14 @@ PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipHostRegister);
 PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipHostUnregister);
 PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipMemset);
 PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipMemsetAsync);
-PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipMemset);
-PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipMemsetAsync);
 PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipModuleGetFunction);
 PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipModuleGetGlobal);
-PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(cuModuleLoadDataEx);//ToDo(mcw): Find equivalent Hip routine for cuModuleLoadDataEx(since hipModuleLoadData have only two argument we cant use it directly)
-PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(cuModuleLoadFatBinary);//ToDo(mcw): Find equivalent Hip routine for cuModuleLoadFatBinary
+PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipModuleLoadDataEx);//ToDo(mcw): Find equivalent Hip routine for cuModuleLoadDataEx(since hipModuleLoadData have only two argument we cant use it directly)
+PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipModuleLoadFatBinary);//ToDo(mcw): Find equivalent Hip routine for cuModuleLoadFatBinary
 PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipModuleUnload);
-PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(cuOccupancyMaxActiveBlocksPerMultiprocessor);//ToDo(mcw): Find equivalent Hip routine cuOccupancyMaxActiveBlocksPerMultiprocessor
-PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(cuPointerGetAttribute);//ToDo(mcw): Find equivalent Hip routine for cuPointerGetAttribute (since cudaPointerGetAttributes have different arguments we cant use it)
-PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(cuStreamAddCallback);//ToDo(mcw): Find equivalent Hip routine for cuStreamAddCallback
+PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipOccupancyMaxActiveBlocksPerMultiprocessor);//ToDo(mcw): Find equivalent Hip routine cuOccupancyMaxActiveBlocksPerMultiprocessor
+PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipPointerGetAttribute);//ToDo(mcw): Find equivalent Hip routine for cuPointerGetAttribute (since cudaPointerGetAttributes have different arguments we cant use it)
+PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipStreamAddCallback);//ToDo(mcw): Find equivalent Hip routine for cuStreamAddCallback
 PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipStreamCreateWithFlags);
 PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipStreamDestroy);
 PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipStreamQuery);
@@ -513,10 +511,9 @@ static port::Status InternalInit() {
   return init_retval;
 }
 
-/* static */ port::Status CUDADriver::GetDevice(int device_ordinal,
-                                                hipDevice_t *device) {
+/* static */ port::Status CUDADriver::GetDevice(hipDevice_t *device) {
   //ToDo(mcw):check syntax of hipGetDevice w.r.t cuDeviceGet
-  hipError_t res = dynload::hipGetDevice(device, device_ordinal);
+  hipError_t res = dynload::hipGetDevice(device);
   if (res == hipSuccess) {
     return port::Status::OK();
   }
@@ -628,13 +625,13 @@ bool DeviceOptionsToContextFlags(DeviceOptions device_options, int *flags) {
                                                hipFunction_t func,
                                                int *attribute_value) {
   //ToDo(mcw): Need Hip Equivalent for cuFuncGetAttribute
-  /*hipError_t res = dynload::cuFuncGetAttribute(attribute_value, attribute, func);
+  hipError_t res = hipSuccess;//dynload::hipFuncGetAttribute(attribute_value, attribute, func);
   if (res != hipSuccess) {
     LOG(ERROR) << "failed to query kernel attribute. kernel: " << func
                << ", attribute: " << attribute;
     return false;
   }
-  return true;*/
+  return true;
   return true;
 }
 
@@ -713,7 +710,7 @@ CUDADriver::ContextGetSharedMemConfig(CudaContext* context) {
                                                 const char *cubin_bytes,
                                                 hipModule_t *module) {
   ScopedActivateContext activation{context};
-  hipError_t result = dynload::cuModuleLoadFatBinary(module, cubin_bytes);
+  hipError_t result = dynload::hipModuleLoadFatBinary(module, cubin_bytes);
   if (result != hipSuccess) {
     return port::Status{port::error::INTERNAL,
                         "failed to load in-memory CUBIN: " + ToString(result)};
@@ -756,7 +753,7 @@ CUDADriver::ContextGetSharedMemConfig(CudaContext* context) {
       // TODO(leary) Need to see if NVIDIA can expunge the leakiness in their
       // module loading: see http://b/13248943
 
-      res = dynload::cuModuleLoadDataEx(module, ptx_data, ARRAYSIZE(options),
+      res = dynload::hipModuleLoadDataEx(module, ptx_data, ARRAYSIZE(options),
                                         options, option_values);
     }
 
@@ -796,7 +793,8 @@ CUDADriver::ContextGetSharedMemConfig(CudaContext* context) {
                                                      hipDeviceptr_t location,
                                                      uint8 value, size_t size) {
   ScopedActivateContext activation{context};
-  hipError_t res = dynload::hipMemset(location, value, size);
+  void * pointer = port::bit_cast<void *>(location);
+  hipError_t res = dynload::hipMemset(pointer, value, size);
   if (res != hipSuccess) {
     LOG(ERROR) << "failed to memset memory: " << ToString(res);
     return false;
@@ -809,7 +807,8 @@ CUDADriver::ContextGetSharedMemConfig(CudaContext* context) {
                                                       uint32 value,
                                                       size_t uint32_count) {
   ScopedActivateContext activation{context};
-  hipError_t res = dynload::hipMemset(location, value, uint32_count);
+  void * pointer = port::bit_cast<void *>(location);
+  hipError_t res = dynload::hipMemset(pointer, static_cast<int>(value), uint32_count);
   if (res != hipSuccess) {
     LOG(ERROR) << "failed to memset memory: " << ToString(res);
     return false;
@@ -823,8 +822,9 @@ CUDADriver::ContextGetSharedMemConfig(CudaContext* context) {
                                                       size_t uint32_count,
                                                       hipStream_t stream) {
   ScopedActivateContext activation{context};
+  void * pointer = port::bit_cast<void *>(location);
   hipError_t res =
-      dynload::hipMemsetAsync(location, value, uint32_count, stream);
+      dynload::hipMemsetAsync(pointer, value, uint32_count, stream);
   if (res != hipSuccess) {
     LOG(ERROR) << "failed to enqueue async memset operation: " << ToString(res);
     return false;
@@ -839,8 +839,9 @@ CUDADriver::ContextGetSharedMemConfig(CudaContext* context) {
                                                        size_t uint32_count,
                                                        hipStream_t stream) {
   ScopedActivateContext activation{context};
+  void * pointer = port::bit_cast<void *>(location);
   hipError_t res =
-      dynload::hipMemsetAsync(location, value, uint32_count, stream);
+      dynload::hipMemsetAsync(pointer, value, uint32_count, stream);
   if (res != hipSuccess) {
     LOG(ERROR) << "failed to enqueue async memset operation: " << ToString(res);
     return false;
@@ -855,7 +856,7 @@ CUDADriver::ContextGetSharedMemConfig(CudaContext* context) {
                                                 void *data) {
   // Note: flags param is required to be zero according to CUDA 6.0.
   hipError_t res =
-      dynload::cuStreamAddCallback(stream, callback, data, 0 /* = flags */);
+      dynload::hipStreamAddCallback(stream, (hipStreamCallback_t)callback, data, 0 /* = flags */);
   if (res != hipSuccess) {
     LOG(ERROR) << "unable to add host callback: " << ToString(res);
     return false;
@@ -963,7 +964,8 @@ CUDADriver::ContextGetSharedMemConfig(CudaContext* context) {
 /* static */ void *CUDADriver::DeviceAllocate(CudaContext *context,
                                               uint64 bytes) {
   ScopedActivateContext activated{context};
-  hipDeviceptr_t result = 0;
+  void *result = nullptr;
+
   //Todo(mcw): Verify hipDeviceptr_t is compatible with void ** pointer of hipMalloc
   hipError_t res = dynload::hipMalloc(&result, bytes);
   if (res != hipSuccess) {
@@ -981,9 +983,9 @@ CUDADriver::ContextGetSharedMemConfig(CudaContext* context) {
 /* static */ void CUDADriver::DeviceDeallocate(CudaContext* context,
                                                void *location) {
   ScopedActivateContext activation{context};
-  hipDeviceptr_t pointer = port::bit_cast<hipDeviceptr_t>(location);
+  //hipDeviceptr_t pointer = port::bit_cast<hipDeviceptr_t>(location);
   //ToDo(mcw): Check and remove the casting above, since HipFree accepts only void* ptr 
-  hipError_t res = dynload::hipFree(pointer);
+  hipError_t res = dynload::hipFree(location);
   if (res != hipSuccess) {
     LOG(ERROR) << "failed to free device memory at " << location
                << "; result: " << ToString(res);
@@ -1099,7 +1101,7 @@ CUDADriver::ContextGetSharedMemConfig(CudaContext* context) {
   ScopedActivateContext activated{context};
   hipError_t res = dynload::hipEventQuery(event);
   //ToDo(mcw): check hip equivalent for CUDA_ERROR_NOT_READY
-  if (res != hipSuccess && res != CUDA_ERROR_NOT_READY) {
+  if (res != hipSuccess && res != hipErrorNotReady) {
     return port::Status{
         port::error::INTERNAL,
         port::Printf("failed to query event: %s", ToString(res).c_str())};
@@ -1178,7 +1180,7 @@ CUDADriver::ContextGetSharedMemConfig(CudaContext* context) {
     return true;
   }
   //ToDo(mcw): check hip equivalent for CUDA_ERROR_NOT_READY
-  if (res != CUDA_ERROR_NOT_READY) {
+  if (res != hipErrorNotReady) {
     LOG(ERROR) << "stream in bad state on status query: " << ToString(res);
   }
   return false;
@@ -1319,12 +1321,12 @@ CUDADriver::ContextGetSharedMemConfig(CudaContext* context) {
   }
 
   ScopedActivateContext activated{context};
-  //ToDo(mcw): check syntax of hipEventCreate w.r.t cuEventCreate
-  hipError_t res = dynload::hipEventCreate(result, cuflags);
+  //ToDo(mcw): check syntax of hipEventCreateWithFlags w.r.t cuEventCreate
+  hipError_t res = dynload::hipEventCreateWithFlags(result, cuflags);
 
   if (res == hipSuccess) {
     return port::Status::OK();
-  } else if (res == CUDA_ERROR_OUT_OF_MEMORY) {
+  } else if (res == hipErrorMemoryAllocation) {
     return port::Status{port::error::RESOURCE_EXHAUSTED,
                         "could not create CUDA event: out of device memory"};
   } else {
@@ -1351,7 +1353,7 @@ CUDADriver::ContextGetSharedMemConfig(CudaContext* context) {
 /* static */ port::StatusOr<CudaContext*> CUDADriver::GetPointerContext(
     hipDeviceptr_t pointer) {
   CudaContext* context = nullptr;
-  hipError_t result = dynload::cuPointerGetAttribute(
+  hipError_t result = dynload::hipPointerGetAttribute(
       &context, CU_POINTER_ATTRIBUTE_CONTEXT, pointer);
   if (result == hipSuccess) {
     CHECK(context != nullptr) << "success should entail non-null context";
@@ -1367,7 +1369,7 @@ CUDADriver::ContextGetSharedMemConfig(CudaContext* context) {
 /* static */ port::StatusOr<MemorySpace> CUDADriver::GetPointerMemorySpace(
     hipDeviceptr_t pointer) {
   unsigned int value;
-  hipError_t result = dynload::cuPointerGetAttribute(
+  hipError_t result = dynload::hipPointerGetAttribute(
       &value, CU_POINTER_ATTRIBUTE_MEMORY_TYPE, pointer);
   if (result == hipSuccess) {
     switch (value) {
@@ -1391,10 +1393,10 @@ CUDADriver::ContextGetSharedMemConfig(CudaContext* context) {
 /* static */ port::Status CUDADriver::GetPointerAddressRange(hipDeviceptr_t dptr,
                                                              hipDeviceptr_t *base,
                                                              size_t *size) {
-  hipError_t result = dynload::cuMemGetAddressRange(base, size, dptr);
+  hipError_t result = dynload::hipMemGetAddressRange(base, size, dptr);
   if (result == hipSuccess) {
     return port::Status::OK();
-  } else if (result == CUDA_ERROR_NOT_FOUND) {
+  } else if (result == hipErrorNotFound) {
     // We differentiate between "this pointer is unknown" (return here) and
     // "there was an internal error while performing this operation" (return
     // below).
@@ -1458,42 +1460,42 @@ static port::StatusOr<T> GetSimpleAttribute(hipDevice_t device,
 /* static */ port::StatusOr<int> CUDADriver::GetMultiprocessorCount(
     hipDevice_t device) {
   return GetSimpleAttribute<int>(device,
-                                 CU_DEVICE_ATTRIBUTE_MULTIPROCESSOR_COUNT);
+                                 hipDeviceAttributeMultiprocessorCount);
 }
 
 /* static */ port::StatusOr<int64> CUDADriver::GetMaxSharedMemoryPerCore(
     hipDevice_t device) {
   return GetSimpleAttribute<int64>(
-      device, CU_DEVICE_ATTRIBUTE_MAX_SHARED_MEMORY_PER_MULTIPROCESSOR);
+      device, hipDeviceAttributeMaxSharedMemoryPerMultiprocessor);
 }
 
 /* static */ port::StatusOr<int64> CUDADriver::GetMaxSharedMemoryPerBlock(
     hipDevice_t device) {
   return GetSimpleAttribute<int64>(
-      device, CU_DEVICE_ATTRIBUTE_MAX_SHARED_MEMORY_PER_BLOCK);
+      device, hipDeviceAttributeMaxSharedMemoryPerBlock);
 }
 
 /* static */ port::StatusOr<int64> CUDADriver::GetMaxThreadsPerMultiprocessor(
     hipDevice_t device) {
   return GetSimpleAttribute<int64>(
-      device, CU_DEVICE_ATTRIBUTE_MAX_THREADS_PER_MULTIPROCESSOR);
+      device, hipDeviceAttributeMaxThreadsPerMultiProcessor);
 }
 
 /* static */ port::StatusOr<int64> CUDADriver::GetMaxThreadsPerBlock(
     hipDevice_t device) {
   return GetSimpleAttribute<int64>(device,
-                                   CU_DEVICE_ATTRIBUTE_MAX_THREADS_PER_BLOCK);
+                                   hipDeviceAttributeMaxThreadsPerBlock);
 }
 
 /* static */ port::StatusOr<int64> CUDADriver::GetMaxRegistersPerBlock(
     hipDevice_t device) {
   return GetSimpleAttribute<int64>(device,
-                                   CU_DEVICE_ATTRIBUTE_MAX_REGISTERS_PER_BLOCK);
+                                   hipDeviceAttributeMaxRegistersPerBlock);
 }
 
 /* static */ port::StatusOr<int64> CUDADriver::GetThreadsPerWarp(
     hipDevice_t device) {
-  return GetSimpleAttribute<int64>(device, CU_DEVICE_ATTRIBUTE_WARP_SIZE);
+  return GetSimpleAttribute<int64>(device, hipDeviceAttributeWarpSize);
 }
 
 /* static */ bool CUDADriver::GetGridLimits(int *x, int *y, int *z,
@@ -1551,7 +1553,7 @@ static port::StatusOr<T> GetSimpleAttribute(hipDevice_t device,
   int value = -1;
   //ToDo(mcw): find equivalent for CU_DEVICE_ATTRIBUTE_ECC_ENABLED in hip
   hipError_t res = dynload::hipDeviceGetAttribute(
-      &value, CU_DEVICE_ATTRIBUTE_ECC_ENABLED, device);
+      &value, hipDeviceAttributeEccEnabled, device);
   if (res != hipSuccess) {
     LOG(ERROR) << "failed to query ECC status: " << ToString(res);
     return false;
@@ -1644,9 +1646,9 @@ static port::StatusOr<T> GetSimpleAttribute(hipDevice_t device,
   ScopedActivateContext activated{from};
   hipError_t result =
       dynload::hipCtxEnablePeerAccess(to->context(), 0 /* = flags */);
-  //ToDo(mcw): check equivalent for CUDA_ERROR_PEER_ACCESS_ALREADY_ENABLED
+  //ToDo(mcw): check equivalent for CUDA_ERROR_PEER_ACCESS_ALREADY_ENABLED but the error code is different in hip/include/hip/hip_runtime.h Here it is 704 and in hip 1050
   if (result != hipSuccess &&
-      result != CUDA_ERROR_PEER_ACCESS_ALREADY_ENABLED) {
+      result != hipErrorPeerAccessAlreadyEnabled) {
     return port::Status{
         port::error::INTERNAL,
         port::Printf("failed to enable peer access from %p to %p: %s", from, to,
@@ -1662,14 +1664,14 @@ static port::StatusOr<T> GetSimpleAttribute(hipDevice_t device,
   ScopedActivateContext activation{context};
 
   int max_blocks;
-  hipError_t result = dynload::cuOccupancyMaxActiveBlocksPerMultiprocessor(
-      &max_blocks, kernel, threads_per_block, dynamic_shared_memory_bytes);
+  hipError_t result = dynload::hipOccupancyMaxActiveBlocksPerMultiprocessor(
+      &max_blocks, static_cast<const void *>(kernel), threads_per_block, dynamic_shared_memory_bytes);
   if (result != hipSuccess) {
     return port::Status{
         port::error::INTERNAL,
         port::Printf("failed to calculate occupancy of kernel %p: %s", kernel,
                      ToString(result).c_str())};
-  }
+  } 
 
   return max_blocks;
 }

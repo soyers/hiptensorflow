@@ -24,8 +24,8 @@ limitations under the License.
 #include <stddef.h>
 #include <complex>
 
-#include "cuda/include/cuComplex.h"
-#include "cuda/include/cuda.h"
+#include "cuda/include/hip/hip_complex.h"
+#include "cuda/include/hip/hip_runtime.h"
 
 namespace perftools {
 namespace gputools {
@@ -50,15 +50,15 @@ T *CUDAMemoryMutable(DeviceMemory<T> *mem) {
   return static_cast<T *>(mem->opaque());
 }
 
-static_assert(sizeof(std::complex<float>) == sizeof(cuComplex),
-              "std::complex<float> and cuComplex should have the same size");
-static_assert(offsetof(cuComplex, x) == 0,
-              "The real part of cuComplex should appear first.");
-static_assert(sizeof(std::complex<double>) == sizeof(cuDoubleComplex),
-              "std::complex<double> and cuDoubleComplex should have the same "
+static_assert(sizeof(std::complex<float>) == sizeof(hipComplex),
+              "std::complex<float> and hipComplex should have the same size");
+static_assert(offsetof(hipComplex, x) == 0,
+              "The real part of hipComplex should appear first.");
+static_assert(sizeof(std::complex<double>) == sizeof(hipDoubleComplex),
+              "std::complex<double> and hipDoubleComplex should have the same "
               "size");
-static_assert(offsetof(cuDoubleComplex, x) == 0,
-              "The real part of cuDoubleComplex should appear first.");
+static_assert(offsetof(hipDoubleComplex, x) == 0,
+              "The real part of hipDoubleComplex should appear first.");
 
 // Type traits to get CUDA complex types from std::complex<>.
 
@@ -69,16 +69,16 @@ struct CUDAComplexT {
 
 template <>
 struct CUDAComplexT<std::complex<float>> {
-  typedef cuComplex type;
+  typedef hipComplex type;
 };
 
 template <>
 struct CUDAComplexT<std::complex<double>> {
-  typedef cuDoubleComplex type;
+  typedef hipDoubleComplex type;
 };
 
 // Converts pointers of std::complex<> to pointers of
-// cuComplex/cuDoubleComplex. No type conversion for non-complex types.
+// hipComplex/hipDoubleComplex. No type conversion for non-complex types.
 
 template <typename T>
 inline const typename CUDAComplexT<T>::type *CUDAComplex(const T *p) {
@@ -91,12 +91,12 @@ inline typename CUDAComplexT<T>::type *CUDAComplex(T *p) {
 }
 
 // Converts values of std::complex<float/double> to values of
-// cuComplex/cuDoubleComplex.
-inline cuComplex CUDAComplexValue(std::complex<float> val) {
+// hipComplex/hipDoubleComplex.
+inline hipComplex CUDAComplexValue(std::complex<float> val) {
   return {val.real(), val.imag()};
 }
 
-inline cuDoubleComplex CUDAComplexValue(std::complex<double> val) {
+inline hipDoubleComplex CUDAComplexValue(std::complex<double> val) {
   return {val.real(), val.imag()};
 }
 

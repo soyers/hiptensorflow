@@ -346,7 +346,11 @@ else
     fi
     HCC_COMPILER_PATH=""
     # Retry
-  done
+  done 
+  TF_CUDA_VERSION = 7.5
+  export TF_CUDA_VERSION
+  TF_CUDNN_VERSION = 5
+  export TF_CUDNN_VERSION
 fi
 bazel clean #--expunge
 bazel fetch //...
