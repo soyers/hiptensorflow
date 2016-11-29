@@ -422,12 +422,24 @@ def _create_cuda_repository(repository_ctx):
   #Including hipFFT header and .so
   repository_ctx.symlink(hiplib_path +  "/hcfft/lib/include/hipfft.h",
                          "cuda/include/hipfft.h")
+  repository_ctx.symlink(hiplib_path +  "/hcfft/lib/include/hcfftlib.h",
+                         "cuda/include/hcfftlib.h")
+  repository_ctx.symlink(hiplib_path +  "/hcfft/lib/include/hcfft.h",
+                         "cuda/include/hcfft.h")
+  repository_ctx.symlink(hiplib_path +  "/hcfft/lib/include/lock.h",
+                         "cuda/include/lock.h")
+  repository_ctx.symlink(hiplib_path +  "/hcfft/lib/include/stockham.h",
+                         "cuda/include/stockham.h")
   repository_ctx.symlink(hiplib_path +  "/" + symlink_files.hip_fft_lib_nvcc,
                          "cuda/lib64/libhipfft_hcc.so")
   
   #Including hipBLAS header and .so
   repository_ctx.symlink(hiplib_path +  "/hcblas/lib/include/hipblas.h",
                          "cuda/include/hipblas.h")
+  repository_ctx.symlink(hiplib_path +  "/hcblas/lib/include/hcblas.h",
+                         "cuda/include/hcblas.h")
+  repository_ctx.symlink(hiplib_path +  "/hcblas/lib/include/hcblaslib.h",
+                         "cuda/include/hcblaslib.h")
   repository_ctx.symlink(hiplib_path +  "/" + symlink_files.hip_blas_lib_nvcc,
                          "cuda/lib64/libhipblas_hcc.so")
 
