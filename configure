@@ -329,7 +329,7 @@ else
   while true; do
     fromuser=""
     if [ -z "$HCC_COMPILER_PATH" ]; then
-      default_hcc_compiler_path="/opt/rocm/hcc-hsail"
+      default_hcc_compiler_path="/opt/rocm/hcc"
       read -p "Please specify which hcc compiler should. [Default is $default_hcc_compiler_path]: " HCC_COMPILER_PATH
       fromuser="1"
       if [ -z "$HCC_COMPILER_PATH" ]; then
