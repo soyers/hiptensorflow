@@ -35,6 +35,7 @@ limitations under the License.
 #include "tensorflow/core/platform/stream_executor.h"
 #include "tensorflow/core/platform/types.h"
 #include "tensorflow/core/public/session_options.h"
+#include "cuda/include/hip/hip_runtime_api.h"
 
 namespace tensorflow {
 
