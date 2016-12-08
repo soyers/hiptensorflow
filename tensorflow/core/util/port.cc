@@ -16,7 +16,7 @@ limitations under the License.
 #include "tensorflow/core/util/port.h"
 
 #if GOOGLE_CUDA
-#include "cuda/include/cuda.h"
+#include "cuda/include/hip/hip_runtime_api.h"
 #endif
 
 namespace tensorflow {
@@ -33,7 +33,11 @@ bool CudaSupportsHalfMatMulAndConv() {
 #if GOOGLE_CUDA
   // NOTE: We check compile-time and not runtime, since the check for
   // whether we include the fp16 kernels or not is compile-time.
+#ifdef __NVCC__
   return CUDA_VERSION >= 7050;
+#elif defined(__HIP_PLATFORM_HCC__)
+  return false;
+#endif
 #else
   return false;
 #endif
