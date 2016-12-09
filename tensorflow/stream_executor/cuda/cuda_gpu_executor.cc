@@ -106,7 +106,7 @@ static CUDATimer *AsCUDATimer(Timer *timer) {
 // libcuda APIs, so the caller should take care to only pass the result of const
 // GPU memory conversions to libcuda functions which will honor constness.
 static hipDeviceptr_t AsCudaDevicePtr(const DeviceMemoryBase &gpu_mem) {
-  return reinterpret_cast<hipDeviceptr_t>(gpu_mem.opaque());
+  return const_cast<hipDeviceptr_t>(gpu_mem.opaque());
 }
 
 // See description on const version above.
@@ -321,16 +321,17 @@ bool CUDAExecutor::GetKernel(const MultiKernelLoaderSpec &spec,
 bool CUDAExecutor::GetKernelMetadata(CUDAKernel *cuda_kernel,
                                      KernelMetadata *kernel_metadata) {
   int value;
-  if (!CUDADriver::FuncGetAttribute(CU_FUNC_ATTRIBUTE_NUM_REGS,
-                                    *cuda_kernel->cuda_function_ptr(),
-                                    &value)) {
+  //ToDo(mcw): Find alternative to CUDADriver::FuncGetAttribute nad enable once it supported
+  if (0) { //!CUDADriver::FuncGetAttribute(CU_FUNC_ATTRIBUTE_NUM_REGS,
+         //                           *cuda_kernel->cuda_function_ptr(),
+         //                           &value)) {
     return false;
   }
   kernel_metadata->set_registers_per_thread(value);
-
-  if (!CUDADriver::FuncGetAttribute(CU_FUNC_ATTRIBUTE_SHARED_SIZE_BYTES,
-                                    *cuda_kernel->cuda_function_ptr(),
-                                    &value)) {
+  //ToDo(mcw): Find alternative to CUDADriver::FuncGetAttribute nad enable once it supported
+  if (0) { //!CUDADriver::FuncGetAttribute(CU_FUNC_ATTRIBUTE_SHARED_SIZE_BYTES,
+        //                            *cuda_kernel->cuda_function_ptr(),
+        //                            &value)) {
     return false;
   }
   kernel_metadata->set_shared_memory_bytes(value);
@@ -344,7 +345,7 @@ bool CUDAExecutor::Launch(Stream *stream, const ThreadDim &thread_dims,
   CHECK_EQ(kernel.Arity(), args.size());
   hipStream_t custream = AsCUDAStreamValue(stream);
   const CUDAKernel *cuda_kernel = AsCUDAKernel(&kernel);
-  CUfunction cufunc = cuda_kernel->AsCUDAFunctionValue();
+  hipFunction_t cufunc = cuda_kernel->AsCUDAFunctionValue();
 
   std::vector<void *> addrs;
   addrs.reserve(args.size());
@@ -752,7 +753,7 @@ port::Status CUDAExecutor::EnablePeerAccessTo(StreamExecutorInterface *other) {
 }
 
 SharedMemoryConfig CUDAExecutor::GetDeviceSharedMemoryConfig() {
-  port::StatusOr<CUsharedconfig> cuda_config =
+  port::StatusOr<hipSharedMemConfig> cuda_config =
       CUDADriver::ContextGetSharedMemConfig(context_);
   if (!cuda_config.ok()) {
     // Don't log; the failed call will log necessary output.
@@ -760,11 +761,11 @@ SharedMemoryConfig CUDAExecutor::GetDeviceSharedMemoryConfig() {
   }
 
   switch (cuda_config.ValueOrDie()) {
-    case CU_SHARED_MEM_CONFIG_DEFAULT_BANK_SIZE:
+    case hipSharedMemBankSizeDefault:
       return SharedMemoryConfig::kDefault;
-    case CU_SHARED_MEM_CONFIG_FOUR_BYTE_BANK_SIZE:
+    case hipSharedMemBankSizeFourByte:
       return SharedMemoryConfig::kFourByte;
-    case CU_SHARED_MEM_CONFIG_EIGHT_BYTE_BANK_SIZE:
+    case hipSharedMemBankSizeEightByte:
       return SharedMemoryConfig::kEightByte;
     default:
       LOG(FATAL) << "Invalid shared memory configuration returned: "
@@ -774,16 +775,16 @@ SharedMemoryConfig CUDAExecutor::GetDeviceSharedMemoryConfig() {
 
 port::Status CUDAExecutor::SetDeviceSharedMemoryConfig(
     SharedMemoryConfig config) {
-  CUsharedconfig cuda_config;
+  hipSharedMemConfig cuda_config;
   switch (config) {
     case SharedMemoryConfig::kDefault:
-      cuda_config = CU_SHARED_MEM_CONFIG_DEFAULT_BANK_SIZE;
+      cuda_config = hipSharedMemBankSizeDefault;
       break;
     case SharedMemoryConfig::kFourByte:
-      cuda_config = CU_SHARED_MEM_CONFIG_FOUR_BYTE_BANK_SIZE;
+      cuda_config = hipSharedMemBankSizeFourByte;
       break;
     case SharedMemoryConfig::kEightByte:
-      cuda_config = CU_SHARED_MEM_CONFIG_EIGHT_BYTE_BANK_SIZE;
+      cuda_config = hipSharedMemBankSizeEightByte;
       break;
     default:
       LOG(FATAL) << "Invalid shared memory configuration specified: "
@@ -991,7 +992,7 @@ DeviceDescription *CUDAExecutor::PopulateDeviceDescription() const {
     builder.set_numa_node(numa_node);
   }
 
-  CUdevprop prop;
+  hipDeviceProp_t prop;
   if (CUDADriver::GetDeviceProperties(&prop, device_ordinal_)) {
     builder.set_threads_per_block_limit(prop.maxThreadsPerBlock);
 
