@@ -123,6 +123,8 @@ toolchain {
   # Include directory for cuda headers.
   cxx_builtin_include_directory: "/usr/local/cuda%{cuda_version}/include"
   cxx_builtin_include_directory: "/usr/local/cuda/include"
+  cxx_builtin_include_directory: "/opt/rocm/hcc-lc/compiler/lib/clang/3.5.0/include"
+  cxx_builtin_include_directory: "/opt/rocm/hcc/include"
   cxx_builtin_include_directory: "/opt/rocm/hip/include"
   cxx_builtin_include_directory: "/opt/san/hcrng/lib/include"
   cxx_builtin_include_directory: "/opt/san/hcfft/lib/include"
