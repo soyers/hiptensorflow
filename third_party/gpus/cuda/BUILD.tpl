@@ -63,13 +63,13 @@ cc_library(
     #    cuda_static_library_path("cudart"),
     #],
     includes = ["include/"],
-    #linkopts = [
-    #    "-ldl",
-    #    "-lpthread",
-    #] + select({
-    #    "@//tensorflow:darwin": [],
-    #    "//conditions:default": ["-lrt"],
-    #}),
+    linkopts = [
+        "-ldl",
+        "-lpthread",
+    ] + select({
+        "@//tensorflow:darwin": [],
+        "//conditions:default": ["-lrt"],
+    }),
     visibility = ["//visibility:public"],
 )
 
