@@ -15,11 +15,16 @@ def tf_workspace(path_prefix = "", tf_repo_name = ""):
   eigen_version = "a237164a1f91"
   eigen_sha256 = "db645b02ce5777a539797b52a18453ca557bbe456f5f28a6416897c4aadcf578"
 
-  native.new_http_archive(
+ # native.new_http_archive(
+ #   name = "eigen_archive",
+ #   url = "https://bitbucket.org/eigen/eigen/get/" + eigen_version + ".tar.gz",
+ #   sha256 = eigen_sha256,
+ #   strip_prefix = "eigen-eigen-" + eigen_version,
+ #   build_file = str(Label("//:eigen.BUILD")),
+ # )
+  native.new_local_repository(
     name = "eigen_archive",
-    url = "https://bitbucket.org/eigen/eigen/get/" + eigen_version + ".tar.gz",
-    sha256 = eigen_sha256,
-    strip_prefix = "eigen-eigen-" + eigen_version,
+    path = "/home/sujitha/Murugan/hipeigen",
     build_file = str(Label("//:eigen.BUILD")),
   )
 
