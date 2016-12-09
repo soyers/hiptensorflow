@@ -104,7 +104,7 @@ hipfftType CUDAFftType(fft::Type type) {
 }
 
 // Associates the given stream with the given cuFFT plan.
-bool SetStream(CUDAExecutor *parent, cufftHandle plan, Stream *stream) {
+bool SetStream(CUDAExecutor *parent, hipfftHandle plan, Stream *stream) {
   auto ret = dynload::hipfftSetStream(parent, plan, AsCUDAStreamValue(stream));
   if (ret != HIPFFT_SUCCESS) {
     LOG(ERROR) << "failed to run cuFFT routine cufftSetStream: " << ret;
