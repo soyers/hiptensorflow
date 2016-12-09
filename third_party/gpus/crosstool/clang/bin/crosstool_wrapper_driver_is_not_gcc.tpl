@@ -231,38 +231,26 @@ def InvokeNvcc(argv, log=False):
   nvccopts = ''
   for capability in supported_cuda_compute_capabilities:
     capability = capability.replace('.', '')
-    nvccopts += r'-gencode=arch=compute_%s,\"code=sm_%s\" ' % (
-        capability, capability)
+
   nvccopts += ' ' + nvcc_compiler_options
   nvccopts += undefines
   nvccopts += defines
   nvccopts += std_options
   nvccopts += m_options
-
   if depfiles:
     # Generate the dependency file
     depfile = depfiles[0]
-    print(NVCC_PATH)
     cmd = (NVCC_PATH + ' ' + nvccopts +
-           ' --compiler-options ' + '\\"' + host_compiler_options + '\\"' +
-           ' --compiler-bindir=' + GCC_HOST_COMPILER_PATH +
-           ' -I .' +
-           ' ' + includes + ' ' + srcs + ' -M -o ' + depfile)
+           host_compiler_options +
+           ' -I . ' + includes + ' ' + srcs + ' -M -o ' + depfile)
     if log: Log(cmd)
     exit_status = os.system(cmd)
     if exit_status != 0:
       return exit_status
 
-    print(NVCC_PATH)
   cmd = (NVCC_PATH + ' ' + nvccopts +
-         ' --compiler-options \\"' + host_compiler_options + ' -fPIC \\"' +
-         ' --compiler-bindir=' + GCC_HOST_COMPILER_PATH +
-         ' -I .' +
-         ' ' + opt + includes + ' -c ' + srcs + out)
-
-  # TODO(zhengxq): for some reason, 'gcc' needs this help to find 'as'.
-  # Need to investigate and fix.
-  cmd = 'PATH=' + PREFIX_DIR + ' ' + cmd
+         host_compiler_options + ' -fPIC ' +
+         ' -I . ' + opt + includes + ' -c ' + srcs + out)
   if log: Log(cmd)
   return os.system(cmd)
 
