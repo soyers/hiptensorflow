@@ -34,9 +34,9 @@ def cudnn_library_path(version = cudnn_sdk_version()):
       return "lib/libcudnn.{}.dylib".format(version)
   else:
     if not version:
-      return "lib64/libcudnn.so"
+      return "lib64/libMLOpen.so"
     else:
-      return "lib64/libcudnn.so.{}".format(version)
+      return "lib64/libMLOpen.so"
 
 #def cupti_library_path(version = cuda_sdk_version()):
 #  if PLATFORM == "Darwin":

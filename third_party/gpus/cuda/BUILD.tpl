@@ -101,12 +101,12 @@ cc_library(
 
 cc_library(
     name = "cudnn",
-    #srcs = [
-    #    cudnn_library_path(),
-    #],
-    #data = [
-    #    cudnn_library_path(),
-    #],
+    srcs = [
+        cudnn_library_path(),
+    ],
+    data = [
+        cudnn_library_path(),
+    ],
     includes = ["include/"],
     linkstatic = 1,
     visibility = ["//visibility:public"],

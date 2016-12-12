@@ -13,6 +13,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
+#ifdef __NVCC__ 
+
 #include "tensorflow/stream_executor/cuda/cuda_dnn.h"
 
 #include <dlfcn.h>
@@ -3314,3 +3316,5 @@ void initialize_cudnn() {
 
 REGISTER_MODULE_INITIALIZER(register_cudnn,
                             { perftools::gputools::initialize_cudnn(); });
+
+#endif

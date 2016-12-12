@@ -24,7 +24,7 @@ def tf_workspace(path_prefix = "", tf_repo_name = ""):
  # )
   native.new_local_repository(
     name = "eigen_archive",
-    path = "/home/sujitha/Murugan/hipeigen",
+    path = "/home/mcw/Documents/yuvaraj/hipeigen",
     build_file = str(Label("//:eigen.BUILD")),
   )
 

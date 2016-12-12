@@ -201,8 +201,8 @@ def _cuda_symlink_files(cpu_value, cuda_version, cudnn_version):
         hip_lib = "/opt/rocm/hip/lib/libhip_hcc.so",
         hip_fft_lib_nvcc = "hcfft/build/lib/src/libhipfft_hcc.so",
         hip_blas_lib_nvcc = "hcblas/build/lib/src/libhipblas_hcc.so",
-        hip_rng_lib_nvcc = "hcrng/build/lib/src/libhiprng_hcc.so")
-        #hip_dnn_lib_nvcc = "MLOpen/build/src/libhipdnn_hcc.so")#,
+        hip_rng_lib_nvcc = "hcrng/build/lib/src/libhiprng_hcc.so",
+        hip_dnn_lib_nvcc = "/home/mcw/Documents/yuvaraj/MLOpen/build/src/libMLOpen.so")
         #cuda_cupti_lib = "extras/CUPTI/lib64/libcupti.so%s" % cuda_ext)
   elif cpu_value == "Darwin":
     return struct(
@@ -444,10 +444,14 @@ def _create_cuda_repository(repository_ctx):
                          "cuda/lib64/libhipblas_hcc.so")
 
   #Including hipDNN header and .so
-  #repository_ctx.symlink(hiplib_path +  "/MLOpen/include/hipdnn.h",
-  #                       "cuda/include/hipdnn.h")
-  #repository_ctx.symlink(hiplib_path +  "/" + symlink_files.hip_dnn_lib_nvcc,
-  #                       "cuda/lib64/libhipdnn_nvcc.so")
+  repository_ctx.symlink("/home/mcw/Documents/yuvaraj/MLOpen/include/mlopen.h",
+                         "cuda/include/mlopen.h")
+  repository_ctx.symlink("/home/mcw/Documents/yuvaraj/MLOpen/include/MLOpen-version.h.in",
+                         "cuda/include/MLOpen-version.h.in")
+  repository_ctx.symlink("/home/mcw/Documents/yuvaraj/MLOpen/build/src/include/mlopen_export.h",
+                         "cuda/include/mlopen_export.h")
+  repository_ctx.symlink("/home/mcw/Documents/yuvaraj/MLOpen/build/src/libMLOpen.so",
+                         "cuda/lib64/libMLOpen.so")
 
   # Set up the symbolic links for cudnn if cudnn was was not installed to
   # CUDA_TOOLKIT_PATH.

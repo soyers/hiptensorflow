@@ -80,7 +80,8 @@ toolchain {
   unfiltered_cxx_flag: "-D__DATE__=\"redacted\""
   unfiltered_cxx_flag: "-D__TIMESTAMP__=\"redacted\""
   unfiltered_cxx_flag: "-D__TIME__=\"redacted\""
-  unfiltered_cxx_flag: "-D__HIP_PLATFORM_HCC__=\"-I/opt/rocm/hip/include -I/opt/rocm/hcc/include\""
+  unfiltered_cxx_flag: "-D__HIP_PLATFORM_HCC__=\"-I/opt/rocm/hip/include -I/opt/rocm/hcc/include\"" 
+  unfiltered_cxx_flag: "-DMLOPEN_BACKEND_HIP=1" 
 
   # Security hardening on by default.
   # Conservative choice; -D_FORTIFY_SOURCE=2 may be unsafe in some cases.

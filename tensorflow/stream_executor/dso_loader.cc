@@ -54,7 +54,7 @@ string GetCudnnVersion() { return TF_CUDNN_VERSION; }
   // libcudnn is versioned differently than the other libraries and may have a
   // different version number than other CUDA libraries.  See b/22397368 for
   // some details about the complications surrounding this.
-  return GetDsoHandle(FindDsoPath("libhipdnn_hcc.so",
+  return GetDsoHandle(FindDsoPath("libMLOpen.so",
                                   GetCudaLibraryDirPath()),
                       dso_handle);
 }

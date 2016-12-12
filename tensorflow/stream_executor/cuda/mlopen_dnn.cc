@@ -13,6 +13,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
+#ifdef __HIP_PLATFORM_HCC__
+
 #include "tensorflow/stream_executor/cuda/cuda_dnn.h"
 
 #include <dlfcn.h>
@@ -205,7 +207,6 @@ MLOPEN_DNN_ROUTINE_EACH(PERFTOOLS_GPUTOOLS_MLOPEN_WRAP)
   /*__macro(mlopenGetConvolutionBackwardDataWorkspaceSize)*/
 MLOPEN_DNN_ROUTINE_EACH_AFTER_R3(PERFTOOLS_GPUTOOLS_MLOPEN_WRAP)
 #undef MLOPEN_DNN_ROUTINE_EACH_AFTER_R3
-#endif
 
 // APIs in R5
 #define MLOPEN_DNN_ROUTINE_EACH_R5(__macro)                    \
@@ -216,7 +217,6 @@ MLOPEN_DNN_ROUTINE_EACH_AFTER_R3(PERFTOOLS_GPUTOOLS_MLOPEN_WRAP)
 
 MLOPEN_DNN_ROUTINE_EACH_R5(PERFTOOLS_GPUTOOLS_MLOPEN_WRAP)
 #undef MLOPEN_DNN_ROUTINE_EACH_R5
-#endif
 
 #undef MLOPEN_DNN_ROUTINE_EACH
 
@@ -284,7 +284,7 @@ CudnnSupport::~CudnnSupport() {
 
 port::Status CudnnSupport::Init() {
   auto status = dynload::mlopenCreate(
-      parent_, reinterpret_cast<mlopenHandle_t*>(&dnn_handle_));
+      parent_, reinterpret_cast<mlopenHandle_t*>(&dnn_handle_), 0, (hipStream_t*)NULL);
   if (status == mlopenStatusSuccess) {
     return port::Status::OK();
   }
@@ -402,7 +402,7 @@ class ScopedFilterDescriptor {
     const auto& spatial_dims = filter_descriptor.input_filter_dims();
     std::copy(spatial_dims.begin(), spatial_dims.end(), dims.begin() + 2);
 
-    std::vector<int64> strides(dims.size());
+    std::vector<int> strides(dims.size());
     strides[dims.size() - 1] = 1;
     for (int i = dims.size()-2; i >= 0; i--) {
       strides[i] = strides[i + 1] * dims[i + 1];
@@ -519,7 +519,7 @@ class ScopedPoolingDescriptor {
                    &CheckedNarrowing<int64, int>);
     std::transform(shape64.cbegin(), shape64.cend(), shape.begin(),
                    &CheckedNarrowing<int64, int>);
-    status = dynload::mlopenNdSetPoolingDescriptor(
+    status = dynload::mlopenSetNdPoolingDescriptor(
         parent_, handle_,
         (pooling_descriptor.mode() == dnn::PoolingMode::kMaximum
              ? mlopenPoolingMax
@@ -1724,7 +1724,7 @@ bool CudnnSupport::DoConvolveImpl(
   // and cuDNN version; at least cuDNN 4 on TITAN X only supports
   // CUDNN_DATA_FLOAT even for half input.
   ScopedConvolutionDescriptor conv{parent_, convolution_descriptor,
-      CUDNN_DATA_FLOAT};
+      mlopenFloat};
 
   mutex_lock lock{dnn_handle_mutex_};
 /*  auto status = dynload::mlopenSetStream(parent_, ToHandle(dnn_handle_),
@@ -1854,13 +1854,16 @@ bool CudnnSupport::DoConvolveImpl(
 #endif
     dynload::mlopenEnableProfiling(parent_, ToHandle(dnn_handle_), true);
   }
-  status = dynload::mlopenConvolutionForward(
+
+  void* t = NULL;
+
+  auto status = dynload::mlopenConvolutionForward(
       parent_, ToHandle(dnn_handle_),
       /*alpha=*/&alpha, /*srcDesc=*/input_nd.handle(),
       /*srcData=*/input_data.opaque(), /*filterDesc=*/filter.handle(),
       /*filterData=*/filter_data.opaque(), /*convDesc=*/conv.handle(),
       /*algo=*/algo, /*beta=*/&beta, /*destDesc=*/output_nd.handle(), 
-      /*destData=*/output_data->opaque(), /*workSpace=*//*scratch.opaque()*/NULL,
+      /*destData=*/output_data->opaque(), /*workSpace=*//*scratch.opaque()*/t,
       /*workSpaceSizeInBytes=*//*scratch.size()*/0);
   if (is_profiling) {
     float ElapsedTime;
@@ -2043,7 +2046,7 @@ bool CudnnSupport::DoConvolveBackwardDataImpl(
   // and cuDNN version; at least cuDNN 4 on TITAN X only supports
   // CUDNN_DATA_FLOAT even for half input.
   ScopedConvolutionDescriptor conv{parent_, convolution_descriptor,
-                                   CUDNN_DATA_FLOAT};
+                                   mlopenFloat};
 
   const bool is_profiling = output_profile_result != nullptr;
   mlopenConvBwdDataAlgorithm_t algo;
@@ -2169,7 +2172,9 @@ bool CudnnSupport::DoConvolveBackwardDataImpl(
     dynload::mlopenEnableProfiling(parent_, ToHandle(dnn_handle_), true);
   }
 
-  status = dynload::mlopenConvolutionBackwardData(
+  void* t = NULL;
+
+  auto status = dynload::mlopenConvolutionBackwardData(
       parent_, ToHandle(dnn_handle_),
       /*alpha=*/&alpha,
       /*diffDesc=*/out_back_nd.handle(),
@@ -2181,7 +2186,7 @@ bool CudnnSupport::DoConvolveBackwardDataImpl(
       /*beta=*/&beta,
       /*gradDesc=*/in_back_nd.handle(),
       /*gradData=*/backward_input_data->opaque(),
-      /*workSpace=*//*scratch.opaque()*/NULL,
+      /*workSpace=*//*scratch.opaque()*/t,
       /*workSpaceSizeInBytes=*//*scratch.size()*/0);
   if (is_profiling) {
     float ElapsedTime;
@@ -2333,7 +2338,7 @@ bool CudnnSupport::DoConvolveBackwardFilterImpl(
 
     if (scratch_allocator != nullptr) {
       size_t size_in_bytes;
-      status = dynload::mlopenConvolutionBackwardWeightsGetWorkSpaceSize(
+      auto status = dynload::mlopenConvolutionBackwardWeightsGetWorkSpaceSize(
           parent_, /*diffDesc=*/out_back_nd.handle(),
           /*srcDesc=*/input_nd.handle() ,/*convDesc=*/conv.handle(),
           /*gradDesc=*/filter.handle(), /*sizeInBytes=*/&size_in_bytes);
@@ -2357,7 +2362,7 @@ bool CudnnSupport::DoConvolveBackwardFilterImpl(
     algo = ToConvBackwardFilterAlgo(algorithm_config.algorithm());
 
     size_t size_in_bytes;
-    status = dynload::mlopenConvolutionBackwardWeightsGetWorkSpaceSize(
+    auto status = dynload::mlopenConvolutionBackwardWeightsGetWorkSpaceSize(
         parent_, /*diffDesc=*/out_back_nd.handle(),
         /*srcDesc=*/input_nd.handle() ,/*convDesc=*/conv.handle(),
         /*gradDesc=*/filter.handle(), /*sizeInBytes=*/&size_in_bytes);
@@ -2407,7 +2412,7 @@ bool CudnnSupport::DoConvolveBackwardFilterImpl(
     dynload::mlopenEnableProfiling(parent_, ToHandle(dnn_handle_), true);
   }
 
-  status = dynload::mlopenConvolutionBackwardWeights(
+  auto status = dynload::mlopenConvolutionBackwardWeights(
       parent_, ToHandle(dnn_handle_), /*alpha=*/&alpha,
       /*diffDesc=*/out_back_nd.handle(),
       /*diffData=*/backward_output_data.opaque(),
@@ -2723,7 +2728,7 @@ bool CudnnSupport::DoBiasAdd(Stream* stream,
   const float alpha = 1.0f;
   const float beta = 1.0f;
 
-  status = dynload::mlopenTransformTensor(
+  auto status = dynload::mlopenTransformTensor(
       parent_, ToHandle(dnn_handle_), &alpha, bias_descriptor.handle(),
       biases.opaque(), &beta, input_descriptor.handle(),
       output_data->opaque());
@@ -2829,15 +2834,17 @@ bool CudnnSupport::DoPoolForward(
   // Beta is the scaling factor for output.
   float beta = 0.0;
 
+  void* t = NULL;
+
   ScopedTensorDescriptor src_desc{parent_, input_dimensions, mlopenFloat};
   ScopedTensorDescriptor dest_desc{parent_, output_dimensions,
                                    mlopenFloat};
   ScopedPoolingDescriptor pooling_desc{parent_, pooling_dimensions};
 
-  status = dynload::mlopenPoolingForward(
+  auto status = dynload::mlopenPoolingForward(
       parent_, ToHandle(dnn_handle_), pooling_desc.handle(), &alpha,
       src_desc.handle(), input_data.opaque(), &beta, dest_desc.handle(),
-      output_data->opaque(), 0, NULL, 0);
+      output_data->opaque(), 0, t, 0);
   if (status != mlopenStatusSuccess) {
     LOG(ERROR) << "failed to enqueue forward pooling on stream: "
                << ToString(status);
@@ -2865,13 +2872,15 @@ bool CudnnSupport::DoPoolForward(
   // Beta is the scaling factor for output.
   float beta = 0.0;
 
+  void* t = NULL;
+
   ScopedTensorDescriptor src_desc{parent_, input_dimensions, mlopenHalf};
   ScopedTensorDescriptor dest_desc{parent_, output_dimensions, mlopenHalf};
   ScopedPoolingDescriptor pooling_desc{parent_, pooling_dimensions};
-  status = dynload::mlopenPoolingForward(
+  auto status = dynload::mlopenPoolingForward(
       parent_, ToHandle(dnn_handle_), pooling_desc.handle(), &alpha,
       src_desc.handle(), input_data.opaque(), &beta, dest_desc.handle(),
-      output_data->opaque(), 0, NULL, 0);
+      output_data->opaque(), 0, t, 0);
   if (status != mlopenStatusSuccess) {
     LOG(ERROR) << "failed to enqueue forward pooling on stream: "
                << ToString(status);
@@ -2901,15 +2910,17 @@ bool CudnnSupport::DoPoolBackward(
   // Beta is the scaling factor for output.
   float beta = 0.0;
 
+  const void* t = NULL;
+
   ScopedTensorDescriptor src_desc{parent_, input_dimensions, mlopenFloat};
   ScopedTensorDescriptor dest_desc{parent_, output_dimensions,
                                    mlopenFloat};
   ScopedPoolingDescriptor pooling_desc{parent_, pooling_dimensions};
-  status = dynload::mlopenPoolingBackward(
+  auto status = dynload::mlopenPoolingBackward(
       parent_, ToHandle(dnn_handle_), pooling_desc.handle(), &alpha,
       dest_desc.handle(), output_data.opaque(), dest_desc.handle(),
       input_diff_data.opaque(), src_desc.handle(), input_data.opaque(), &beta,
-      src_desc.handle(), output_diff_data->opaque(), NULL);
+      src_desc.handle(), output_diff_data->opaque(), t);
   if (status != mlopenStatusSuccess) {
     LOG(ERROR) << "failed to enqueue backward pooling on stream: "
                << ToString(status);
@@ -2939,14 +2950,16 @@ bool CudnnSupport::DoPoolBackward(
   // Beta is the scaling factor for output.
   float beta = 0.0;
 
+  void* t = NULL;
+
   ScopedTensorDescriptor src_desc{parent_, input_dimensions, mlopenHalf};
   ScopedTensorDescriptor dest_desc{parent_, output_dimensions, mlopenHalf};
   ScopedPoolingDescriptor pooling_desc{parent_, pooling_dimensions};
-  status = dynload::mlopenPoolingBackward(
+  auto status = dynload::mlopenPoolingBackward(
       parent_, ToHandle(dnn_handle_), pooling_desc.handle(), &alpha,
       dest_desc.handle(), output_data.opaque(), dest_desc.handle(),
       input_diff_data.opaque(), src_desc.handle(), input_data.opaque(), &beta,
-      src_desc.handle(), output_diff_data->opaque(), NULL);
+      src_desc.handle(), output_diff_data->opaque(), t);
   if (status != mlopenStatusSuccess) {
     LOG(ERROR) << "failed to enqueue backward pooling on stream: "
                << ToString(status);
@@ -2992,10 +3005,12 @@ bool CudnnSupport::DoNormalizeWithDimensions(
   // Beta is the scaling factor for output.
   float beta = 0.0f;
 
-  status = dynload::mlopenLRNForward(
+  void* t = NULL;
+
+  auto status = dynload::mlopenLRNForward(
       parent_, ToHandle(dnn_handle_), normalize.handle(),
       &alpha, dims.handle(), input_data.opaque(),
-      &beta, dims.handle(), output_data->opaque(), 0, NULL);
+      &beta, dims.handle(), output_data->opaque(), 0, t);
   if (status != mlopenStatusSuccess) {
     LOG(ERROR) << "failed to run mlopenLRNCrossChannelForward";
     return false;
@@ -3033,12 +3048,14 @@ bool CudnnSupport::DoNormalizeBackwardWithDimensions(
   float alpha = 1.0f;
   float beta = 0.0f;
 
-  status = dynload::mlopenLRNBackward(
+  void* t = NULL;
+
+  auto status = dynload::mlopenLRNBackward(
       parent_, ToHandle(dnn_handle_), normalize.handle(),
       &alpha, dims.handle(),
       normalized_data.opaque(), dims.handle(),
       normalized_variable_gradient.opaque(), dims.handle(), raw_data.opaque(),
-      &beta, dims.handle(), raw_variable_gradient->opaque(), NULL);
+      &beta, dims.handle(), raw_variable_gradient->opaque(), t);
   if (status != mlopenStatusSuccess) {
     LOG(ERROR) << "failed to run mlopenLRNCrossChannelBackward";
     return false;
@@ -3156,7 +3173,7 @@ bool CudnnSupport::DeriveOutputBatchDescriptor(
   int dn = batch_descriptor.ndims() + 2;
   std::vector<int> dims(dn);  // in BDYX
   auto status = dynload::mlopenGetConvolutionForwardOutputDim(
-      parent_, conv.handle(), input_nd.handle(), filter.handle(), dn,
+      parent_, conv.handle(), input_nd.handle(), filter.handle(), &dn,
       &dims[0], &dims[1], &dims[2]);
   if (status != mlopenStatusSuccess) {
     LOG(ERROR) << "could not get output tensor for convolution: "
@@ -3222,9 +3239,11 @@ void initialize_mlopen() {
                                                      gpu::cuda::kCuDnnPlugin);
 }
 
+#endif
 }  // namespace gputools
 }  // namespace perftools
 
-REGISTER_MODULE_INITIALIZER(register_mlopen,
-                            { perftools::gputools::initialize_mlopen(); });
+//REGISTER_MODULE_INITIALIZER(register_mlopen,
+//                            { perftools::gputools::initialize_mlopen(); });
+
 #endif
