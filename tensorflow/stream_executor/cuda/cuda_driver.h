@@ -134,7 +134,7 @@ class CUDADriver {
   //
   // N.B. these device handles do not have a corresponding destroy function in
   // the CUDA driver API.
-  static port::Status GetDevice(hipDevice_t *device);
+  static port::Status GetDevice(int ordinal, hipDevice_t *device);
 
   // Given a device handle, returns the name reported by the driver for the
   // device.
@@ -162,8 +162,9 @@ class CUDADriver {
   // in terms of integer-sized values, so there's no potential for overrun (as
   // of CUDA 5.5).
   // http://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__EXEC.html#group__CUDA__EXEC_1g5e92a1b0d8d1b82cb00dcfb2de15961b
-  /*static bool FuncGetAttribute(hipFunction_attribute attribute,
-                               hipFunction_t function, int *attribute_value);*/
+  //Todo(mcw): No equivalent for hipFunctionAttribute_t so for time being hipDeviceAttribute_t is used Need to replace in future
+  static bool FuncGetAttribute(hipDeviceAttribute_t attribute,
+                               hipFunction_t function, int *attribute_value);
 
   // Sets the preferred cache configuration for the specified function.
   // http://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__EXEC.html#group__CUDA__EXEC_1g40f8c11e81def95dc0072a375f965681
