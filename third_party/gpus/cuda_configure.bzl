@@ -202,7 +202,7 @@ def _cuda_symlink_files(cpu_value, cuda_version, cudnn_version):
         hip_fft_lib_nvcc = "hcfft/build/lib/src/libhipfft_hcc.so",
         hip_blas_lib_nvcc = "hcblas/build/lib/src/libhipblas_hcc.so",
         hip_rng_lib_nvcc = "hcrng/build/lib/src/libhiprng_hcc.so",
-        hip_dnn_lib_nvcc = "/home/mcw/Documents/yuvaraj/MLOpen/build/src/libMLOpen.so")
+        hip_dnn_lib_nvcc = "/MLOpen/lib/src/libMLOpen.so")
         #cuda_cupti_lib = "extras/CUPTI/lib64/libcupti.so%s" % cuda_ext)
   elif cpu_value == "Darwin":
     return struct(
@@ -397,19 +397,9 @@ def _create_cuda_repository(repository_ctx):
   _symlink_dir(repository_ctx, hiplib_path + "/hcfft/lib/include/hcc_detail", "cuda/include/hcc_detail")
   _symlink_dir(repository_ctx, hiplib_path + "/hcblas/lib/include/nvcc_detail", "cuda/include/nvcc_detail")
   _symlink_dir(repository_ctx, hiplib_path + "/hcblas/lib/include/hcc_detail", "cuda/include/hcc_detail")
-  #_symlink_dir(repository_ctx, hiplib_path + "/MLOpen/include/nvcc_detail", "cuda/include/nvcc_detail")
-  #_symlink_dir(repository_ctx, hiplib_path + "/MLOpen/include/hcc_detail", "cuda/include/hcc_detail")
-  #_symlink_dir(repository_ctx,
-  #             cuda_toolkit_path + "/" + symlink_files.cuda_lib_path,
-  #             "cuda/" + symlink_files.cuda_lib_path)
-  #_symlink_dir(repository_ctx, cuda_toolkit_path + "/bin", "cuda/bin")
-  _symlink_dir(repository_ctx, "/opt/rocm/hip/bin", "cuda/bin")
-  #_symlink_dir(repository_ctx, cuda_toolkit_path + "/nvvm", "cuda/nvvm")
 
-  #_symlink_dir(repository_ctx, cuda_toolkit_path + "/extras/CUPTI/include",
-  #             "cuda/extras/CUPTI/include")
-  #repository_ctx.symlink(cuda_toolkit_path + "/" + symlink_files.cuda_cupti_lib,
-  #                       "cuda/" + symlink_files.cuda_cupti_lib)
+  _symlink_dir(repository_ctx, "/opt/rocm/hip/bin", "cuda/bin")
+
 
   #Including hipRNG header and .so
   repository_ctx.symlink(hiplib_path +  "/hcrng/lib/include/hiprng.h",
@@ -443,14 +433,9 @@ def _create_cuda_repository(repository_ctx):
   repository_ctx.symlink(hiplib_path +  "/" + symlink_files.hip_blas_lib_nvcc,
                          "cuda/lib64/libhipblas_hcc.so")
 
-  #Including hipDNN header and .so
-  repository_ctx.symlink("/home/mcw/Documents/yuvaraj/MLOpen/include/mlopen.h",
-                         "cuda/include/mlopen.h")
-  repository_ctx.symlink("/home/mcw/Documents/yuvaraj/MLOpen/include/MLOpen-version.h.in",
-                         "cuda/include/MLOpen-version.h.in")
-  repository_ctx.symlink("/home/mcw/Documents/yuvaraj/MLOpen/build/src/include/mlopen_export.h",
-                         "cuda/include/mlopen_export.h")
-  repository_ctx.symlink("/home/mcw/Documents/yuvaraj/MLOpen/build/src/libMLOpen.so",
+  #Including MLOpen header and .so
+  _symlink_dir(repository_ctx, hiplib_path + "/MLOpen/include/", "cuda/include/")
+  repository_ctx.symlink(hiplib_path +  "/MLOpen/lib/libMLOpen.so",
                          "cuda/lib64/libMLOpen.so")
 
   # Set up the symbolic links for cudnn if cudnn was was not installed to
