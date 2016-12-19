@@ -31,7 +31,7 @@ limitations under the License.
 #endif
 
 #if GOOGLE_CUDA
-#include "cuda/include/cuda.h"
+#include "cuda/include/hip/hip_runtime.h"
 #include "tensorflow/core/platform/stream_executor.h"
 #include "tensorflow/core/util/stream_executor_util.h"
 #endif  // GOOGLE_CUDA

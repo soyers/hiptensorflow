@@ -232,7 +232,7 @@ def InvokeNvcc(argv, log=False):
   for capability in supported_cuda_compute_capabilities:
     capability = capability.replace('.', '')
 
-  nvccopts += ' ' + nvcc_compiler_options
+  nvccopts += ' -D__HCC__=1 ' + nvcc_compiler_options
   nvccopts += undefines
   nvccopts += defines
   nvccopts += std_options

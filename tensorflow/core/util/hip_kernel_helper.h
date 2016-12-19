@@ -21,7 +21,6 @@ limitations under the License.
 
 #include <algorithm>
 
-//#include "hip/hip_runtime.h"
 #include "third_party/eigen3/unsupported/Eigen/CXX11/Tensor"
 #include "tensorflow/core/platform/types.h"
 
@@ -51,12 +50,12 @@ inline CudaLaunchConfig GetCudaLaunchConfig(int work_element_count,
                                             const GPUDevice& d) {
   const int virtual_thread_count = work_element_count;
   const int physical_thread_count = std::min(
-      d.getNumCudaMultiProcessors() * d.maxCudaThreadsPerMultiProcessor(),
+      d.getNumHipMultiProcessors() * d.maxHipThreadsPerMultiProcessor(),
       virtual_thread_count);
-  const int thread_per_block = std::min(1024, d.maxCudaThreadsPerBlock());
+  const int thread_per_block = std::min(1024, d.maxHipThreadsPerBlock());
   const int block_count = std::min(
       (physical_thread_count + thread_per_block - 1) / thread_per_block,
-      d.getNumCudaMultiProcessors());
+      d.getNumHipMultiProcessors());
 
   CudaLaunchConfig config;
   config.virtual_thread_count = virtual_thread_count;
@@ -124,12 +123,12 @@ CUDA_ATOMIC_WRAPPER(Add, double) {
   do {
     assumed = old;
     old = atomicCAS(address_as_ull, assumed,
-                    __double_as_longlong(val + __longlong_as_double(assumed)));
+                    __hip_double_as_longlong(val + __hip_longlong_as_double(assumed)));
 
     // Note: uses integer comparison to avoid hang in case of NaN
   } while (assumed != old);
 
-  return __longlong_as_double(old);
+  return __hip_longlong_as_double(old);
 }
 
 // Helper functions for CudaAtomicAdd(half*, half), below.

@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 /* Copyright 2015 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -117,8 +118,8 @@ struct FillPhiloxRandomKernel<Distribution, true> {
 
 // A simple launch pad to call the correct function templates to fill the data
 template <class Distribution>
-__global__ void __launch_bounds__(1024)
-    FillPhiloxRandomKernelLaunch(random::PhiloxRandom base_gen,
+__global__ void __launch_bounds__(1024, 1)
+    FillPhiloxRandomKernelLaunch(hipLaunchParm lp, random::PhiloxRandom base_gen,
                                  typename Distribution::ResultElementType* data,
                                  int64 size, Distribution dist) {
   FillPhiloxRandomKernel<Distribution,
@@ -137,9 +138,8 @@ void FillPhiloxRandom<GPUDevice, Distribution>::operator()(
       (d.getNumCudaMultiProcessors() * d.maxCudaThreadsPerMultiProcessor()) /
       block_size;
 
-  FillPhiloxRandomKernelLaunch<
-      Distribution><<<num_blocks, block_size, 0, d.stream()>>>(gen, data, size,
-                                                               dist);
+  hipLaunchKernel(HIP_KERNEL_NAME(FillPhiloxRandomKernelLaunch<Distribution>),
+                  num_blocks, block_size, 0, d.stream(), gen, data, size, dist);
 };
 
 // Explicit instantiation of the GPU distributions functors
