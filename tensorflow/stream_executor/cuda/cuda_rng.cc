@@ -92,8 +92,7 @@ PERFTOOLS_GPUTOOLS_CURAND_WRAP(hiprngGenerateUniform);
 PERFTOOLS_GPUTOOLS_CURAND_WRAP(hiprngGenerateUniformDouble);
 PERFTOOLS_GPUTOOLS_CURAND_WRAP(hiprngSetPseudoRandomGeneratorSeed);
 PERFTOOLS_GPUTOOLS_CURAND_WRAP(hiprngSetGeneratorOffset);
-//ToDo(mcw): Enable after fixing issue with hiprngGenerateNormal
-//PERFTOOLS_GPUTOOLS_CURAND_WRAP(hiprngGenerateNormal);
+PERFTOOLS_GPUTOOLS_CURAND_WRAP(hiprngGenerateNormal);
 PERFTOOLS_GPUTOOLS_CURAND_WRAP(hiprngGenerateNormalDouble);
 
 }  // namespace dynload
