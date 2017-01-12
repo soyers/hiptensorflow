@@ -27,7 +27,7 @@ limitations under the License.
 #include "tensorflow/core/util/hip_kernel_helper.h"
 
 namespace tensorflow {
-namespace {
+//namespace {
 
 template <typename T>
 __global__ void ResizeNearestNeighborNHWC(hipLaunchParm lp, const int nthreads, const T* bottom_data,
@@ -76,7 +76,7 @@ __global__ void ResizeNearestNeighborBackwardNHWC(hipLaunchParm lp,
   }
 }
 
-}  // namespace
+//}  // namespace
 
 template <typename T>
 bool ResizeNearestNeighbor(const T* bottom_data, const int batch,

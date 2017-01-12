@@ -34,7 +34,7 @@ namespace tensorflow {
 
 typedef Eigen::GpuDevice GPUDevice;
 
-namespace {
+//namespace {
 
 template <typename T>
 __global__ void DilationKernel(hipLaunchParm lp, const int32 nthreads, const T* input_ptr,
@@ -176,7 +176,7 @@ __global__ void DilationBackpropFilterKernel(hipLaunchParm lp,
   }
 }
 
-}  // namespace
+//}  // namespace
 
 namespace functor {
 

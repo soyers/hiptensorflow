@@ -28,7 +28,7 @@ limitations under the License.
 
 namespace tensorflow {
 
-namespace {
+//namespace {
 
 typedef Eigen::GpuDevice GPUDevice;
 
@@ -53,7 +53,7 @@ __global__ void CheckNumericsKernel(hipLaunchParm lp, const T *data, int size,
   }
 }
 
-}  // namespace
+//}  // namespace
 
 // A simple launch pad to launch the Cuda kernels that checks the numerical
 // abnormality in the given array

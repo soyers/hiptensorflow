@@ -31,7 +31,7 @@ namespace tensorflow {
 
 typedef Eigen::GpuDevice GPUDevice;
 
-namespace {
+//namespace {
 
 template <typename T>
 __global__ void CropAndResizeKernel(hipLaunchParm lp, 
@@ -315,7 +315,7 @@ __global__ void CropAndResizeBackpropBoxesKernel(hipLaunchParm lp,
   }
 }
 
-}  // namespace
+//}  // namespace
 
 namespace functor {
 

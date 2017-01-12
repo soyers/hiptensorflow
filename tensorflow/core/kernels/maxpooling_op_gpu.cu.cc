@@ -28,7 +28,7 @@ limitations under the License.
 #include "tensorflow/core/util/hip_kernel_helper.h"
 
 namespace tensorflow {
-namespace {
+//namespace {
 // This is Yangqing's custom kernel for the maxpooling operation. There are
 // three functions: MaxPoolForwardNCHW and MaxPoolForwardNHWC are the two
 // forward functions, dealing with the forward case. MaxPoolBackward is the
@@ -200,7 +200,7 @@ __global__ void MaxPoolBackward(hipLaunchParm lp, const int nthreads, const dtyp
 }
 
 #undef HIP_1D_KERNEL_LOOP
-}  // namespace
+//}  // namespace
 
 bool MaxPoolForwardWithOptionalArgmax(
     const float* bottom_data, const int batch, const int height,

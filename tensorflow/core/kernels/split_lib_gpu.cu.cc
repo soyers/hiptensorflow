@@ -45,7 +45,7 @@ TF_CALL_GPU_NUMBER_TYPES(DEFINE_GPU_KERNELS);
 
 }  // namespace functor
 
-namespace {
+//namespace {
 
 template <typename T>
 __global__ void SplitOpKernel(hipLaunchParm lp, const T* input, int32 prefix_dim_size,
@@ -80,7 +80,7 @@ __global__ void SplitOpKernel(hipLaunchParm lp, const T* input, int32 prefix_dim
   }
 }
 
-}  // namespace
+//}  // namespace
 
 template <typename T>
 struct SplitOpGPULaunch {
