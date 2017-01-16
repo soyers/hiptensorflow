@@ -1,7 +1,11 @@
 # TensorFlow external dependencies that can be loaded in WORKSPACE files.
 
 load("//third_party/gpus:cuda_configure.bzl", "cuda_configure")
+ 
+#Configure may change this path based on the user input.
 
+EIGEN_PATH = "/opt/rocm/hipeigen"
+ 
 # If TensorFlow is linked as a submodule.
 # path_prefix and tf_repo_name are no longer used.
 def tf_workspace(path_prefix = "", tf_repo_name = ""):
@@ -14,7 +18,6 @@ def tf_workspace(path_prefix = "", tf_repo_name = ""):
   # this file by the cmake and make builds to determine the eigen version and hash.
   eigen_version = "a237164a1f91"
   eigen_sha256 = "db645b02ce5777a539797b52a18453ca557bbe456f5f28a6416897c4aadcf578"
-
  # native.new_http_archive(
  #   name = "eigen_archive",
  #   url = "https://bitbucket.org/eigen/eigen/get/" + eigen_version + ".tar.gz",
@@ -24,7 +27,7 @@ def tf_workspace(path_prefix = "", tf_repo_name = ""):
  # )
   native.new_local_repository(
     name = "eigen_archive",
-    path = "/home/mcw/Documents/yuvaraj/hipeigen",
+    path = EIGEN_PATH,
     build_file = str(Label("//:eigen.BUILD")),
   )
 
