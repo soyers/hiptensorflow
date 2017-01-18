@@ -138,12 +138,33 @@ while true; do
   # Retry
 done
 
+while true; do
+  fromuser=""
+  if [ -z "$HIP_PATH" ]; then
+    default_hip_path=/opt/rocm/hip
+    read -p "Please specify the location of hip. [Default is $default_hip_path]: " HIP_PATH
+    fromuser="1"
+    if [ -z "$HIP_PATH" ]; then
+      HIP_PATH=$default_hip_path
+    fi
+  fi
+  if [ -e "$HIP_PATH" ]; then
+    export HIP_PATH
+    break
+  fi
+  echo "Invalid hip path. ${HIP_PATH} cannot be found" 1>&2
+  if [ -z "$fromuser" ]; then
+    exit 1
+  fi
+  HIP_PATH=""
+  # Retry
+done
 
-#  
+
 while true; do
   fromuser=""
   if [ -z "$HIP_LIBRARY_PATH" ]; then
-    default_hip_library_path= /opt/rocm/
+    default_hip_library_path=/opt/rocm
     read -p "Please specify the location of the HIP Libraries (FFT,BLAS,RNG). [Default is $default_hip_library_path]: " HIP_LIBRARY_PATH
     fromuser="1"
     if [ -z "$HIP_LIBRARY_PATH" ]; then
