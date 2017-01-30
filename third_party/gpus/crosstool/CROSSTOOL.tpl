@@ -81,7 +81,8 @@ toolchain {
   unfiltered_cxx_flag: "-D__TIMESTAMP__=\"redacted\""
   unfiltered_cxx_flag: "-D__TIME__=\"redacted\""
   unfiltered_cxx_flag: "-D__HIP_PLATFORM_HCC__=\"-I/opt/rocm/hip/include -I/opt/rocm/hcc/include\"" 
-  unfiltered_cxx_flag: "-DMLOPEN_BACKEND_HIP=1" 
+  unfiltered_cxx_flag: "-DMLOPEN_BACKEND_HIP=1"
+  unfiltered_cxx_flag: "-I/opt/rocm/hcc/include" 
 
   # Security hardening on by default.
   # Conservative choice; -D_FORTIFY_SOURCE=2 may be unsafe in some cases.
@@ -122,14 +123,14 @@ toolchain {
   # linker_flag: "-Wl,--detect-odr-violations"
 
   # Include directory for cuda headers.
-  cxx_builtin_include_directory: "/usr/local/cuda%{cuda_version}/include"
-  cxx_builtin_include_directory: "/usr/local/cuda/include"
-  cxx_builtin_include_directory: "/opt/rocm/hcc-lc/compiler/lib/clang/3.5.0/include"
+  #cxx_builtin_include_directory: "/usr/local/cuda%{cuda_version}/include"
+  #cxx_builtin_include_directory: "/usr/local/cuda/include"
+  cxx_builtin_include_directory: "/opt/rocm/hcc/compiler/lib/clang/4.0.0/include"
   cxx_builtin_include_directory: "/opt/rocm/hcc/include"
   cxx_builtin_include_directory: "/opt/rocm/hip/include"
-  cxx_builtin_include_directory: "/opt/san/hcrng/lib/include"
-  cxx_builtin_include_directory: "/opt/san/hcfft/lib/include"
-  cxx_builtin_include_directory: "/opt/san/hcblas/lib/include"
+  cxx_builtin_include_directory: "/opt/rocm/hcrng/lib/include"
+  cxx_builtin_include_directory: "/opt/rocm/hcfft/lib/include"
+  cxx_builtin_include_directory: "/opt/rocm/hcblas/lib/include"
   
   compilation_mode_flags {
     mode: DBG

@@ -62,12 +62,12 @@ class CUDAKernel : public internal::KernelInterface {
   // Returns the CUfunction value for passing to the CUDA API.
   hipFunction_t AsCUDAFunctionValue() const {
     DCHECK(cuda_function_ != nullptr);
-    return const_cast<hipFunction_t>(cuda_function_);
+    return *cuda_function_;
   }
 
   // Returns the slot that the CUfunction is stored within for this object,
   // for the CUDA API which wants to load into a CUfunction*.
-  hipFunction_t *cuda_function_ptr() { return &cuda_function_; }
+  hipFunction_t *cuda_function_ptr() { return cuda_function_; }
 
   // CUDA supports setting the preferred cache configuration of a CUfunction
   // (more-or-less equivalent to a CUDAKernel). We support this via the below
@@ -120,7 +120,7 @@ class CUDAKernel : public internal::KernelInterface {
   }
 
  private:
-  hipFunction_t cuda_function_;  // Wrapped CUDA kernel handle.
+  hipFunction_t* cuda_function_;  // Wrapped CUDA kernel handle.
   unsigned arity_;            // Number of formal parameters the kernel takes.
 
   // Preferred (but not required) cache configuration for this kernel.

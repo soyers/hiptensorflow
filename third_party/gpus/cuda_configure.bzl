@@ -24,6 +24,7 @@ _CUDNN_INSTALL_PATH = "CUDNN_INSTALL_PATH"
 _TF_CUDA_COMPUTE_CAPABILITIES = "TF_CUDA_COMPUTE_CAPABILITIES"
 _HIPLIB_PATH = "HIP_LIBRARY_PATH"
 _HIP_PATH = "HIP_PATH"
+_HCC_PATH = "HCC_PATH"
 
 _DEFAULT_CUDA_VERSION = ""
 _DEFAULT_CUDNN_VERSION = ""
@@ -200,10 +201,10 @@ def _cuda_symlink_files(cpu_value, cuda_version, cudnn_version):
         cuda_rand_lib = "libhipfft_hcc.so",
         cuda_fft_lib = "libhipfft_hcc.so",
         hip_lib = "/lib/libhip_hcc.so",
-        hip_fft_lib_nvcc = "hcfft/build/lib/src/libhipfft_hcc.so",
-        hip_blas_lib_nvcc = "hcblas/build/lib/src/libhipblas_hcc.so",
-        hip_rng_lib_nvcc = "hcrng/build/lib/src/libhiprng_hcc.so",
-        hip_dnn_lib_nvcc = "/MLOpen/lib/src/libMLOpen.so")
+        hip_fft_lib_nvcc = "hcfft/lib/libhipfft_hcc.so",
+        hip_blas_lib_nvcc = "hcblas/lib/libhipblas_hcc.so",
+        hip_rng_lib_nvcc = "hcrng/lib/libhiprng_hcc.so",
+        hip_dnn_lib_nvcc = "/MLOpen/lib/libMLOpen.so")
         #cuda_cupti_lib = "extras/CUPTI/lib64/libcupti.so%s" % cuda_ext)
   elif cpu_value == "Darwin":
     return struct(
@@ -392,24 +393,30 @@ def _create_cuda_repository(repository_ctx):
   if not repository_ctx.path(hip_path).exists:
     auto_configure_fail("Cannot find HIP path.")
 
+  if _HCC_PATH in repository_ctx.os.environ:
+    hcc_path = repository_ctx.os.environ[_HCC_PATH].strip()
+  if not repository_ctx.path(hcc_path).exists:
+    auto_configure_fail("Cannot find HIP path.")
 
   #_symlink_dir(repository_ctx, cuda_toolkit_path + "/include", "cuda/include")
 
-  #Adding the include files
-  _symlink_dir(repository_ctx, hip_path + "/include", "cuda/include")
-  _symlink_dir(repository_ctx, hiplib_path + "/hcrng/lib/include/hcRNG", "cuda/include/hcRNG") 
-  _symlink_dir(repository_ctx, hiplib_path + "/hcrng/lib/include/nvcc_detail", "cuda/include/nvcc_detail")
-  _symlink_dir(repository_ctx, hiplib_path + "/hcrng/lib/include/hcc_detail", "cuda/include/hcc_detail")
-  _symlink_dir(repository_ctx, hiplib_path + "/hcfft/lib/include/nvcc_detail", "cuda/include/nvcc_detail")
-  _symlink_dir(repository_ctx, hiplib_path + "/hcfft/lib/include/hcc_detail", "cuda/include/hcc_detail")
-  _symlink_dir(repository_ctx, hiplib_path + "/hcblas/lib/include/nvcc_detail", "cuda/include/nvcc_detail")
-  _symlink_dir(repository_ctx, hiplib_path + "/hcblas/lib/include/hcc_detail", "cuda/include/hcc_detail")
+  #Adding the hip include files
+  #_symlink_dir(repository_ctx, hcc_path + "/include", "cuda/include")
 
+  #Adding the hip include files
+  _symlink_dir(repository_ctx, hip_path + "/include", "cuda/include")
+
+  #Adding hip bin Path
   _symlink_dir(repository_ctx, hip_path + "/bin", "cuda/bin")
 
-
   #Including hipRNG header and .so
-  repository_ctx.symlink(hiplib_path +  "/hcrng/lib/include/hiprng.h",
+  _symlink_dir(repository_ctx, hiplib_path + "/hcrng/include/hcRNG",
+                         "cuda/include/hcRNG") 
+  _symlink_dir(repository_ctx, hiplib_path + "/hcrng/include/nvcc_detail",
+                         "cuda/include/nvcc_detail")
+  _symlink_dir(repository_ctx, hiplib_path + "/hcrng/include/hcc_detail",
+                         "cuda/include/hcc_detail")
+  repository_ctx.symlink(hiplib_path +  "/hcrng/include/hiprng.h",
                          "cuda/include/hiprng.h")
   repository_ctx.symlink(hiplib_path +  "/" + symlink_files.hip_rng_lib_nvcc,
                          "cuda/lib64/libhiprng_hcc.so")
@@ -417,32 +424,41 @@ def _create_cuda_repository(repository_ctx):
                          "cuda/lib64/libhip_hcc.so")
   
   #Including hipFFT header and .so
-  repository_ctx.symlink(hiplib_path +  "/hcfft/lib/include/hipfft.h",
+  _symlink_dir(repository_ctx, hiplib_path + "/hcfft/include/nvcc_detail",
+                         "cuda/include/nvcc_detail")
+  _symlink_dir(repository_ctx, hiplib_path + "/hcfft/include/hcc_detail",
+                         "cuda/include/hcc_detail")
+  repository_ctx.symlink(hiplib_path +  "/hcfft/include/hipfft.h",
                          "cuda/include/hipfft.h")
-  repository_ctx.symlink(hiplib_path +  "/hcfft/lib/include/hcfftlib.h",
+  repository_ctx.symlink(hiplib_path +  "/hcfft/include/hcfftlib.h",
                          "cuda/include/hcfftlib.h")
-  repository_ctx.symlink(hiplib_path +  "/hcfft/lib/include/hcfft.h",
+  repository_ctx.symlink(hiplib_path +  "/hcfft/include/hcfft.h",
                          "cuda/include/hcfft.h")
-  repository_ctx.symlink(hiplib_path +  "/hcfft/lib/include/lock.h",
+  repository_ctx.symlink(hiplib_path +  "/hcfft/include/lock.h",
                          "cuda/include/lock.h")
-  repository_ctx.symlink(hiplib_path +  "/hcfft/lib/include/stockham.h",
+  repository_ctx.symlink(hiplib_path +  "/hcfft/include/stockham.h",
                          "cuda/include/stockham.h")
   repository_ctx.symlink(hiplib_path +  "/" + symlink_files.hip_fft_lib_nvcc,
                          "cuda/lib64/libhipfft_hcc.so")
   
   #Including hipBLAS header and .so
-  repository_ctx.symlink(hiplib_path +  "/hcblas/lib/include/hipblas.h",
+  _symlink_dir(repository_ctx, hiplib_path + "/hcblas/include/nvcc_detail",
+                         "cuda/include/nvcc_detail")
+  _symlink_dir(repository_ctx, hiplib_path + "/hcblas/include/hcc_detail",
+                         "cuda/include/hcc_detail")
+  repository_ctx.symlink(hiplib_path +  "/hcblas/include/hipblas.h",
                          "cuda/include/hipblas.h")
-  repository_ctx.symlink(hiplib_path +  "/hcblas/lib/include/hcblas.h",
+  repository_ctx.symlink(hiplib_path +  "/hcblas/include/hcblas.h",
                          "cuda/include/hcblas.h")
-  repository_ctx.symlink(hiplib_path +  "/hcblas/lib/include/hcblaslib.h",
+  repository_ctx.symlink(hiplib_path +  "/hcblas/include/hcblaslib.h",
                          "cuda/include/hcblaslib.h")
   repository_ctx.symlink(hiplib_path +  "/" + symlink_files.hip_blas_lib_nvcc,
                          "cuda/lib64/libhipblas_hcc.so")
 
   #Including MLOpen header and .so
-  _symlink_dir(repository_ctx, hiplib_path + "/MLOpen/include/", "cuda/include/")
-  repository_ctx.symlink(hiplib_path +  "/MLOpen/lib/libMLOpen.so",
+  _symlink_dir(repository_ctx, hiplib_path + "/MLOpen/include/",
+                         "cuda/include/")
+  repository_ctx.symlink(hiplib_path + symlink_files.hip_dnn_lib_nvcc,
                          "cuda/lib64/libMLOpen.so")
 
   # Set up the symbolic links for cudnn if cudnn was was not installed to

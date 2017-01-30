@@ -85,7 +85,7 @@ struct safe_div_or_mod_op {
 template <typename T, typename DivOrMod>
 struct functor_traits<safe_div_or_mod_op<T, DivOrMod>> {
   enum {
-    Cost = NumTraits<T>::template Div<false>::Cost,
+    Cost = 0,//NumTraits<T>::template Div<false>::Cost,
     PacketAccess = false,
   };
 };

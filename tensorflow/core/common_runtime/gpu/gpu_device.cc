@@ -122,7 +122,7 @@ class EigenAllocator : public ::Eigen::Allocator {
 };
 
 #else
-class EigenCudaStreamDevice : public ::Eigen::StreamInterface {
+class EigenCudaStreamDevice : public ::Eigen::StreamInterface<::Eigen::HipStreamDevice> {
  public:
   EigenCudaStreamDevice() : scratch_(nullptr), semaphore_(nullptr) {
     Eigen::initializeDeviceProp();
@@ -143,12 +143,12 @@ class EigenCudaStreamDevice : public ::Eigen::StreamInterface {
     device_prop_ = &Eigen::m_deviceProperties[gpu_id];
   }
 
-  const hipStream_t& stream() const override { return *stream_; }
-  const hipDeviceProp_t& deviceProperties() const override {
+  const hipStream_t& stream() const { return *stream_; }
+  const hipDeviceProp_t& deviceProperties() const {
     return *device_prop_;
   }
 
-  void* allocate(size_t num_bytes) const override {
+  void* allocate(size_t num_bytes) const {
     void* ret = allocator_->AllocateRaw(32 /* alignment */, num_bytes);
     if (ret == nullptr) {
       LOG(FATAL) << "EigenAllocator for GPU ran out of memory when allocating "
@@ -160,7 +160,7 @@ class EigenCudaStreamDevice : public ::Eigen::StreamInterface {
     }
     return ret;
   }
-  void deallocate(void* buffer) const override {
+  void deallocate(void* buffer) const {
     if (LogMemory::IsEnabled()) {
       LogMemory::RecordRawDeallocation(operation_, step_id_, buffer, allocator_,
                                        true);
