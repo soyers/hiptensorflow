@@ -102,7 +102,7 @@ else
     case $INPUT in
       [Yy]* ) echo "GPU support will be enabled for TensorFlow"; TF_NEED_CUDA=1;;
       [Nn]* ) echo "No GPU support will be enabled for TensorFlow"; TF_NEED_CUDA=0;;
-      "" ) echo "No GPU support will be enabled for TensorFlow"; TF_NEED_CUDA=0;;
+      "" ) echo "GPU support will be enabled for TensorFlow"; TF_NEED_CUDA=1;;
       * ) echo "Invalid selection: " $INPUT;;
     esac
   done
