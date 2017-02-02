@@ -52,7 +52,7 @@ namespace gputools {
 namespace cuda {
 
 namespace dynload {
-
+#if 0
 #define PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(__name)                              \
   struct DynLoadShim__##__name {                                             \
     static const char *kName;                                                \
@@ -73,6 +73,34 @@ namespace dynload {
     }                                                                        \
   } __name;                                                                  \
   const char *DynLoadShim__##__name::kName = #__name;
+#endif
+
+#define __PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(__name, ...) \
+     struct DynLoadShim__##__name { \
+     static const char *kName; \
+     using FuncPointerT = std::add_pointer<decltype(::__VA_ARGS__)>::type; \
+     static void *GetDsoHandle() { \
+     /*static auto status = internal::CachedDsoLoader::GetLibcudaDsoHandle();*/ \
+     return nullptr; \
+     } \
+     static FuncPointerT DynLoad() { \
+     static void *f = dlsym(GetDsoHandle(), kName); \
+     CHECK(f != nullptr) << "could not find " << kName                      \
+	                 << "in libcuda DSO; dlerror: " << dlerror();       \
+     return reinterpret_cast<FuncPointerT>(f); \
+     } \
+     template <typename... Args> \
+     int operator()(Args... args) { \
+     return DynLoad()(args...); \
+     } \
+     } __name; \
+     const char *DynLoadShim__##__name::kName = #__name;
+
+#define FOO0(__name) __PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(__name, __name)
+#define FOO1(__name, __func) __PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(__name, __func)
+#define GET_MACRO(_1, _2, NAME, ...) NAME
+#define PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(...) GET_MACRO(__VA_ARGS__, FOO1, FOO0)(__VA_ARGS__)
+
 
 PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipCtxCreate);
 PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipCtxDestroy);
@@ -106,7 +134,9 @@ PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipGetErrorName);
 PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipGetErrorString);
 PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipInit);
 PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipModuleLaunchKernel);
-PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipMalloc);
+
+PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipMalloc, hipMalloc<void>);
+// PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipMalloc);
 PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipMemcpyDtoD);
 PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipMemcpyDtoH);
 PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipMemcpyHtoD);
