@@ -90,7 +90,7 @@ namespace dynload {
      return reinterpret_cast<FuncPointerT>(f); \
      } \
      template <typename... Args> \
-     int operator()(Args... args) { \
+     hipError_t operator()(Args... args) { \
      return DynLoad()(args...); \
      } \
      } __name; \
