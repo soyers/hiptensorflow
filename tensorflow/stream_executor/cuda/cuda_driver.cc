@@ -266,13 +266,7 @@ string ToString(hipError_t result) {
 
     // Encountered an uncorrectable ECC error during execution.
     OSTREAM_CUDA_ERROR(ECCNotCorrectable)
-
-    // Load/store on an invalid address. Must reboot all context.
-    case 700:
-      return "CUDA_ERROR_ILLEGAL_ADDRESS";
-    // Passed too many / wrong arguments, too many threads for register count.
-    case 701:
-      return "CUDA_ERROR_LAUNCH_OUT_OF_RESOURCES";
+#ifdef __NVCC__
     // Kernel took too long to execute.
     case 702:
       return "CUDA_ERROR_LAUNCH_TIMEOUT";
@@ -326,7 +320,15 @@ string ToString(hipError_t result) {
     // pointer, accessing OOB shared memory. Must reboot all context.
     case 719:
       return "CUDA_ERROR_LAUNCH_FAILED";
-
+#endif
+ 
+    // Load/store on an invalid address. Must reboot all context.
+    case 700:
+      return "CUDA_ERROR_ILLEGAL_ADDRESS";
+    // Passed too many / wrong arguments, too many threads for register count.
+    case 701:
+      return "CUDA_ERROR_LAUNCH_OUT_OF_RESOURCES";
+    
     OSTREAM_CUDA_ERROR(ContextAlreadyInUse)
     OSTREAM_CUDA_ERROR(PeerAccessUnsupported)
 #ifdef __NVCC__
@@ -662,8 +664,11 @@ bool DeviceOptionsToContextFlags(DeviceOptions device_options, int *flags) {
   //ToDo(mcw): Need Hip Equivalent for cuFuncGetAttribute
   hipError_t res = hipSuccess;//dynload::hipFuncGetAttribute(attribute_value, attribute, func);
   if (res != hipSuccess) {
-    LOG(ERROR) << "failed to query kernel attribute. kernel: " << func
-               << ", attribute: " << attribute;
+
+//TODO:Enable the error message after support of hipFunction_t
+  
+  //LOG(ERROR) << "failed to query kernel attribute. kernel: " << func
+     //          << ", attribute: " << attribute;
     return false;
   }
   return true;
@@ -679,8 +684,9 @@ bool DeviceOptionsToContextFlags(DeviceOptions device_options, int *flags) {
   res = dynload::hipFuncSetCacheConfig(cache_config);
 #endif
   if (res != hipSuccess) {
-    LOG(ERROR) << "failed to set CUDA kernel cache config. kernel: " << function
-               << ", config: " << cache_config << ", result: " << ToString(res);
+//TODO:Enable the error message after fix of hipFunction_t
+    //LOG(ERROR) << "failed to set CUDA kernel cache config. kernel: " << function
+     //          << ", config: " << cache_config << ", result: " << ToString(res);
     return false;
   }
 
@@ -730,7 +736,9 @@ CUDADriver::ContextGetSharedMemConfig(CudaContext* context) {
     unsigned int shared_mem_bytes, hipStream_t stream, void **kernel_params,
     void **extra) {
   ScopedActivateContext activation{context};
-  VLOG(2) << "launching kernel: " << function << "; gdx: " << grid_dim_x
+//TODO:Enable the error message after fix of hipFunction_t
+  //VLOG(2) << "launching kernel: " << function << "; gdx: " << grid_dim_x
+  VLOG(2) << "launching kernel: " << "; gdx: " << grid_dim_x
           << " gdy: " << grid_dim_y << " gdz: " << grid_dim_z
           << " bdx: " << block_dim_x << " bdy: " << block_dim_y
           << " bdz: " << block_dim_z;
@@ -738,8 +746,9 @@ CUDADriver::ContextGetSharedMemConfig(CudaContext* context) {
       function, grid_dim_x, grid_dim_y, grid_dim_z, block_dim_x, block_dim_y,
       block_dim_z, shared_mem_bytes, stream, kernel_params, extra);
   if (res != hipSuccess) {
-    LOG(ERROR) << "failed to launch HIP kernel: " << function
-               << "; result: " << ToString(res);
+//TODO:Enable the error message after support of hipFunction_t
+//    LOG(ERROR) << "failed to launch HIP kernel: " << function
+ //              << "; result: " << ToString(res);
     return false;
   }
   VLOG(2) << "successfully launched kernel";
@@ -1681,14 +1690,19 @@ static port::StatusOr<T> GetSimpleAttribute(hipDevice_t device,
   port::InlinedVector<char, 4> chars(kBufferSize);
   chars[kBufferSize - 1] = '\0';
 #elif defined (__HIP_PLATFORM_HCC__)
-  int chars;
+  char chars[100];
 #endif
-  hipError_t res = dynload::hipDeviceGetPCIBusId(&chars, kBufferSize - 1, device);
+  hipError_t res = dynload::hipDeviceGetPCIBusId(chars, kBufferSize - 1, device);
   if (res != hipSuccess) {
     LOG(ERROR) << "failed to query PCI bus id for device: " << ToString(res);
     return pci_bus_id;
   }
+
+ #ifdef __NVCC__
   pci_bus_id = std::to_string(chars);
+#elif defined (__HIP_PLATFORM_HCC__)
+  pci_bus_id = chars; 
+#endif
   return pci_bus_id;
 }
 
