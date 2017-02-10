@@ -95,12 +95,6 @@ namespace dynload {
      } __name; \
      const char *DynLoadShim__##__name::kName = #__name;
 
-//#define FOO0(__name) __PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(__name, __name)
-//#define FOO1(__name, __func) __PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(__name, __func)
-//#define GET_MACRO(_1, _2, NAME, ...) NAME
-//#define PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(...) GET_MACRO(__VA_ARGS__, FOO1, FOO0)(__VA_ARGS__)
-
-
 PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipCtxCreate);
 PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipCtxDestroy);
 PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipCtxEnablePeerAccess);
@@ -665,10 +659,8 @@ bool DeviceOptionsToContextFlags(DeviceOptions device_options, int *flags) {
   hipError_t res = hipSuccess;//dynload::hipFuncGetAttribute(attribute_value, attribute, func);
   if (res != hipSuccess) {
 
-//TODO:Enable the error message after support of hipFunction_t
-  
-  //LOG(ERROR) << "failed to query kernel attribute. kernel: " << func
-     //          << ", attribute: " << attribute;
+  LOG(ERROR) << "failed to query kernel attribute. kernel: " << func
+               << ", attribute: " << attribute;
     return false;
   }
   return true;
@@ -684,9 +676,8 @@ bool DeviceOptionsToContextFlags(DeviceOptions device_options, int *flags) {
   res = dynload::hipFuncSetCacheConfig(cache_config);
 #endif
   if (res != hipSuccess) {
-//TODO:Enable the error message after fix of hipFunction_t
-    //LOG(ERROR) << "failed to set CUDA kernel cache config. kernel: " << function
-     //          << ", config: " << cache_config << ", result: " << ToString(res);
+    LOG(ERROR) << "failed to set CUDA kernel cache config. kernel: " << function
+               << ", config: " << cache_config << ", result: " << ToString(res);
     return false;
   }
 
@@ -736,9 +727,7 @@ CUDADriver::ContextGetSharedMemConfig(CudaContext* context) {
     unsigned int shared_mem_bytes, hipStream_t stream, void **kernel_params,
     void **extra) {
   ScopedActivateContext activation{context};
-//TODO:Enable the error message after fix of hipFunction_t
-  //VLOG(2) << "launching kernel: " << function << "; gdx: " << grid_dim_x
-  VLOG(2) << "launching kernel: " << "; gdx: " << grid_dim_x
+  VLOG(2) << "launching kernel: " << function << "; gdx: " << grid_dim_x
           << " gdy: " << grid_dim_y << " gdz: " << grid_dim_z
           << " bdx: " << block_dim_x << " bdy: " << block_dim_y
           << " bdz: " << block_dim_z;
@@ -746,9 +735,8 @@ CUDADriver::ContextGetSharedMemConfig(CudaContext* context) {
       function, grid_dim_x, grid_dim_y, grid_dim_z, block_dim_x, block_dim_y,
       block_dim_z, shared_mem_bytes, stream, kernel_params, extra);
   if (res != hipSuccess) {
-//TODO:Enable the error message after support of hipFunction_t
-//    LOG(ERROR) << "failed to launch HIP kernel: " << function
- //              << "; result: " << ToString(res);
+    LOG(ERROR) << "failed to launch HIP kernel: " << function
+               << "; result: " << ToString(res);
     return false;
   }
   VLOG(2) << "successfully launched kernel";
