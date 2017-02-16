@@ -98,10 +98,10 @@ namespace dynload {
   __macro(hipblasDdot)                     \
   __macro(hipblasSscal)                    \
   __macro(hipblasDscal)                    \
-  __macro(hipblasZscal)                   \
-  __macro(hipblasCscal)                   \
-  __macro(hipblasZdscal)                   \
-  __macro(hipblasCsscal)                   \
+/*  __macro(hipblasZscal)  */                 \
+/*  __macro(hipblasCscal)  */                 \
+/*  __macro(hipblasZdscal) */                  \
+/*  __macro(hipblasCsscal) */                  \
   __macro(hipblasSaxpy)                    \
   __macro(hipblasScopy)                    \
   __macro(hipblasDcopy)                    \
@@ -112,14 +112,14 @@ namespace dynload {
   __macro(hipblasSgemm)                    \
   __macro(hipblasDgemm)                    \
   __macro(hipblasCgemm)			   \
-  __macro(hipblasZgemm)			   
+/*  __macro(hipblasZgemm)*/			   
 
 PERFTOOLS_GPUTOOLS_CUBLAS_V2_WRAP(hipblasCreate) 
 PERFTOOLS_GPUTOOLS_CUBLAS_V2_WRAP(hipblasDestroy) 
 PERFTOOLS_GPUTOOLS_CUBLAS_WRAP(hipblasSgemmBatched)
 PERFTOOLS_GPUTOOLS_CUBLAS_WRAP(hipblasDgemmBatched) 
 PERFTOOLS_GPUTOOLS_CUBLAS_WRAP(hipblasCgemmBatched)
-PERFTOOLS_GPUTOOLS_CUBLAS_WRAP(hipblasZgemmBatched) 
+//PERFTOOLS_GPUTOOLS_CUBLAS_WRAP(hipblasZgemmBatched) 
 
 CUBLAS_BLAS_ROUTINE_EACH(PERFTOOLS_GPUTOOLS_CUBLAS_V2_WRAP)
 
@@ -140,8 +140,8 @@ static string ToString(hipblasStatus_t status) {
       return "HIPBLAS_STATUS_ALLOC_FAILED";
     case HIPBLAS_STATUS_INVALID_VALUE:
       return "HIPBLAS_STATUS_INVALID_VALUE";
-    case HIPBLAS_STATUS_ARCH_MISMATCH:
-      return "HIPBLAS_STATUS_ARCH_MISMATCH";
+    /*case HIPBLAS_STATUS_ARCH_MISMATCH:
+      return "HIPBLAS_STATUS_ARCH_MISMATCH";*/
     case HIPBLAS_STATUS_MAPPING_ERROR:
       return "HIPBLAS_STATUS_MAPPING_ERROR";
     case HIPBLAS_STATUS_EXECUTION_FAILED:
@@ -293,32 +293,32 @@ bool CUDABlas::DoBlasScal(Stream *stream, uint64 elem_count, double alpha,
 
 bool CUDABlas::DoBlasScal(Stream *stream, uint64 elem_count, float alpha,
                           DeviceMemory<std::complex<float>> *x, int incx) {
-  return DoBlasInternal(
-      dynload::hipblasCsscal, stream, true /* = pointer_mode_host */, elem_count,
-      CUDAComplex(&alpha), CUDAComplex(CUDAMemoryMutable(x)), incx);
+  return false;//DoBlasInternal(
+      //dynload::hipblasCsscal, stream, true /* = pointer_mode_host */, elem_count,
+      //CUDAComplex(&alpha), CUDAComplex(CUDAMemoryMutable(x)), incx);
 }
 
 bool CUDABlas::DoBlasScal(Stream *stream, uint64 elem_count, double alpha,
                           DeviceMemory<std::complex<double>> *x, int incx) {
-  return DoBlasInternal(
-      dynload::hipblasZdscal, stream, true /* = pointer_mode_host */, elem_count,
-      CUDAComplex(&alpha), CUDAComplex(CUDAMemoryMutable(x)), incx);
+  return false;//DoBlasInternal(
+      //dynload::hipblasZdscal, stream, true /* = pointer_mode_host */, elem_count,
+      //CUDAComplex(&alpha), CUDAComplex(CUDAMemoryMutable(x)), incx);
 }
 
 bool CUDABlas::DoBlasScal(Stream *stream, uint64 elem_count,
                           std::complex<float> alpha,
                           DeviceMemory<std::complex<float>> *x, int incx) {
-  return DoBlasInternal(
-      dynload::hipblasCscal, stream, true /* = pointer_mode_host */, elem_count,
-      CUDAComplex(&alpha), CUDAComplex(CUDAMemoryMutable(x)), incx);
+  return false;//DoBlasInternal(
+      //dynload::hipblasCscal, stream, true /* = pointer_mode_host */, elem_count,
+      //CUDAComplex(&alpha), CUDAComplex(CUDAMemoryMutable(x)), incx);
 }
 
 bool CUDABlas::DoBlasScal(Stream *stream, uint64 elem_count,
                           std::complex<double> alpha,
                           DeviceMemory<std::complex<double>> *x, int incx) {
-  return DoBlasInternal(
-      dynload::hipblasZscal, stream, true /* = pointer_mode_host */, elem_count,
-      CUDAComplex(&alpha), CUDAComplex(CUDAMemoryMutable(x)), incx);
+  return false;//DoBlasInternal(
+      //dynload::hipblasZscal, stream, true /* = pointer_mode_host */, elem_count,
+      //CUDAComplex(&alpha), CUDAComplex(CUDAMemoryMutable(x)), incx);
 }
 
 bool CUDABlas::DoBlasGemv(Stream *stream, blas::Transpose trans, uint64 m, 
@@ -451,12 +451,12 @@ bool CUDABlas::DoBlasGemm(Stream *stream, blas::Transpose transa,
                           const DeviceMemory<std::complex<float>> &b, int ldb,
                           std::complex<float> beta,
                           DeviceMemory<std::complex<float>> *c, int ldc) {
-  return DoBlasInternal(
-      dynload::hipblasCgemm, stream, true /* = pointer_mode_host */,
-      CUDABlasTranspose(transa), CUDABlasTranspose(transb), m, n, k,
-      CUDAComplex(&alpha), CUDAComplex(CUDAMemory(a)), lda,
-      CUDAComplex(CUDAMemory(b)), ldb, CUDAComplex(&beta),
-      CUDAComplex(CUDAMemoryMutable(c)), ldc);
+  return false;//DoBlasInternal(
+      //dynload::hipblasCgemm, stream, true /* = pointer_mode_host */,
+      //CUDABlasTranspose(transa), CUDABlasTranspose(transb), m, n, k,
+      //CUDAComplex(&alpha), CUDAComplex(CUDAMemory(a)), lda,
+      //CUDAComplex(CUDAMemory(b)), ldb, CUDAComplex(&beta),
+      //CUDAComplex(CUDAMemoryMutable(c)), ldc);
 }
 
 bool CUDABlas::DoBlasGemm(Stream *stream, blas::Transpose transa,
@@ -466,12 +466,12 @@ bool CUDABlas::DoBlasGemm(Stream *stream, blas::Transpose transa,
                           const DeviceMemory<std::complex<double>> &b, int ldb,
                           std::complex<double> beta,
                           DeviceMemory<std::complex<double>> *c, int ldc) {
-  return DoBlasInternal(
-      dynload::hipblasZgemm, stream, true /* = pointer_mode_host */,
-      CUDABlasTranspose(transa), CUDABlasTranspose(transb), m, n, k,
-      CUDAComplex(&alpha), CUDAComplex(CUDAMemory(a)), lda,
-      CUDAComplex(CUDAMemory(b)), ldb, CUDAComplex(&beta),
-      CUDAComplex(CUDAMemoryMutable(c)), ldc);
+  return false;//DoBlasInternal(
+      //dynload::hipblasZgemm, stream, true /* = pointer_mode_host */,
+      //CUDABlasTranspose(transa), CUDABlasTranspose(transb), m, n, k,
+      //CUDAComplex(&alpha), CUDAComplex(CUDAMemory(a)), lda,
+      //CUDAComplex(CUDAMemory(b)), ldb, CUDAComplex(&beta),
+      //CUDAComplex(CUDAMemoryMutable(c)), ldc);
 }
 
 
@@ -594,10 +594,10 @@ bool CUDABlas::DoBlasGemmBatched(
     int ldb, std::complex<float> beta,
     const port::ArraySlice<DeviceMemory<std::complex<float>> *> &c_array,
     int ldc, int batch_count, ScratchAllocator *scratch_allocator) {
-  SE_RETURN_STATUS_AS_BOOL(DoBlasGemmBatchedInternal(
-      dynload::hipblasCgemmBatched, stream, transa, transb, m, n, k, alpha,
-      a_array, lda, b_array, ldb, beta, c_array, ldc, batch_count,
-      scratch_allocator));
+  return false;//SE_RETURN_STATUS_AS_BOOL(DoBlasGemmBatchedInternal(
+      //dynload::hipblasCgemmBatched, stream, transa, transb, m, n, k, alpha,
+      //a_array, lda, b_array, ldb, beta, c_array, ldc, batch_count,
+      //scratch_allocator));
 }
 
 bool CUDABlas::DoBlasGemmBatched(
@@ -609,10 +609,10 @@ bool CUDABlas::DoBlasGemmBatched(
     int ldb, std::complex<double> beta,
     const port::ArraySlice<DeviceMemory<std::complex<double>> *> &c_array,
     int ldc, int batch_count, ScratchAllocator *scratch_allocator) {
-  SE_RETURN_STATUS_AS_BOOL(DoBlasGemmBatchedInternal(
-      dynload::hipblasZgemmBatched, stream, transa, transb, m, n, k, alpha,
-      a_array, lda, b_array, ldb, beta, c_array, ldc, batch_count,
-      scratch_allocator));
+  return false;//SE_RETURN_STATUS_AS_BOOL(DoBlasGemmBatchedInternal(
+      //dynload::hipblasZgemmBatched, stream, transa, transb, m, n, k, alpha,
+      //a_array, lda, b_array, ldb, beta, c_array, ldc, batch_count,
+      //scratch_allocator));
 }
 
 }  // namespace cuda

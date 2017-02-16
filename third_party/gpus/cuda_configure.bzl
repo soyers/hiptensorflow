@@ -24,7 +24,7 @@ _CUDNN_INSTALL_PATH = "CUDNN_INSTALL_PATH"
 _TF_CUDA_COMPUTE_CAPABILITIES = "TF_CUDA_COMPUTE_CAPABILITIES"
 _HIPLIB_PATH = "HIP_LIBRARY_PATH"
 _HIP_PATH = "HIP_PATH"
-_HCC_PATH = "HCC_PATH"
+_HCC_HOME = "HCC_HOME"
 
 _DEFAULT_CUDA_VERSION = ""
 _DEFAULT_CUDNN_VERSION = ""
@@ -393,15 +393,16 @@ def _create_cuda_repository(repository_ctx):
   if not repository_ctx.path(hip_path).exists:
     auto_configure_fail("Cannot find HIP path.")
 
-  if _HCC_PATH in repository_ctx.os.environ:
-    hcc_path = repository_ctx.os.environ[_HCC_PATH].strip()
-  if not repository_ctx.path(hcc_path).exists:
-    auto_configure_fail("Cannot find HIP path.")
+  if _HCC_HOME in repository_ctx.os.environ:
+    hcc_home = repository_ctx.os.environ[_HCC_HOME].strip()
+  if not repository_ctx.path(hcc_home).exists:
+    auto_configure_fail("Cannot find HCC path.")
 
   #_symlink_dir(repository_ctx, cuda_toolkit_path + "/include", "cuda/include")
 
-  #Adding the hip include files
-  #_symlink_dir(repository_ctx, hcc_path + "/include", "cuda/include")
+  #Adding the hcc include files
+  _symlink_dir(repository_ctx, hcc_home + "/include", "cuda/include")
+  #_symlink_dir(repository_ctx, "/opt/rocm/hcc-1.0/compiler/lib/clang/4.0.0/include/", "cuda/include")
 
   #Adding the hip include files
   _symlink_dir(repository_ctx, hip_path + "/include", "cuda/include")

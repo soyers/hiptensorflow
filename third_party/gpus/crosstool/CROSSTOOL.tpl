@@ -80,7 +80,7 @@ toolchain {
   unfiltered_cxx_flag: "-D__DATE__=\"redacted\""
   unfiltered_cxx_flag: "-D__TIMESTAMP__=\"redacted\""
   unfiltered_cxx_flag: "-D__TIME__=\"redacted\""
-  unfiltered_cxx_flag: "-D__HIP_PLATFORM_HCC__=\"-I/opt/rocm/hip/include -I/opt/rocm/hcc/include\"" 
+  unfiltered_cxx_flag: "-D__HIP_PLATFORM_HCC__=\"-I/opt/rocm/hip/include -I/opt/rocm/hcc/include\""
   unfiltered_cxx_flag: "-DMLOPEN_BACKEND_HIP=1"
   unfiltered_cxx_flag: "-I/opt/rocm/hcc/include" 
 
@@ -128,9 +128,9 @@ toolchain {
   cxx_builtin_include_directory: "/opt/rocm/hcc/compiler/lib/clang/4.0.0/include"
   cxx_builtin_include_directory: "/opt/rocm/hcc/include"
   cxx_builtin_include_directory: "/opt/rocm/hip/include"
-  cxx_builtin_include_directory: "/opt/rocm/hcrng/lib/include"
-  cxx_builtin_include_directory: "/opt/rocm/hcfft/lib/include"
-  cxx_builtin_include_directory: "/opt/rocm/hcblas/lib/include"
+  cxx_builtin_include_directory: "/opt/rocm/hcrng/include"
+  cxx_builtin_include_directory: "/opt/rocm/hcfft/include"
+  cxx_builtin_include_directory: "/opt/rocm/hcblas/include"
   
   compilation_mode_flags {
     mode: DBG
