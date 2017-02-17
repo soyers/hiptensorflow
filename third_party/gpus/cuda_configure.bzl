@@ -401,7 +401,7 @@ def _create_cuda_repository(repository_ctx):
   #_symlink_dir(repository_ctx, cuda_toolkit_path + "/include", "cuda/include")
 
   #Adding the hcc include files
-  _symlink_dir(repository_ctx, hcc_home + "/include", "cuda/include")
+  #_symlink_dir(repository_ctx, hcc_home + "/include", "cuda/include")
   #_symlink_dir(repository_ctx, "/opt/rocm/hcc-1.0/compiler/lib/clang/4.0.0/include/", "cuda/include")
 
   #Adding the hip include files
