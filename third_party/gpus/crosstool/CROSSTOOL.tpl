@@ -80,7 +80,7 @@ toolchain {
   unfiltered_cxx_flag: "-D__DATE__=\"redacted\""
   unfiltered_cxx_flag: "-D__TIMESTAMP__=\"redacted\""
   unfiltered_cxx_flag: "-D__TIME__=\"redacted\""
-  unfiltered_cxx_flag: "-D__HIP_PLATFORM_HCC__""
+  unfiltered_cxx_flag: "-D__HIP_PLATFORM_HCC__"
   unfiltered_cxx_flag: "-DMLOPEN_BACKEND_HIP=1"
 
   # Security hardening on by default.
