@@ -80,7 +80,7 @@ toolchain {
   unfiltered_cxx_flag: "-D__DATE__=\"redacted\""
   unfiltered_cxx_flag: "-D__TIMESTAMP__=\"redacted\""
   unfiltered_cxx_flag: "-D__TIME__=\"redacted\""
-  #unfiltered_cxx_flag: "-D__HIP_PLATFORM_HCC__"
+  unfiltered_cxx_flag: "-D__HIP_PLATFORM_HCC__"
   unfiltered_cxx_flag: "-DMLOPEN_BACKEND_HIP=1"
 
   # Security hardening on by default.
@@ -124,7 +124,7 @@ toolchain {
   # Include directory for cuda headers.
   #cxx_builtin_include_directory: "/usr/local/cuda%{cuda_version}/include"
   #cxx_builtin_include_directory: "/usr/local/cuda/include"
-  cxx_builtin_include_directory: "/opt/rocm/hcc-1.0/compiler/lib/clang/4.0.0/include"
+  cxx_builtin_include_directory: "/opt/rocm/hcc-1.0/compiler/lib/clang/5.0.0/include"
   cxx_builtin_include_directory: "/opt/rocm/hcc/include"
   cxx_builtin_include_directory: "/opt/rocm/hip/include"
   cxx_builtin_include_directory: "/opt/rocm/hcrng/include"

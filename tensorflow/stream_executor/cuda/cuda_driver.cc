@@ -672,7 +672,7 @@ bool DeviceOptionsToContextFlags(DeviceOptions device_options, int *flags) {
   hipError_t res;
 #ifdef __NVCC__
   res = dynload::hipFuncSetCacheConfig(function, cache_config);
-#elif defined(__HCC__)
+#elif defined(__HIP_PLATFORM_HCC__)
   res = dynload::hipFuncSetCacheConfig(cache_config);
 #endif
   if (res != hipSuccess) {
@@ -957,7 +957,7 @@ CUDADriver::ContextGetSharedMemConfig(CudaContext* context) {
   hipDevice_t device;
 #ifdef __NVCC__
   device = -1;
-#elif defined(__HCC__)
+#elif defined(__HIP_PLATFORM_HCC__)
   device = NULL;
 #endif
   hipError_t result = dynload::hipCtxGetDevice(&device);
@@ -1257,7 +1257,7 @@ CUDADriver::ContextGetSharedMemConfig(CudaContext* context) {
   hipError_t res;
 #ifdef __NVCC__
   res = dynload::hipMemcpyHtoD(gpu_dst, host_src, size);
-#elif defined (__HCC__)
+#elif defined (__HIP_PLATFORM_HCC__)
   res = dynload::hipMemcpyHtoD(gpu_dst, (void *)host_src, size);
 #endif
   if (res != hipSuccess) {
@@ -1318,7 +1318,7 @@ CUDADriver::ContextGetSharedMemConfig(CudaContext* context) {
   hipError_t res;
 #ifdef __NVCC__
   res = dynload::hipMemcpyHtoDAsync(gpu_dst, host_src, size, stream);
-#elif defined(__HCC__)
+#elif defined(__HIP_PLATFORM_HCC__)
   res = dynload::hipMemcpyHtoDAsync(gpu_dst, (void *)host_src, size, stream);
 #endif
   if (res != hipSuccess) {
@@ -1507,7 +1507,7 @@ static port::StatusOr<T> GetSimpleAttribute(hipDevice_t device,
   hipError_t result;
 #ifdef __NVCC__
   result = dynload::hipDeviceGetAttribute(&value, attribute, device);
-#elif defined(__HCC__)
+#elif defined(__HIP_PLATFORM_HCC__)
   result = dynload::hipDeviceGetAttribute(&value, attribute, 0);
 #endif
   if (result != hipSuccess) {
@@ -1569,7 +1569,7 @@ static port::StatusOr<T> GetSimpleAttribute(hipDevice_t device,
 #ifdef __NVCC__
   res = dynload::hipDeviceGetAttribute(
       &value, hipDeviceAttributeMaxGridDimX, device);
-#elif defined(__HCC__)
+#elif defined(__HIP_PLATFORM_HCC__)
   res = dynload::hipDeviceGetAttribute(
       &value, hipDeviceAttributeMaxGridDimX, 0);
 #endif
@@ -1581,7 +1581,7 @@ static port::StatusOr<T> GetSimpleAttribute(hipDevice_t device,
 #ifdef __NVCC__
   res = dynload::hipDeviceGetAttribute(
       &value, hipDeviceAttributeMaxGridDimY, device);
-#elif defined(__HCC__)
+#elif defined(__HIP_PLATFORM_HCC__)
   res = dynload::hipDeviceGetAttribute(
       &value, hipDeviceAttributeMaxGridDimY, 0);
 #endif
@@ -1593,7 +1593,7 @@ static port::StatusOr<T> GetSimpleAttribute(hipDevice_t device,
 #ifdef __NVCC__
   res = dynload::hipDeviceGetAttribute(
       &value, hipDeviceAttributeMaxGridDimZ, device);
-#elif defined(__HCC__)
+#elif defined(__HIP_PLATFORM_HCC__)
   res = dynload::hipDeviceGetAttribute(
       &value, hipDeviceAttributeMaxGridDimZ, 1);
 #endif
@@ -1677,7 +1677,7 @@ static port::StatusOr<T> GetSimpleAttribute(hipDevice_t device,
 #ifdef __NVCC__
   port::InlinedVector<char, 4> chars(kBufferSize);
   chars[kBufferSize - 1] = '\0';
-#elif defined (__HCC__)
+#elif defined (__HIP_PLATFORM_HCC__)
   char chars[100];
 #endif
   hipError_t res = dynload::hipDeviceGetPCIBusId(chars, kBufferSize - 1, device);
@@ -1688,7 +1688,7 @@ static port::StatusOr<T> GetSimpleAttribute(hipDevice_t device,
 
  #ifdef __NVCC__
   pci_bus_id = std::to_string(chars);
-#elif defined (__HCC__)
+#elif defined (__HIP_PLATFORM_HCC__)
   pci_bus_id = chars; 
 #endif
   return pci_bus_id;
@@ -1716,7 +1716,7 @@ static port::StatusOr<T> GetSimpleAttribute(hipDevice_t device,
 #ifdef __NVCC__
   hipError_t res = dynload::hipDeviceCanAccessPeer(
       &can_access_peer, from_device.ValueOrDie(), to_device.ValueOrDie());
-#elif defined (__HCC__)
+#elif defined (__HIP_PLATFORM_HCC__)
   //ToDo(mcw): Hardcoded DeviceID to 0 and 1. Need to change in future
   hipError_t res = dynload::hipDeviceCanAccessPeer(
       &can_access_peer, 0, 1);

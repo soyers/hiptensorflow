@@ -184,8 +184,8 @@ void* GetDsoHandle() {
   /*__macro(mlopenSetStream)*/                                 \
   __macro(mlopenActivationForward)                         \
   __macro(mlopenConvolutionForward)                        \
-  /*__macro(mlopenConvolutionBackwardBias)*/                   \
-  /*__macro(mlopenGetConvolutionForwardWorkspaceSize)*/        \
+  __macro(mlopenConvolutionBackwardBias)                   \
+  __macro(mlopenConvolutionForwardGetWorkSpaceSize)        \
   __macro(mlopenTransformTensor)                           \
   __macro(mlopenInitConvolutionDescriptor)                \
   __macro(mlopenSetTensorDescriptor)                     \
@@ -204,7 +204,7 @@ MLOPEN_DNN_ROUTINE_EACH(PERFTOOLS_GPUTOOLS_MLOPEN_WRAP)
   __macro(mlopenConvolutionBackwardWeightsGetWorkSpaceSize)     \
   __macro(mlopenFindConvolutionBackwardDataAlgorithm)           \
   __macro(mlopenFindConvolutionBackwardWeightsAlgorithm)         \
-  /*__macro(mlopenGetConvolutionBackwardDataWorkspaceSize)*/
+
 MLOPEN_DNN_ROUTINE_EACH_AFTER_R3(PERFTOOLS_GPUTOOLS_MLOPEN_WRAP)
 #undef MLOPEN_DNN_ROUTINE_EACH_AFTER_R3
 
@@ -246,7 +246,7 @@ mlopenConvBwdDataAlgorithm_t ToConvBackwardDataAlgo(
     dnn::AlgorithmType algorithm) {
   mlopenConvBwdDataAlgorithm_t algo = mlopenConvBwdDataAlgorithm_t(algorithm);
   switch (algo) {
-    case mlopenConvolutionBwdDataAlgo_0:
+    case mlopenConvolutionBwdDataAlgoDirect:
       return algo;
     default:
       LOG(FATAL)
@@ -283,8 +283,8 @@ CudnnSupport::~CudnnSupport() {
 }
 
 port::Status CudnnSupport::Init() {
-  auto status = dynload::mlopenCreate(
-      parent_, reinterpret_cast<mlopenHandle_t*>(&dnn_handle_), 0, (hipStream_t*)NULL);
+  auto status = dynload::mlopenCreate(parent_,
+      reinterpret_cast<mlopenHandle_t*>(&dnn_handle_));
   if (status == mlopenStatusSuccess) {
     return port::Status::OK();
   }
@@ -311,9 +311,9 @@ port::Status CudnnSupport::Init() {
     }
   }*/
 
-  return port::Status{port::error::INTERNAL,
+  return port::Status(port::error::INTERNAL,
                       port::StrCat("mlopen library could not create a handle: ",
-                                   ToString(status))};
+                                   ToString(status)));
 }
 
 // Turns a BatchDescriptor structure into a mlopen tensor handle within a scope.
@@ -1727,11 +1727,6 @@ bool CudnnSupport::DoConvolveImpl(
       mlopenFloat};
 
   mutex_lock lock{dnn_handle_mutex_};
-/*  auto status = dynload::mlopenSetStream(parent_, ToHandle(dnn_handle_),
-                                        AsCUDAStreamValue(stream));
-  if (status != mlopenStatusSuccess) {
-    LOG(FATAL) << "failed to set stream for mlopen handle: " << ToString(status);
-  }*/
   // Alpha is the scaling factor for input.
   float alpha = 1.0;
   // Beta is the scaling factor for output.
@@ -1745,9 +1740,6 @@ bool CudnnSupport::DoConvolveImpl(
     // With the default algorithm, use Cudnn's heuristics.
     auto get_algorithm = [&](bool specify_limit)
         SHARED_LOCKS_REQUIRED(dnn_handle_mutex_) {
-          mlopenConvPreference_t preference =
-              specify_limit ? mlopenConvolutionWorkSpaceLimit
-                            : mlopenConvolutionNoWorkspace;
 
           auto memory_limit_bytes =
               scratch_allocator == nullptr
@@ -1757,32 +1749,33 @@ bool CudnnSupport::DoConvolveImpl(
             memory_limit_bytes = 0;
           }
 
-          mlopenConvFwdAlgorithm_t algo_to_use;
-          algo_to_use = mlopenConvolutionFwdAlgoDirect;
-#if 0
-          status = dynload::mlopenFindConvolutionForwardAlgorithm(
+          mlopenConvAlgoPerf_t preference;
+          int returnedAlgoCount;
+          void* WorkSpace = NULL;
+
+          auto status = dynload::mlopenFindConvolutionForwardAlgorithm(
               parent_, ToHandle(dnn_handle_), input_nd.handle(),
-              filter.handle(), conv.handle(), output_nd.handle(),
-              /*preference=*/preference,
-              /*memoryLimitInBytes=*/memory_limit_bytes,
-              /*algo=*/&algo_to_use);
+              input_data.opaque(), filter.handle(), filter_data.opaque(),
+              conv.handle(), output_nd.handle(), output_data->opaque(),
+              /*requestAlgoCount=*/1, &returnedAlgoCount,  
+              /*preference=*/&preference, /*WorkSpace*/WorkSpace, 
+              /*WorkSpaceSize*/0, /*exhaustiveSearch*/false);
           CHECK_EQ(status, mlopenStatusSuccess)
               << "Unable to find a suitable "
                  "algorithm for doing forward "
                  "convolution";
-#endif
-          return algo_to_use;
+          return preference.fwd_algo;
         };
 
     algo = get_algorithm(/*specify_limit=*/scratch_allocator != nullptr);
 
-#if 0
     if (scratch_allocator != nullptr) {
       size_t size_in_bytes;
-      status = dynload::mlopenGetConvolutionForwardWorkspaceSize(
-          parent_, ToHandle(dnn_handle_), /*srcDesc=*/input_nd.handle(),
-          /*filterDesc=*/filter.handle(), /*convDesc=*/conv.handle(),
-          /*destDesc=*/output_nd.handle(), /*algo=*/algo,
+      auto status = dynload::mlopenConvolutionForwardGetWorkSpaceSize(
+          parent_, /*filterDesc=*/filter.handle(), 
+          /*srcDesc=input_nd.handle(),*/
+          /*destDesc=*/output_nd.handle(),
+          /*convDesc=*/conv.handle(),
           /*sizeInBytes=*/&size_in_bytes);
       if (status == mlopenStatusSuccess && size_in_bytes != 0) {
         auto allocated =
@@ -1792,7 +1785,6 @@ bool CudnnSupport::DoConvolveImpl(
         }
       }
     }
-#endif
 
     // If we didn't allocate any scratch space (perhaps because of failed
     // allocation), we force a switch back to the "no workspace" algorithm.
@@ -1803,13 +1795,11 @@ bool CudnnSupport::DoConvolveImpl(
     // An algorithm has been specified.
     algo = ToConvForwardAlgo(algorithm_config.algorithm());
 
-    size_t size_in_bytes = 0;
-#if 0
-    status = dynload::mlopenGetConvolutionForwardWorkspaceSize(
-        parent_, ToHandle(dnn_handle_), /*srcDesc=*/input_nd.handle(),
-        /*filterDesc=*/filter.handle(), /*convDesc=*/conv.handle(),
-        /*destDesc=*/output_nd.handle(), /*algo=*/algo,
-        /*sizeInBytes=*/&size_in_bytes);
+    size_t size_in_bytes;
+    auto status = dynload::mlopenConvolutionForwardGetWorkSpaceSize(
+        parent_, /*filterDesc=*/filter.handle(),
+        /*srcDesc=input_nd.handle(),*/ /*destDesc=*/output_nd.handle(),
+        /*convDesc=*/conv.handle(), /*sizeInBytes=*/&size_in_bytes);
     if (status != mlopenStatusSuccess) {
       if (is_profiling) {
         // Silently return when we are profiling.
@@ -1839,23 +1829,12 @@ bool CudnnSupport::DoConvolveImpl(
         algo = ToConvForwardAlgo(algorithm_config.algorithm_no_scratch());
       }
     }
-#endif
   }
 
 //  std::unique_ptr<CUDATimer> timer;
   if (is_profiling) {
-#if 0
-    timer.reset(new CUDATimer(parent_));
-    timer->Init();
-    // The start and stop of the timer should be as close to the Cudnn call as
-    // possible. It is still possible for other threads to issue workload on
-    // to this stream. So it could take multiple profiling measurements.
-    timer->Start(AsCUDAStream(stream));
-#endif
     dynload::mlopenEnableProfiling(parent_, ToHandle(dnn_handle_), true);
   }
-
-  void* t = NULL;
 
   auto status = dynload::mlopenConvolutionForward(
       parent_, ToHandle(dnn_handle_),
@@ -1863,16 +1842,14 @@ bool CudnnSupport::DoConvolveImpl(
       /*srcData=*/input_data.opaque(), /*filterDesc=*/filter.handle(),
       /*filterData=*/filter_data.opaque(), /*convDesc=*/conv.handle(),
       /*algo=*/algo, /*beta=*/&beta, /*destDesc=*/output_nd.handle(), 
-      /*destData=*/output_data->opaque(), /*workSpace=*//*scratch.opaque()*/t,
-      /*workSpaceSizeInBytes=*//*scratch.size()*/0);
+      /*destData=*/output_data->opaque(), /*workSpace=*/scratch.opaque(),
+      /*workSpaceSizeInBytes=*/scratch.size());
   if (is_profiling) {
     float ElapsedTime;
     dynload::mlopenGetKernelTime(parent_, ToHandle(dnn_handle_), &ElapsedTime);
-//  timer->Stop(AsCUDAStream(stream));
     output_profile_result->set_is_valid(true);
     output_profile_result->set_algorithm(algo);
     output_profile_result->set_elapsed_time_in_ms(ElapsedTime);
-//  timer->Destroy();
   }
 
   if (status != mlopenStatusSuccess) {
@@ -1900,13 +1877,14 @@ bool CudnnSupport::GetConvolveAlgorithms(
   return true;
 }
 
-bool CudnnSupport::GetConvolveBackwardDataAlgorithms(
-    std::vector<dnn::AlgorithmType>* out_algorithms) {
-  out_algorithms->assign({
-      // clang-format off
-      mlopenConvolutionBwdDataAlgo_0,
-      // clang-format on
-  });
+bool CudnnSupport::GetConvolveBackwardDataAlgorithms
+(std::vector<dnn::AlgorithmType>* out_algorithms)
+{
+	out_algorithms->assign({
+	      // clang-format off
+	      mlopenConvolutionBwdDataAlgoDirect,
+	      // clang-format on
+		});
   return true;
 }
 
@@ -2016,11 +1994,6 @@ bool CudnnSupport::DoConvolveBackwardDataImpl(
     const dnn::AlgorithmConfig& algorithm_config,
     dnn::ProfileResult* output_profile_result) {
   mutex_lock lock{dnn_handle_mutex_};
-/*  auto status = dynload::mlopenSetStream(parent_, ToHandle(dnn_handle_),
-                                        AsCUDAStreamValue(stream));
-  if (status != mlopenStatusSuccess) {
-    LOG(FATAL) << "failed to set stream for mlopen handle: " << ToString(status);
-  }*/
 
   // Alpha is the scaling factor for input.
   float alpha = 1.0;
@@ -2056,9 +2029,6 @@ bool CudnnSupport::DoConvolveBackwardDataImpl(
     // With the default algorithm, use Cudnn's heuristics.
     auto get_algorithm = [&](bool specify_limit) SHARED_LOCKS_REQUIRED(
         dnn_handle_mutex_) -> mlopenConvBwdDataAlgorithm_t {
-      mlopenConvPreference_t preference =
-          specify_limit ? mlopenConvolutionWorkSpaceLimit
-                        : mlopenConvolutionNoWorkspace;
 
       auto memory_limit_bytes =
           scratch_allocator == nullptr
@@ -2068,36 +2038,35 @@ bool CudnnSupport::DoConvolveBackwardDataImpl(
         memory_limit_bytes = 0;
       }
 
-      mlopenConvBwdDataAlgorithm_t algo_to_use;
-      algo_to_use = mlopenConvolutionBwdDataAlgo_0;
-#if 0
-      mlopenStatus_t status = dynload::mlopenGetConvolutionBackwardDataAlgorithm(
+      mlopenConvAlgoPerf_t preference;
+      int returnedAlgoCount;
+      void *WorkSpace = NULL;
+
+      mlopenStatus_t status = dynload::mlopenFindConvolutionBackwardDataAlgorithm(
           parent_, ToHandle(dnn_handle_),
-          /*filterDesc=*/filter.handle(),
-          /*diffDesc=*/out_back_nd.handle(),
+          /*diffDesc=*/out_back_nd.handle(), backward_output_data.opaque(),
+          /*filterDesc=*/filter.handle(), filter_data.opaque(),
           /*convDesc=*/conv.handle(),
-          /*gradDesc=*/in_back_nd.handle(),
-          /*preference=*/preference,
-          /*memoryLimitInBytes=*/memory_limit_bytes,
-          /*algo=*/&algo_to_use);
+          /*gradDesc=*/in_back_nd.handle(), backward_input_data->opaque(),
+          /*requestCount=*/1, /*returnedAlgoCount=*/&returnedAlgoCount,
+          /*preference=*/&preference, /*WorkSpace=*/WorkSpace,
+          /*WorkSpaceSize=*/0, /*exhaustiveSearch=*/false);
       CHECK_EQ(status, mlopenStatusSuccess) << "Unable to find a suitable "
                                                 "algorithm for doing backward "
                                                 "filter convolution";
-#endif
-      return algo_to_use;
+      return preference.bwd_data_algo;
     };
 
     algo = get_algorithm(/*specify_limit=*/scratch_allocator != nullptr);
-#if 0
+
     if (scratch_allocator != nullptr) {
       size_t size_in_bytes;
-      status = dynload::mlopenGetConvolutionBackwardDataWorkspaceSize(
-          parent_, ToHandle(dnn_handle_),
-          /*filterDesc=*/filter.handle(),
+      auto status = dynload::mlopenConvolutionBackwardWeightsGetWorkSpaceSize(
+          parent_,
           /*diffDesc=*/out_back_nd.handle(),
-          /*convDesc=*/conv.handle(),
           /*gradDesc=*/in_back_nd.handle(),
-          /*algo=*/algo,
+          /*convDesc=*/conv.handle(),
+          /*filterDesc=*/filter.handle(),
           /*sizeInBytes=*/&size_in_bytes);
       if (status == mlopenStatusSuccess && size_in_bytes != 0) {
         auto allocated =
@@ -2107,7 +2076,6 @@ bool CudnnSupport::DoConvolveBackwardDataImpl(
         }
       }
     }
-#endif
 
     // If we didn't allocate any scratch space (perhaps because of failed
     // allocation), we force a switch back to the "no workspace" algorithm.
@@ -2117,15 +2085,13 @@ bool CudnnSupport::DoConvolveBackwardDataImpl(
   } else {
     // An algorithm has been specified.
     algo = ToConvBackwardDataAlgo(algorithm_config.algorithm());
-    size_t size_in_bytes = 0;
-#if 0
-    status = dynload::mlopenGetConvolutionBackwardDataWorkspaceSize(
-        parent_, ToHandle(dnn_handle_),
-        /*filterDesc=*/filter.handle(),
+    size_t size_in_bytes;
+    auto status = dynload::mlopenConvolutionBackwardWeightsGetWorkSpaceSize(
+        parent_,
         /*diffDesc=*/out_back_nd.handle(),
-        /*convDesc=*/conv.handle(),
         /*gradDesc=*/in_back_nd.handle(),
-        /*algo=*/algo,
+        /*convDesc=*/conv.handle(),
+        /*filterDesc=*/filter.handle(),
         /*sizeInBytes=*/&size_in_bytes);
     if (status != mlopenStatusSuccess) {
       if (is_profiling) {
@@ -2156,23 +2122,12 @@ bool CudnnSupport::DoConvolveBackwardDataImpl(
         algo = ToConvBackwardDataAlgo(algorithm_config.algorithm_no_scratch());
       }
     }
-#endif
   }
 
 //  std::unique_ptr<CUDATimer> timer;
   if (is_profiling) {
-#if 0
-    timer.reset(new CUDATimer(parent_));
-    timer->Init();
-    // The start and stop of the timer should be as close to the Cudnn call as
-    // possible. It is still possible for other threads to issue workload on
-    // to this stream. So it could take multiple profiling measurements.
-    timer->Start(AsCUDAStream(stream));
-#endif
     dynload::mlopenEnableProfiling(parent_, ToHandle(dnn_handle_), true);
   }
-
-  void* t = NULL;
 
   auto status = dynload::mlopenConvolutionBackwardData(
       parent_, ToHandle(dnn_handle_),
@@ -2186,16 +2141,14 @@ bool CudnnSupport::DoConvolveBackwardDataImpl(
       /*beta=*/&beta,
       /*gradDesc=*/in_back_nd.handle(),
       /*gradData=*/backward_input_data->opaque(),
-      /*workSpace=*//*scratch.opaque()*/t,
-      /*workSpaceSizeInBytes=*//*scratch.size()*/0);
+      /*workSpace=*/scratch.opaque(),
+      /*workSpaceSizeInBytes=*/scratch.size());
   if (is_profiling) {
     float ElapsedTime;
     dynload::mlopenGetKernelTime(parent_, ToHandle(dnn_handle_), &ElapsedTime);
-//    timer->Stop(AsCUDAStream(stream));
     output_profile_result->set_is_valid(true);
     output_profile_result->set_algorithm(algo);
     output_profile_result->set_elapsed_time_in_ms(ElapsedTime);
-//    timer->Destroy();
   }
   if (status != mlopenStatusSuccess) {
     // Silently return when we are profiling.
@@ -2257,11 +2210,6 @@ bool CudnnSupport::DoConvolveBackwardFilterImpl(
     const dnn::AlgorithmConfig& algorithm_config,
     dnn::ProfileResult* output_profile_result) {
   mutex_lock lock{dnn_handle_mutex_};
-/*  auto status = dynload::mlopenSetStream(parent_, ToHandle(dnn_handle_),
-                                        AsCUDAStreamValue(stream));
-  if (status != mlopenStatusSuccess) {
-    LOG(FATAL) << "failed to set stream for mlopen handle: " << ToString(status);
-  }*/
 
   // Alpha is the scaling factor for input.
   float alpha = 1.0;
@@ -2302,9 +2250,6 @@ bool CudnnSupport::DoConvolveBackwardFilterImpl(
     // in allocating; otherwise, we'll fall back to the "no workspace" version.
     auto get_algorithm = [&](bool specify_limit) SHARED_LOCKS_REQUIRED(
         dnn_handle_mutex_) {
-      mlopenConvPreference_t preference =
-          specify_limit ? mlopenConvolutionWorkSpaceLimit
-                        : mlopenConvolutionNoWorkspace;
 
       auto memory_limit_bytes =
           scratch_allocator == nullptr
@@ -2314,24 +2259,24 @@ bool CudnnSupport::DoConvolveBackwardFilterImpl(
         memory_limit_bytes = 0;
       }
 
-      mlopenConvBwdWeightsAlgorithm_t algo_to_use;
-      algo_to_use = mlopenConvolutionBwdWeightsAlgoDirect;
-#if 0
+      mlopenConvAlgoPerf_t preference;
+      int returnedAlgoCount;
+      void *WorkSpace = NULL;
+
       mlopenStatus_t status =
-          dynload::mlopenGetConvolutionBackwardFilterAlgorithm(
+          dynload::mlopenFindConvolutionBackwardWeightsAlgorithm(
               parent_, ToHandle(dnn_handle_),
-              /*srcDesc=*/input_nd.handle(),
-              /*diffDesc=*/out_back_nd.handle(),
+              /*diffDesc=*/out_back_nd.handle(), backward_output_data.opaque(),
+              /*srcDesc=*/input_nd.handle(), input_data.opaque(),
               /*convDesc=*/conv.handle(),
-              /*gradDesc=*/filter.handle(),
-              /*preference=*/preference,
-              /*memoryLimitInBytes=*/memory_limit_bytes,
-              /*algo=*/&algo_to_use);
+              /*gradDesc=*/filter.handle(), backward_filter_data->opaque(),
+              /*requestAlgoCount=*/1, /*returnedAlgoCount=*/&returnedAlgoCount, 
+              /*preference=*/&preference, /*WorkSpace=*/WorkSpace,
+              /*WorkSpaceSize=*/0, /*exhaustiveSearch=*/false);
       CHECK_EQ(status, mlopenStatusSuccess) << "Unable to find a suitable "
                                                 "algorithm for doing backward "
                                                 "filter convolution";
-#endif
-      return algo_to_use;
+      return preference.bwd_weights_algo;
     };
 
     algo = get_algorithm(/*specify_limit=*/scratch_allocator != nullptr);
@@ -2401,14 +2346,6 @@ bool CudnnSupport::DoConvolveBackwardFilterImpl(
 
 //  std::unique_ptr<CUDATimer> timer;
   if (is_profiling) {
-#if 0
-    timer.reset(new CUDATimer(parent_));
-    timer->Init();
-    // The start and stop of the timer should be as close to the Cudnn call as
-    // possible. It is still possible for other threads to issue workload on
-    // to this stream. So it could take multiple profiling measurements.
-    timer->Start(AsCUDAStream(stream));
-#endif
     dynload::mlopenEnableProfiling(parent_, ToHandle(dnn_handle_), true);
   }
 
@@ -2428,11 +2365,9 @@ bool CudnnSupport::DoConvolveBackwardFilterImpl(
   if (is_profiling) {
     float ElapsedTime;
     dynload::mlopenGetKernelTime(parent_, ToHandle(dnn_handle_), &ElapsedTime);
-//    timer->Stop(AsCUDAStream(stream));
     output_profile_result->set_is_valid(true);
     output_profile_result->set_algorithm(algo);
     output_profile_result->set_elapsed_time_in_ms(ElapsedTime);
-//    timer->Destroy();
   }
   if (status != mlopenStatusSuccess) {
     // Silently return when we are profiling.
@@ -2488,13 +2423,7 @@ bool CudnnSupport::DoConvolveBackwardBiasImpl(
     const DeviceMemory<T>& input_data,
     const dnn::BatchDescriptor& bias_descriptor,
     DeviceMemory<T>* backward_bias_data) {
-#if 0
   mutex_lock lock{dnn_handle_mutex_};
-/*  auto status = dynload::mlopenSetStream(parent_, ToHandle(dnn_handle_),
-                                        AsCUDAStreamValue(stream));
-  if (status != mlopenStatusSuccess) {
-    LOG(FATAL) << "failed to set stream for mlopen handle: " << ToString(status);
-  }*/
 
   ScopedTensorDescriptor input_nd{parent_, input_descriptor,
                                   static_cast<mlopenDataType_t>(mlopen_type)};
@@ -2506,7 +2435,7 @@ bool CudnnSupport::DoConvolveBackwardBiasImpl(
   // Beta is the scaling factor for output.
   float beta = 0.0;
 
-  status = dynload::mlopenConvolutionBackwardBias(
+  auto status = dynload::mlopenConvolutionBackwardBias(
       parent_, ToHandle(dnn_handle_), &alpha, input_nd.handle(),
       input_data.opaque(), &beta, bias_nd.handle(),
       backward_bias_data->opaque());
@@ -2516,10 +2445,6 @@ bool CudnnSupport::DoConvolveBackwardBiasImpl(
     return false;
   }
   return true;
-#else
-  LOG(FATAL) << "BackwardBias not yet implemented";
-  return false;
-#endif
 }
 
 bool CudnnSupport::DoConvolveBackwardBias(
@@ -2718,12 +2643,6 @@ bool CudnnSupport::DoBiasAdd(Stream* stream,
   }
 
   mutex_lock lock{dnn_handle_mutex_};
-/*  auto status = dynload::mlopenSetStream(parent_, ToHandle(dnn_handle_),
-                                        AsCUDAStreamValue(stream));
-  if (status != mlopenStatusSuccess) {
-    LOG(ERROR) << "failed to set stream for mlopen handle: " << ToString(status);
-    return false;
-  }*/
 
   const float alpha = 1.0f;
   const float beta = 1.0f;
@@ -2822,19 +2741,13 @@ bool CudnnSupport::DoPoolForward(
     const dnn::BatchDescriptor& output_dimensions,
     DeviceMemory<float>* output_data) {
   mutex_lock lock{dnn_handle_mutex_};
-/*  auto status = dynload::mlopenSetStream(parent_, ToHandle(dnn_handle_),
-                                        AsCUDAStreamValue(stream));
-  if (status != mlopenStatusSuccess) {
-    LOG(ERROR) << "failed to set stream for mlopen handle: " << ToString(status);
-    return false;
-  }*/
 
   // Alpha is the scaling factor for input.
   float alpha = 1.0;
   // Beta is the scaling factor for output.
   float beta = 0.0;
 
-  void* t = NULL;
+  void* WorkSpace = NULL;
 
   ScopedTensorDescriptor src_desc{parent_, input_dimensions, mlopenFloat};
   ScopedTensorDescriptor dest_desc{parent_, output_dimensions,
@@ -2844,7 +2757,7 @@ bool CudnnSupport::DoPoolForward(
   auto status = dynload::mlopenPoolingForward(
       parent_, ToHandle(dnn_handle_), pooling_desc.handle(), &alpha,
       src_desc.handle(), input_data.opaque(), &beta, dest_desc.handle(),
-      output_data->opaque(), 0, t, 0);
+      output_data->opaque(), /*do_backward*/0, WorkSpace, /*WorkSpaceSize*/0);
   if (status != mlopenStatusSuccess) {
     LOG(ERROR) << "failed to enqueue forward pooling on stream: "
                << ToString(status);
@@ -2860,19 +2773,13 @@ bool CudnnSupport::DoPoolForward(
     const dnn::BatchDescriptor& output_dimensions,
     DeviceMemory<Eigen::half>* output_data) {
   mutex_lock lock{dnn_handle_mutex_};
-/*  auto status = dynload::mlopenSetStream(parent_, ToHandle(dnn_handle_),
-                                        AsCUDAStreamValue(stream));
-  if (status != mlopenStatusSuccess) {
-    LOG(ERROR) << "failed to set stream for mlopen handle: " << ToString(status);
-    return false;
-  }*/
 
   // Alpha is the scaling factor for input.
   float alpha = 1.0;
   // Beta is the scaling factor for output.
   float beta = 0.0;
 
-  void* t = NULL;
+  void* WorkSpace = NULL;
 
   ScopedTensorDescriptor src_desc{parent_, input_dimensions, mlopenHalf};
   ScopedTensorDescriptor dest_desc{parent_, output_dimensions, mlopenHalf};
@@ -2880,7 +2787,7 @@ bool CudnnSupport::DoPoolForward(
   auto status = dynload::mlopenPoolingForward(
       parent_, ToHandle(dnn_handle_), pooling_desc.handle(), &alpha,
       src_desc.handle(), input_data.opaque(), &beta, dest_desc.handle(),
-      output_data->opaque(), 0, t, 0);
+      output_data->opaque(), /*do_backward*/0, WorkSpace, /*WorkSpaceSize*/0);
   if (status != mlopenStatusSuccess) {
     LOG(ERROR) << "failed to enqueue forward pooling on stream: "
                << ToString(status);
@@ -2898,19 +2805,13 @@ bool CudnnSupport::DoPoolBackward(
     const DeviceMemory<float>& input_diff_data,
     DeviceMemory<float>* output_diff_data) {
   mutex_lock lock{dnn_handle_mutex_};
-/*  auto status = dynload::mlopenSetStream(parent_, ToHandle(dnn_handle_),
-                                        AsCUDAStreamValue(stream));
-  if (status != mlopenStatusSuccess) {
-    LOG(ERROR) << "failed to set stream for mlopen handle: " << ToString(status);
-    return false;
-  }*/
 
   // Alpha is the scaling factor for input.
   float alpha = 1.0;
   // Beta is the scaling factor for output.
   float beta = 0.0;
 
-  const void* t = NULL;
+  const void* WorkSpace = NULL;
 
   ScopedTensorDescriptor src_desc{parent_, input_dimensions, mlopenFloat};
   ScopedTensorDescriptor dest_desc{parent_, output_dimensions,
@@ -2920,7 +2821,7 @@ bool CudnnSupport::DoPoolBackward(
       parent_, ToHandle(dnn_handle_), pooling_desc.handle(), &alpha,
       dest_desc.handle(), output_data.opaque(), dest_desc.handle(),
       input_diff_data.opaque(), src_desc.handle(), input_data.opaque(), &beta,
-      src_desc.handle(), output_diff_data->opaque(), t);
+      src_desc.handle(), output_diff_data->opaque(), WorkSpace);
   if (status != mlopenStatusSuccess) {
     LOG(ERROR) << "failed to enqueue backward pooling on stream: "
                << ToString(status);
@@ -2938,19 +2839,13 @@ bool CudnnSupport::DoPoolBackward(
     const DeviceMemory<Eigen::half>& input_diff_data,
     DeviceMemory<Eigen::half>* output_diff_data) {
   mutex_lock lock{dnn_handle_mutex_};
-/*  auto status = dynload::mlopenSetStream(parent_, ToHandle(dnn_handle_),
-                                        AsCUDAStreamValue(stream));
-  if (status != mlopenStatusSuccess) {
-    LOG(ERROR) << "failed to set stream for mlopen handle: " << ToString(status);
-    return false;
-  }*/
 
   // Alpha is the scaling factor for input.
   float alpha = 1.0;
   // Beta is the scaling factor for output.
   float beta = 0.0;
 
-  void* t = NULL;
+  void* WorkSpace = NULL;
 
   ScopedTensorDescriptor src_desc{parent_, input_dimensions, mlopenHalf};
   ScopedTensorDescriptor dest_desc{parent_, output_dimensions, mlopenHalf};
@@ -2959,7 +2854,7 @@ bool CudnnSupport::DoPoolBackward(
       parent_, ToHandle(dnn_handle_), pooling_desc.handle(), &alpha,
       dest_desc.handle(), output_data.opaque(), dest_desc.handle(),
       input_diff_data.opaque(), src_desc.handle(), input_data.opaque(), &beta,
-      src_desc.handle(), output_diff_data->opaque(), t);
+      src_desc.handle(), output_diff_data->opaque(), WorkSpace);
   if (status != mlopenStatusSuccess) {
     LOG(ERROR) << "failed to enqueue backward pooling on stream: "
                << ToString(status);
@@ -2990,12 +2885,6 @@ bool CudnnSupport::DoNormalizeWithDimensions(
 
   // Launch the normalization.
   mutex_lock lock{dnn_handle_mutex_};
-/*  auto status = dynload::mlopenSetStream(parent_, ToHandle(dnn_handle_),
-                                        AsCUDAStreamValue(stream));
-  if (status != mlopenStatusSuccess) {
-    LOG(ERROR) << "failed to set stream for mlopen handle: " << ToString(status);
-    return false;
-  }*/
 
   ScopedTensorDescriptor dims{parent_, dimensions, mlopenFloat};
   ScopedNormalizeDescriptor normalize{parent_, normalize_descriptor};
@@ -3005,12 +2894,12 @@ bool CudnnSupport::DoNormalizeWithDimensions(
   // Beta is the scaling factor for output.
   float beta = 0.0f;
 
-  void* t = NULL;
+  void* WorkSpace = NULL;
 
   auto status = dynload::mlopenLRNForward(
       parent_, ToHandle(dnn_handle_), normalize.handle(),
       &alpha, dims.handle(), input_data.opaque(),
-      &beta, dims.handle(), output_data->opaque(), 0, t);
+      &beta, dims.handle(), output_data->opaque(), 0, WorkSpace);
   if (status != mlopenStatusSuccess) {
     LOG(ERROR) << "failed to run mlopenLRNCrossChannelForward";
     return false;
@@ -3035,12 +2924,6 @@ bool CudnnSupport::DoNormalizeBackwardWithDimensions(
   }
 
   mutex_lock lock{dnn_handle_mutex_};
-/*  auto status = dynload::mlopenSetStream(parent_, ToHandle(dnn_handle_),
-                                        AsCUDAStreamValue(stream));
-  if (status != mlopenStatusSuccess) {
-    LOG(ERROR) << "failed to set stream for mlopen handle: " << ToString(status);
-    return false;
-  }*/
 
   ScopedTensorDescriptor dims{parent_, dimensions, mlopenFloat};
   ScopedNormalizeDescriptor normalize{parent_, normalize_descriptor};
@@ -3048,14 +2931,14 @@ bool CudnnSupport::DoNormalizeBackwardWithDimensions(
   float alpha = 1.0f;
   float beta = 0.0f;
 
-  void* t = NULL;
+  void* WorkSpace = NULL;
 
   auto status = dynload::mlopenLRNBackward(
       parent_, ToHandle(dnn_handle_), normalize.handle(),
       &alpha, dims.handle(),
       normalized_data.opaque(), dims.handle(),
       normalized_variable_gradient.opaque(), dims.handle(), raw_data.opaque(),
-      &beta, dims.handle(), raw_variable_gradient->opaque(), t);
+      &beta, dims.handle(), raw_variable_gradient->opaque(), WorkSpace);
   if (status != mlopenStatusSuccess) {
     LOG(ERROR) << "failed to run mlopenLRNCrossChannelBackward";
     return false;

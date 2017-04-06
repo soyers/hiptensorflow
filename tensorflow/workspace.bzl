@@ -4,7 +4,7 @@ load("//third_party/gpus:cuda_configure.bzl", "cuda_configure")
  
 #Configure may change this path based on the user input.
 
-EIGEN_PATH = "/opt/rocm/hipeigen"
+EIGEN_PATH = "/root/hipeigen"
  
 # If TensorFlow is linked as a submodule.
 # path_prefix and tf_repo_name are no longer used.

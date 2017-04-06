@@ -25,7 +25,7 @@ limitations under the License.
 #include <complex>
 
 #include "cuda/include/hip/hip_complex.h"
-#include "cuda/include/hip/hip_runtime.h"
+#include "cuda/include/hip/hip_runtime_api.h"
 
 namespace perftools {
 namespace gputools {

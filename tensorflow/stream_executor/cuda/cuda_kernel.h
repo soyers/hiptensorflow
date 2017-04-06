@@ -28,7 +28,7 @@ limitations under the License.
 #include "tensorflow/stream_executor/lib/casts.h"
 #include "tensorflow/stream_executor/platform/port.h"
 #include "tensorflow/stream_executor/platform/logging.h"
-#include "cuda/include/hip/hip_runtime.h"
+#include "cuda/include/hip/hip_runtime_api.h"
 
 #ifdef PLATFORMS_GPUS_CUDA_DYNAMIC_LIBCUDA_DYNAMIC_LIBCUDA_H_
 #error \
