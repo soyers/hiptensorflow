@@ -736,6 +736,7 @@ def _create_cuda_repository(repository_ctx):
   cuda_toolkit_path = cuda_config.cuda_toolkit_path
   _symlink_dir(repository_ctx, cuda_toolkit_path + "/include", "cuda/include")
   _symlink_dir(repository_ctx, cuda_toolkit_path + "/bin", "cuda/bin")
+  _symlink_dir(repository_ctx, "/opt/rocm/hip/bin", "cuda/bin")
   _symlink_dir(repository_ctx, cuda_toolkit_path + "/nvvm", "cuda/nvvm")
   _symlink_dir(repository_ctx, cuda_toolkit_path + "/extras/CUPTI/include",
                "cuda/extras/CUPTI/include")
