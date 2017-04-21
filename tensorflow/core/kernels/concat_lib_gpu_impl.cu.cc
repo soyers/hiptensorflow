@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 /* Copyright 2015 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -37,16 +38,16 @@ __global__ void concat_fixed_kernel(
     CudaDeviceArrayStruct<const T*> input_ptr_data, int split_size,
     int total_rows, int total_cols, T* output) {
   const T** input_ptrs = GetCudaDeviceArrayOnDevice(&input_ptr_data);
-  IntType gidx = blockIdx.x * blockDim.x + threadIdx.x;
+  IntType gidx = hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x;
 
-  for (; gidx < total_cols; gidx += blockDim.x * gridDim.x) {
-    IntType gidy = blockIdx.y * blockDim.y + threadIdx.y;
+  for (; gidx < total_cols; gidx += hipBlockDim_x * hipGridDim_x) {
+    IntType gidy = hipBlockIdx_y * hipBlockDim_y + hipThreadIdx_y;
 
     IntType split = gidx / split_size;
     const T* input_ptr = input_ptrs[split];
     IntType col_offset = gidx % split_size;
 #pragma unroll
-    for (; gidy < total_rows; gidy += blockDim.y * gridDim.y) {
+    for (; gidy < total_rows; gidy += hipBlockDim_y * hipGridDim_y) {
       output[gidy * total_cols + gidx] =
           input_ptr[gidy * split_size + col_offset];
     }
@@ -65,7 +66,7 @@ __global__ void concat_variable_kernel(
   IntType* col_scan = GetCudaDeviceArrayOnDevice(&output_scan);
 
   // do upper_bound on col to find which pointer we should be using
-  IntType gidx = blockIdx.x * blockDim.x + threadIdx.x;
+  IntType gidx = hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x;
   IntType num_inputs = input_ptr_data.size;
 
   // verbose declaration needed due to template
@@ -73,8 +74,8 @@ __global__ void concat_variable_kernel(
   IntType* smem_col_scan = reinterpret_cast<IntType*>(smem);
 
   if (useSmem) {
-    IntType lidx = threadIdx.y * blockDim.x + threadIdx.x;
-    IntType blockSize = blockDim.x * blockDim.y;
+    IntType lidx = hipThreadIdx_y * hipBlockDim_x + hipThreadIdx_x;
+    IntType blockSize = hipBlockDim_x * hipBlockDim_y;
 
     for (IntType i = lidx; i < output_scan.size; i += blockSize) {
       smem_col_scan[i] = col_scan[i];
@@ -92,7 +93,7 @@ __global__ void concat_variable_kernel(
 
   IntType curr_offset = col_scan[segment];
   IntType curr_segment = segment;
-  for (; gidx < total_cols; gidx += blockDim.x * gridDim.x) {
+  for (; gidx < total_cols; gidx += hipBlockDim_x * hipGridDim_x) {
     IntType curr_col_offset;
     while ((curr_col_offset = col_scan[curr_segment + 1]) <= gidx) {
       curr_offset = curr_col_offset;
@@ -103,8 +104,8 @@ __global__ void concat_variable_kernel(
     IntType segment_width = curr_col_offset - curr_offset;
     const T* input_ptr = input_ptrs[curr_segment];
 
-    IntType gidy = blockIdx.y * blockDim.y + threadIdx.y;
-    for (; gidy < total_rows; gidy += blockDim.y * gridDim.y)
+    IntType gidy = hipBlockIdx_y * hipBlockDim_y + hipThreadIdx_y;
+    for (; gidy < total_rows; gidy += hipBlockDim_y * hipGridDim_y)
       output[gidy * total_cols + gidx] =
           input_ptr[gidy * segment_width + local_col];
   }
@@ -142,8 +143,7 @@ void ConcatGPUImpl(const Eigen::GpuDevice& gpu_device,
                                       output->dimension(0), gpu_device);
 
   if (fixed_size) {
-    concat_fixed_kernel<T, IntType><<<
-        config.block_count, config.thread_per_block, 0, gpu_device.stream()>>>(
+    hipLaunchKernel(HIP_KERNEL_NAME(concat_fixed_kernel<T, IntType>), dim3(config.block_count), dim3(config.thread_per_block), 0, gpu_device.stream(), 
         input_ptrs, split_size, output->dimension(0), output->dimension(1),
         output->data());
   } else {

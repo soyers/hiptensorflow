@@ -79,7 +79,7 @@ class EigenCudaStreamDevice : public ::Eigen::StreamInterface {
   }
   ~EigenCudaStreamDevice() {
   }
-  void Reinitialize(OpKernelContext* context, const cudaStream_t* cuda_stream,
+  void Reinitialize(OpKernelContext* context, const hipStream_t* cuda_stream,
                     int gpu_id, ::tensorflow::Allocator* alloc, char* scratch) {
     if (LogMemory::IsEnabled()) {
       operation_ = context->op_kernel().name() + "/EigenAllocator";
@@ -93,8 +93,8 @@ class EigenCudaStreamDevice : public ::Eigen::StreamInterface {
     device_prop_ = &Eigen::m_deviceProperties[gpu_id];
   }
 
-  const cudaStream_t& stream() const override { return *stream_; }
-  const cudaDeviceProp& deviceProperties() const override {
+  const hipStream_t& stream() const override { return *stream_; }
+  const hipDeviceProp_t& deviceProperties() const override {
     return *device_prop_;
   }
 
@@ -117,8 +117,8 @@ class EigenCudaStreamDevice : public ::Eigen::StreamInterface {
     }
     AsyncFreeData* afData =
         new AsyncFreeData(allocator_, buffer, operation_, step_id_);
-    cudaError_t err = cudaStreamAddCallback(*stream_, asyncFree, afData, 0);
-    CHECK_EQ(err, cudaSuccess);
+    hipError_t err = cudaStreamAddCallback(*stream_, asyncFree, afData, 0);
+    CHECK_EQ(err, hipSuccess);
   }
 
   // Return a pointer to a per stream scratchpad of 1024 bytes residing
@@ -144,7 +144,7 @@ class EigenCudaStreamDevice : public ::Eigen::StreamInterface {
     const int64 step_id_;
   };
 
-  static void CUDART_CB asyncFree(cudaStream_t stream, cudaError_t status,
+  static void CUDART_CB asyncFree(hipStream_t stream, hipError_t status,
                                   void* userData) {
     AsyncFreeData* data = static_cast<AsyncFreeData*>(userData);
     if (LogMemory::IsEnabled()) {
@@ -157,8 +157,8 @@ class EigenCudaStreamDevice : public ::Eigen::StreamInterface {
 
   string operation_;
   int64 step_id_;
-  const cudaStream_t* stream_;          // Not owned.
-  const cudaDeviceProp* device_prop_;   // Not owned.
+  const hipStream_t* stream_;          // Not owned.
+  const hipDeviceProp_t* device_prop_;   // Not owned.
   ::tensorflow::Allocator* allocator_;  // Not owned.
   mutable char* scratch_;
   mutable unsigned int* semaphore_;
@@ -467,7 +467,7 @@ class ConcretePerOpGpuDevice : public PerOpGpuDevice {
  public:
   ConcretePerOpGpuDevice() : device_(&stream_device_) {}
 
-  void Reinitialize(OpKernelContext* context, const cudaStream_t* cuda_stream,
+  void Reinitialize(OpKernelContext* context, const hipStream_t* cuda_stream,
                     int gpu_id, Allocator* base_allocator, char* scratch) {
     stream_device_.Reinitialize(context, cuda_stream, gpu_id, base_allocator,
                                 scratch);
@@ -487,7 +487,7 @@ void BaseGPUDevice::ReinitializeDevice(OpKernelContext* context,
   ConcretePerOpGpuDevice* concrete_device =
       static_cast<ConcretePerOpGpuDevice*>(device);
   DCHECK(concrete_device);
-  const cudaStream_t* cuda_stream = reinterpret_cast<const cudaStream_t*>(
+  const hipStream_t* cuda_stream = reinterpret_cast<const hipStream_t*>(
       streams_[stream_id].compute->implementation()->CudaStreamMemberHack());
   concrete_device->Reinitialize(context, cuda_stream, gpu_id_, allocator,
                                 scratch_[stream_id]);

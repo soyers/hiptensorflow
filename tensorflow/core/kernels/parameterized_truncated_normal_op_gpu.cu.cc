@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 /* Copyright 2015 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -56,7 +57,7 @@ __global__ void __launch_bounds__(1024)
                           bool single_maxval, int64 kMaxIterations) {
   const int32 max_samples_per_item = 2 * kMaxIterations;
   // Initial offset as given by CUDA_1D_KERNEL_LOOP.
-  const int32 initial_offset = blockIdx.x * blockDim.x + threadIdx.x;
+  const int32 initial_offset = hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x;
   gen.Skip(max_samples_per_item * initial_offset);
   typedef random::UniformDistribution<random::PhiloxRandom, T> Uniform;
   Uniform dist;
@@ -69,7 +70,7 @@ __global__ void __launch_bounds__(1024)
   // item, we need to skip the samples for one element for every thread to get
   // to the next element that we actually process.
   const int32 samples_between_processed_elements =
-      max_samples_per_item * (gridDim.x * blockDim.x);
+      max_samples_per_item * (hipGridDim_x * hipBlockDim_x);
 
   CUDA_1D_KERNEL_LOOP(offset, num_elements) {
     // Track how many more samples we need to skip before we process the next

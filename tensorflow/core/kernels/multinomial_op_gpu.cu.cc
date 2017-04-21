@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 /* Copyright 2016 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -99,8 +100,7 @@ struct MultinomialFunctor<GPUDevice, T> {
 
     const int32 work_items = batch_size * num_samples * num_classes;
     CudaLaunchConfig config = GetCudaLaunchConfig(work_items, d);
-    MultinomialKernel<<<config.block_count, config.thread_per_block, 0,
-                        d.stream()>>>(config.virtual_thread_count, num_classes,
+    hipLaunchKernel(HIP_KERNEL_NAME(MultinomialKernel), dim3(config.block_count), dim3(config.thread_per_block), 0, d.stream(), config.virtual_thread_count, num_classes,
                                       num_samples, scores.data(), maxima.data(),
                                       output.data());
   }

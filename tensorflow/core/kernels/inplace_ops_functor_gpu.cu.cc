@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 /* Copyright 2016 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -49,8 +50,7 @@ Status DoParallelConcatUpdate(const Device& d, const Tensor& value, int32 loc,
   const int64 ncols = Toutput.dimension(1);
   const T* src = value.flat<T>().data();
   T* dst = output->flat<T>().data();
-  DoParallelConcatOpKernel<T>
-      <<<cfg.block_count, cfg.thread_per_block, 0, d.stream()>>>(
+  hipLaunchKernel(HIP_KERNEL_NAME(DoParallelConcatOpKernel<T>), dim3(cfg.block_count), dim3(cfg.thread_per_block), 0, d.stream(), 
           cfg.virtual_thread_count, nrows, ncols, loc, src, dst);
   return Status::OK();
 }
