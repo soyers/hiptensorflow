@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 /* Copyright 2015 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -67,8 +68,7 @@ struct GatherFunctor<GPUDevice, T, Index> {
     const int64 indices_size = indices.size();
     CudaLaunchConfig config = GetCudaLaunchConfig(out_size, d);
     // clang-format off
-    GatherOpKernel<T, Index>
-        <<<config.block_count, config.thread_per_block, 0, d.stream()>>>(
+    hipLaunchKernel(HIP_KERNEL_NAME(GatherOpKernel<T, Index>), dim3(config.block_count), dim3(config.thread_per_block), 0, d.stream(), 
             params.data(), indices.data(), out.data(), first_dim_size,
             indices_size, out_size);
     // clang-format on

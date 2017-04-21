@@ -497,7 +497,7 @@ bool CUDAExecutor::SynchronousMemSet(DeviceMemoryBase *location, int value,
                                      uint64 size) {
   if (reinterpret_cast<uintptr_t>(location->opaque()) % 4 == 0 &&
       size % 4 == 0) {
-    // cudaMemset reinterprets "value" as a uint8.
+    // hipMemset reinterprets "value" as a uint8.
     uint8 byte_value = static_cast<uint8>(value);
     uint32 pattern = (byte_value << 24) | (byte_value << 16) |
                      (byte_value << 8) | byte_value;

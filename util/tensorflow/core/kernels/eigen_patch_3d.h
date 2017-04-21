@@ -18,7 +18,7 @@ limitations under the License.
 
 #include "third_party/eigen3/unsupported/Eigen/CXX11/Tensor"
 
-#if not defined(__CUDACC__)
+#if not defined(__HIPCC__)
 #include <type_traits>
 #endif
 

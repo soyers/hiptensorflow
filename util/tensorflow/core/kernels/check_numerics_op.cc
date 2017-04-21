@@ -148,7 +148,7 @@ class CheckNumericsOp<GPUDevice, T> : public OpKernel {
                        abnormal_detected_size * sizeof(int));
     stream->BlockHostUntilDone();
     OP_REQUIRES(context, stream->ok(),
-                errors::Internal("cudaMemcpy from device to host failed"));
+                errors::Internal("hipMemcpy from device to host failed"));
 
     int is_nan = abnormal_detected_host[0];
     int is_inf = abnormal_detected_host[1];

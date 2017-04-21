@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 /* Copyright 2016 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -67,7 +68,7 @@ struct UnsortedSegmentSumFunctor<GPUDevice, T, Index> {
     }
     // Set 'output' to zeros.
     CudaLaunchConfig config = GetCudaLaunchConfig(output.size(), d);
-    SetZero<<<config.block_count, config.thread_per_block, 0, d.stream()>>>(
+    hipLaunchKernel(HIP_KERNEL_NAME(SetZero), dim3(config.block_count), dim3(config.thread_per_block), 0, d.stream(), 
         output.size(), output.data());
     if (data_size == 0 || segment_ids_shape.num_elements() == 0) {
       return;

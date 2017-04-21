@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 /* Copyright 2015 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -36,8 +37,8 @@ typedef Eigen::GpuDevice GPUDevice;
 template <typename T>
 __global__ void CheckNumericsKernel(const T *data, int size,
                                     int abnormal_detected[2]) {
-  const int32 thread_id = blockIdx.x * blockDim.x + threadIdx.x;
-  const int32 total_thread_count = gridDim.x * blockDim.x;
+  const int32 thread_id = hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x;
+  const int32 total_thread_count = hipGridDim_x * hipBlockDim_x;
 
   int32 offset = thread_id;
 
@@ -65,7 +66,7 @@ struct CheckNumericsLaunch {
         (d.getNumCudaMultiProcessors() * d.maxCudaThreadsPerMultiProcessor()) /
         block_size;
 
-    CheckNumericsKernel<T><<<num_blocks, block_size, 0, d.stream()>>>(
+    hipLaunchKernel(HIP_KERNEL_NAME(CheckNumericsKernel<T>), dim3(num_blocks), dim3(block_size), 0, d.stream(), 
         data, size, abnormal_detected);
   }
 };

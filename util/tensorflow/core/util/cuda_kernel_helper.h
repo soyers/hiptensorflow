@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 /* Copyright 2015 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,8 +25,8 @@ limitations under the License.
 #include "tensorflow/core/platform/types.h"
 
 #define CUDA_1D_KERNEL_LOOP(i, n)                            \
-  for (int i = blockIdx.x * blockDim.x + threadIdx.x; i < n; \
-       i += blockDim.x * gridDim.x)
+  for (int i = hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x; i < n; \
+       i += hipBlockDim_x * hipGridDim_x)
 
 namespace tensorflow {
 

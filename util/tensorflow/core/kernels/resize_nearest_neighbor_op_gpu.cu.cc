@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 /* Copyright 2015 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -87,8 +88,7 @@ bool ResizeNearestNeighbor(const T* bottom_data, const int batch,
   const int output_size = batch * channels * out_height * out_width;
   CudaLaunchConfig config = GetCudaLaunchConfig(output_size, d);
 
-  ResizeNearestNeighborNHWC<T>
-      <<<config.block_count, config.thread_per_block, 0, d.stream()>>>(
+  hipLaunchKernel(HIP_KERNEL_NAME(ResizeNearestNeighborNHWC<T>), dim3(config.block_count), dim3(config.thread_per_block), 0, d.stream(), 
       output_size, bottom_data, in_height, in_width, channels, out_height,
       out_width, height_scale, width_scale, top_data);
   return d.ok();
@@ -116,13 +116,11 @@ bool ResizeNearestNeighborBackward(const T* top_diff, const int batch,
                                    const Eigen::GpuDevice& d) {
   const int output_size = batch * channels * out_height * out_width;
   CudaLaunchConfig output_config = GetCudaLaunchConfig(output_size, d);
-  SetZero<<<output_config.block_count,
-            output_config.thread_per_block, 0, d.stream()>>>(output_size, bottom_diff);
+  hipLaunchKernel(HIP_KERNEL_NAME(SetZero), dim3(output_config.block_count), dim3(output_config.thread_per_block), 0, d.stream(), output_size, bottom_diff);
 
   const int input_size = batch * channels * in_height * in_width;
   CudaLaunchConfig input_config = GetCudaLaunchConfig(input_size, d);
-  ResizeNearestNeighborBackwardNHWC<T><<<
-      input_config.block_count, input_config.thread_per_block, 0, d.stream()>>>(
+  hipLaunchKernel(HIP_KERNEL_NAME(ResizeNearestNeighborBackwardNHWC<T>), dim3(input_config.block_count), dim3(input_config.thread_per_block), 0, d.stream(), 
       input_config.virtual_thread_count, top_diff, in_height, in_width,
       channels, out_height, out_width, height_scale, width_scale, bottom_diff);
   return d.ok();
