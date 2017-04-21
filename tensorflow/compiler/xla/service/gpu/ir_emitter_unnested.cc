@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 /* Copyright 2017 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -451,7 +452,7 @@ int64 EmitTranspose021Tiled(llvm_ir::IrArray input, llvm_ir::IrArray output,
       llvm::GlobalValue::NotThreadLocal,
       /*AddressSpace=*/3 /* GPU shared memory */);
 
-  // let x = threadIdx.x
+  // let x = hipThreadIdx_x
   llvm::Value* x = llvm_ir::EmitCallToIntrinsic(
       llvm::Intrinsic::nvvm_read_ptx_sreg_tid_x, {}, {}, builder);
   llvm_ir::AddRangeMetadata(0, tile_size, static_cast<llvm::Instruction*>(x));
@@ -639,9 +640,9 @@ Status IrEmitterUnnested::EmitColumnReduction(
   // input matrix.
   const int64 height_in_tiles = CeilOfRatio(height, kTileSize);
 
-  // for (linear_index = threadIdx.x + blockIdx.x * blockDim.x;
+  // for (linear_index = hipThreadIdx_x + hipBlockIdx_x * hipBlockDim_x;
   //      linear_index < height_in_tiles * width;
-  //      linear_index += blockDim.x * gridDim.x) {
+  //      linear_index += hipBlockDim_x * hipGridDim_x) {
   //   y_in_tiles = linear_index / width;
   //   x = linear_index % width;
   //
@@ -795,9 +796,9 @@ Status IrEmitterUnnested::EmitRowReduction(
   // 2. Partially reduces each tile to a scalar using one thread.
   // 3. Accumulates that scalar to the output vector using atomic operations.
   //
-  // for (linear_index = threadIdx.x + blockIdx.x * blockDim.x;
+  // for (linear_index = hipThreadIdx_x + hipBlockIdx_x * hipBlockDim_x;
   //      linear_index < depth * height * width_in_tiles;
-  //      linear_index += blockDim.x * gridDim.x) {
+  //      linear_index += hipBlockDim_x * hipGridDim_x) {
   //   int x_in_tiles = linear_index % width_in_tiles;
   //   int y = linear_index / width_in_tiles % height;
   //   int z = linear_index / (height * width_in_tiles);
@@ -837,27 +838,27 @@ Status IrEmitterUnnested::EmitRowReduction(
   // element_id_in_tile, which makes the code more friendly to optimizations
   // such as LICM.
   //
-  // for (linear_index = threadIdx.x + blockIdx.x * blockDim.x;
+  // for (linear_index = hipThreadIdx_x + hipBlockIdx_x * hipBlockDim_x;
   //      linear_index < depth * height * width_in_tiles;
-  //      linear_index += blockDim.x * gridDim.x) {
+  //      linear_index += hipBlockDim_x * hipGridDim_x) {
   //   int x_in_tiles = linear_index % width_in_tiles;
   //   int y = linear_index / width_in_tiles % height;
   //   int z = linear_index / (height * width_in_tiles);
-  //   int warp_id = x_in_tiles / warpSize;
-  //   int lane_id = x_in_tiles % warpSize;
+  //   int warp_id = x_in_tiles / hipWarpSize;
+  //   int lane_id = x_in_tiles % hipWarpSize;
   //   float partial_result = 0;
-  //   int x = warp_id * kTileSize * warpSize + lane_id;
-  //   if (width % (kTileSize * warpSize) == 0 ||
-  //       x + (kTileSize - 1) * warpSize < width) {
+  //   int x = warp_id * kTileSize * hipWarpSize + lane_id;
+  //   if (width % (kTileSize * hipWarpSize) == 0 ||
+  //       x + (kTileSize - 1) * hipWarpSize < width) {
   //     // The entire tile is in bounds.
   //     for (int element_id_in_tile = 0; element_id_in_tile < kTileSize;
-  //        ++element_id_in_tile, x += warpSize) {
+  //        ++element_id_in_tile, x += hipWarpSize) {
   //       partial_result = Reducer(partial_result, input[z][y][x]);
   //     }
   //   } else {
   //     // The tile is partially in bounds.
   //     for (int element_id_in_tile = 0; element_id_in_tile < kTileSize;
-  //          ++element_id_in_tile, x += warpSize) {
+  //          ++element_id_in_tile, x += hipWarpSize) {
   //       if (x < width)
   //         partial_result = Reducer(partial_result, input[z][y][x]);
   //     }
@@ -901,7 +902,7 @@ Status IrEmitterUnnested::EmitRowReduction(
         x_tile, ir_builder_.getInt64(kWarpSize), "lane_id");
 
     // The x-location of the last element in this tile.
-    //   last_x = lane_id + warpSize * (kTileSize - 1 + warp_id * kTileSize);
+    //   last_x = lane_id + hipWarpSize * (kTileSize - 1 + warp_id * kTileSize);
     llvm::Value* last_x = ir_builder_.CreateNSWAdd(
         lane_id,
         ir_builder_.CreateNSWMul(
@@ -921,7 +922,7 @@ Status IrEmitterUnnested::EmitRowReduction(
       // Emit the body of the partial reduction loop.
       llvm_ir::SetToFirstInsertPoint(tile_element_loop->GetBodyBasicBlock(),
                                      &ir_builder_);
-      // x = lane_id + warpSize * (element_id_in_tile + warp_id * kTileSize);
+      // x = lane_id + hipWarpSize * (element_id_in_tile + warp_id * kTileSize);
       llvm::Value* x = ir_builder_.CreateNSWAdd(
           lane_id,
           ir_builder_.CreateNSWMul(
