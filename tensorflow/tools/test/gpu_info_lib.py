@@ -131,11 +131,11 @@ def _gather_gpu_devices_cudart():
     raise NotImplementedError("Cannot identify system.")
 
   version = ct.c_int()
-  rc = libcudart.cudaRuntimeGetVersion(ct.byref(version))
-  if rc != 0:
-    raise ValueError("Could not get version")
-  if version.value < 6050:
-    raise NotImplementedError("CUDA version must be between >= 6.5")
+#  rc = libcudart.cudaRuntimeGetVersion(ct.byref(version))
+#  if rc != 0:
+#    raise ValueError("Could not get version")
+#  if version.value < 6050:
+#    raise NotImplementedError("CUDA version must be between >= 6.5")
 
   device_count = ct.c_int()
   libcudart.hipGetDeviceCount(ct.byref(device_count))

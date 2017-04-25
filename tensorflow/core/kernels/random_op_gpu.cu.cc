@@ -223,8 +223,7 @@ void FillPhiloxRandom<GPUDevice, Distribution>::operator()(
       (d.getNumCudaMultiProcessors() * d.maxCudaThreadsPerMultiProcessor()) /
       block_size;
 
-  FillPhiloxRandomKernelLaunch<
-      Distribution><<<num_blocks, block_size, 0, d.stream()>>>(gen, data, size,
+  hipLaunchKernel(HIP_KERNEL_NAME(FillPhiloxRandomKernelLaunch<Distribution>), dim3(num_blocks), dim3(block_size), 0, d.stream(), gen, data, size,
                                                                dist);
 };
 

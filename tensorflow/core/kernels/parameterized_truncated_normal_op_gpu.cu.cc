@@ -203,8 +203,7 @@ struct TruncatedNormalFunctor<GPUDevice, T> {
                   typename TTypes<T>::Flat output) {
     const auto config = GetCudaLaunchConfig(num_elements, d);
 
-    TruncatedNormalKernel<
-        T><<<config.block_count, config.thread_per_block, 0, d.stream()>>>(
+    hipLaunchKernel(HIP_KERNEL_NAME(TruncatedNormalKernel<T>), dim3(config.block_count), dim3(config.thread_per_block), 0, d.stream(), 
         gen, output.data(), num_batches, samples_per_batch, num_elements,
         means.data(), means.dimension(0) == 1, stddevs.data(),
         stddevs.dimension(0) == 1, minvals.data(), minvals.dimension(0) == 1,
