@@ -27,7 +27,7 @@ limitations under the License.
 #include "tensorflow/stream_executor/lib/status.h"
 #include "tensorflow/stream_executor/platform/logging.h"
 #include "tensorflow/stream_executor/rng.h"
-#include "cuda/include/hiprng.h"
+#include "cuda/include/hiprng/hiprng.h"
 
 // Formats hiprngStatus_t to output prettified values into a log stream.
 std::ostream &operator<<(std::ostream &in, const hiprngStatus_t &status) {

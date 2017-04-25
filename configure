@@ -34,7 +34,7 @@ function bazel_clean_and_fetch() {
   # bazel clean --expunge currently doesn't work on Windows
   # TODO(pcloudy): Re-enable it after bazel clean --expunge is fixed.
   if ! is_windows; then
-    bazel clean --expunge
+    bazel clean #--expunge
   fi
   bazel fetch "//tensorflow/... -//tensorflow/examples/android/..."
 }
@@ -212,6 +212,7 @@ else
 
   export TF_NEED_CUDA
   export TF_NEED_OPENCL
+  export TF_GPU_PLATFORM
 fi
 if [[ "$TF_NEED_CUDA" == "0" ]] && [[ "$TF_NEED_OPENCL" == "0" ]]; then
   echo "Configuration finished"

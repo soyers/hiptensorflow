@@ -18,7 +18,7 @@ limitations under the License.
 // cuda.h). This ensures that Eigen's Half.h does not attempt to make its own
 // __half typedef if CUDA has already defined one (and conversely, that we do
 // not include <cuda_fp16.h> after Half.h has made its typedef).
-#include "cuda/include/hipblas.h"
+#include "cuda/include/hipblas/hipblas.h"
 
 #if CUDA_VERSION >= 7050
 #define EIGEN_HAS_CUDA_FP16

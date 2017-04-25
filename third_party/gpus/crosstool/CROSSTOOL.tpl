@@ -122,7 +122,10 @@ toolchain {
 
   # Include directory for cuda headers.
   cxx_builtin_include_directory: "%{cuda_include_path}"
-  cxx_builtin_include_directory: "/usr/local/cuda/include"
+  cxx_builtin_include_directory: "/opt/rocm/hip/include"
+  cxx_builtin_include_directory: "/opt/rocm/hipblas/include"
+  cxx_builtin_include_directory: "/opt/rocm/hipfft/include"
+  cxx_builtin_include_directory: "/opt/rocm/hiprng/include"
 
   compilation_mode_flags {
     mode: DBG
@@ -222,6 +225,10 @@ toolchain {
 
   # Include directory for cuda headers.
   cxx_builtin_include_directory: "%{cuda_include_path}"
+  cxx_builtin_include_directory: "/opt/rocm/hip/include"
+  cxx_builtin_include_directory: "/opt/rocm/hipblas/include"
+  cxx_builtin_include_directory: "/opt/rocm/hipfft/include"
+  cxx_builtin_include_directory: "/opt/rocm/hiprng/include"
 
   compilation_mode_flags {
     mode: DBG

@@ -41,10 +41,9 @@ string GetCudaVersion() { return TF_CUDA_VERSION; }
 string GetCudnnVersion() { return TF_CUDNN_VERSION; }
 
 /* static */ port::Status DsoLoader::GetCublasDsoHandle(void** dso_handle) {
-  return GetDsoHandle(FindDsoPath(port::Env::Default()->FormatLibraryFileName(
-                                      "cublas", GetCudaVersion()),
+  return GetDsoHandle(FindDsoPath("libhipblas.so",
                                   GetCudaLibraryDirPath()),
-                      dso_handle);
+                                  dso_handle);
 }
 
 /* static */ port::Status DsoLoader::GetCudnnDsoHandle(void** dso_handle) {
@@ -58,17 +57,15 @@ string GetCudnnVersion() { return TF_CUDNN_VERSION; }
 }
 
 /* static */ port::Status DsoLoader::GetCufftDsoHandle(void** dso_handle) {
-  return GetDsoHandle(FindDsoPath(port::Env::Default()->FormatLibraryFileName(
-                                      "cufft", GetCudaVersion()),
+  return GetDsoHandle(FindDsoPath("libhcfft.so",
                                   GetCudaLibraryDirPath()),
-                      dso_handle);
+                                  dso_handle);
 }
 
 /* static */ port::Status DsoLoader::GetCurandDsoHandle(void** dso_handle) {
-  return GetDsoHandle(FindDsoPath(port::Env::Default()->FormatLibraryFileName(
-                                      "curand", GetCudaVersion()),
+  return GetDsoHandle(FindDsoPath("libhcrng.so",
                                   GetCudaLibraryDirPath()),
-                      dso_handle);
+                                  dso_handle);
 }
 
 /* static */ port::Status DsoLoader::GetLibcudaDsoHandle(void** dso_handle) {
@@ -200,11 +197,7 @@ static std::vector<string>* CreatePrimordialRpaths() {
 }
 
 /* static */ string DsoLoader::GetCudaLibraryDirPath() {
-#if defined(__APPLE__)
   return "external/local_config_cuda/cuda/lib";
-#else
-  return "external/local_config_cuda/cuda/lib64";
-#endif
 }
 
 /* static */ string DsoLoader::GetCudaDriverLibraryPath() {
