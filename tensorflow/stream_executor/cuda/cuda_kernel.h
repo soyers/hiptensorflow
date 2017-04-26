@@ -35,10 +35,10 @@ limitations under the License.
     "No driver calls in this file, wrap driver functionality in cuda_driver.cc."
 #endif
 
-#ifdef __CUDA_RUNTIME_H__
-#error \
+//#ifdef __CUDA_RUNTIME_H__
+//#error \
     "CUDA runtime being included into CUDA GPU executor; should be driver only."
-#endif
+//#endif
 
 namespace perftools {
 namespace gputools {
