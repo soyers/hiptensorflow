@@ -291,8 +291,8 @@ static string ToString(hipblasStatus_t status) {
       return "HIPBLAS_STATUS_ALLOC_FAILED";
     case HIPBLAS_STATUS_INVALID_VALUE:
       return "HIPBLAS_STATUS_INVALID_VALUE";
-    case HIPBLAS_STATUS_ARCH_MISMATCH:
-      return "HIPBLAS_STATUS_ARCH_MISMATCH";
+    //case HIPBLAS_STATUS_ARCH_MISMATCH:
+      //return "HIPBLAS_STATUS_ARCH_MISMATCH";
     case HIPBLAS_STATUS_MAPPING_ERROR:
       return "HIPBLAS_STATUS_MAPPING_ERROR";
     case HIPBLAS_STATUS_EXECUTION_FAILED:
@@ -313,7 +313,7 @@ static string ToString(hipblasStatus_t status) {
 //
 // The prior HIPBLAS pointer mode is retained and restored when this object goes
 // out of scope.
-class ScopedCublasPointerMode {
+/*class ScopedCublasPointerMode {
  public:
   // Note that, because the setting of the hipblas pointer mode is fallible,
   // construction of this scoped datatype must be paired with a call to
@@ -329,7 +329,7 @@ class ScopedCublasPointerMode {
   // Note that when false is returned, an appropriate error has already been
   // logged.
   bool Init(hipblasPointerMode_t new_mode) {
-/*    hipblasStatus_t ret =
+    hipblasStatus_t ret =
         dynload::hipblasGetPointerMode_v2(parent_, handle_, &old_mode_);
     if (ret != HIPBLAS_STATUS_SUCCESS) {
       LOG(ERROR) << "failed to get old hipblas pointer mode: " << ToString(ret);
@@ -341,20 +341,20 @@ class ScopedCublasPointerMode {
       LOG(ERROR) << "failed to set new hipblas pointer mode: " << ToString(ret);
       return ok_ = false;
     }
-*/
-    return ok_ = false;//true;
+
+    return ok_ = true;
   }
 
   // Switches back to the prior pointer mode, if the switch operation was
   // successful in the first place.
   ~ScopedCublasPointerMode() {
     if (ok_) {
-/*      hipblasStatus_t ret =
+      hipblasStatus_t ret =
           dynload::hipblasSetPointerMode_v2(parent_, handle_, old_mode_);
       if (ret != HIPBLAS_STATUS_SUCCESS) {
         LOG(ERROR) << "failed to set former hipblas pointer mode: "
                    << ToString(ret);
-      }*/
+      }
     }
   }
 
@@ -363,7 +363,7 @@ class ScopedCublasPointerMode {
   hipblasHandle_t handle_;  // Handle to the HIPBLAS instance of interest.
   hipblasPointerMode_t old_mode_;  // Prior HIPBLAS pointer mode, to be restored.
   bool ok_;                       // Whether the change was successful.
-};
+};*/
 
 bool CUDABlas::Init() {
   hipblasStatus_t ret = dynload::hipblasCreate(parent_, &blas_);
@@ -415,7 +415,7 @@ hipblasOperation_t CUDABlasTranspose(blas::Transpose trans) {
   }
 }
 
-hipblasFillMode_t CUDABlasUpperLower(blas::UpperLower uplo) {
+/*hipblasFillMode_t CUDABlasUpperLower(blas::UpperLower uplo) {
   switch (uplo) {
     case blas::UpperLower::kUpper:
       return HIPBLAS_FILL_MODE_UPPER;
@@ -424,9 +424,9 @@ hipblasFillMode_t CUDABlasUpperLower(blas::UpperLower uplo) {
     default:
       LOG(FATAL) << "Invalid value of blas::UpperLower.";
   }
-}
+}*/
 
-hipblasDiagType_t CUDABlasDiagonal(blas::Diagonal diag) {
+/*hipblasDiagType_t CUDABlasDiagonal(blas::Diagonal diag) {
   switch (diag) {
     case blas::Diagonal::kUnit:
       return HIPBLAS_DIAG_UNIT;
@@ -435,9 +435,9 @@ hipblasDiagType_t CUDABlasDiagonal(blas::Diagonal diag) {
     default:
       LOG(FATAL) << "Invalid value of blas::Diagonal.";
   }
-}
+}*/
 
-hipblasSideMode_t CUDABlasSide(blas::Side side) {
+/*hipblasSideMode_t CUDABlasSide(blas::Side side) {
   switch (side) {
     case blas::Side::kLeft:
       return HIPBLAS_SIDE_LEFT;
@@ -446,7 +446,7 @@ hipblasSideMode_t CUDABlasSide(blas::Side side) {
     default:
       LOG(FATAL) << "Invalid value of blas::Side.";
   }
-}
+}*/
 
 }  // namespace
 
@@ -460,11 +460,11 @@ bool CUDABlas::DoBlasInternal(FuncT hipblas_func, Stream *stream,
     return false;
   }
 
-  ScopedCublasPointerMode pointer_mode{parent_, blas_};
+  /*ScopedCublasPointerMode pointer_mode{parent_, blas_};
   if (!pointer_mode.Init(pointer_mode_host ? HIPBLAS_POINTER_MODE_HOST
                                            : HIPBLAS_POINTER_MODE_DEVICE)) {
     return false;
-  }
+  }*/
 
   hipblasStatus_t ret = hipblas_func(parent_, blas_, args...);
   if (ret != HIPBLAS_STATUS_SUCCESS) {
@@ -481,7 +481,7 @@ bool CUDABlas::DoBlasAsum(Stream *stream, uint64 elem_count,
                           DeviceMemory<float> *result) {
   return DoBlasInternal(dynload::hipblasSasum, stream,
                         false /* = pointer_mode_host */, elem_count,
-                        CUDAMemory(x), incx, CUDAMemoryMutable(result));
+                        const_cast<float*>(CUDAMemory(x)), incx, CUDAMemoryMutable(result));
 }
 
 bool CUDABlas::DoBlasAsum(Stream *stream, uint64 elem_count,
@@ -489,7 +489,7 @@ bool CUDABlas::DoBlasAsum(Stream *stream, uint64 elem_count,
                           DeviceMemory<double> *result) {
   return DoBlasInternal(dynload::hipblasDasum, stream,
                         false /* = pointer_mode_host */, elem_count,
-                        CUDAMemory(x), incx, CUDAMemoryMutable(result));
+                        const_cast<double*>(CUDAMemory(x)), incx, CUDAMemoryMutable(result));
 }
 
 bool CUDABlas::DoBlasAsum(Stream *stream, uint64 elem_count,
@@ -981,7 +981,7 @@ bool CUDABlas::DoBlasGemv(Stream *stream, blas::Transpose trans, uint64 m,
                           float beta, DeviceMemory<float> *y, int incy) {
   return DoBlasInternal(
       dynload::hipblasSgemv, stream, true /* = pointer_mode_host */,
-      CUDABlasTranspose(trans), m, n, &alpha, CUDAMemory(a), lda, CUDAMemory(x),
+      CUDABlasTranspose(trans), m, n, &alpha, const_cast<float*>(CUDAMemory(a)), lda, const_cast<float*>(CUDAMemory(x)),
       incx, &beta, CUDAMemoryMutable(y), incy);
 }
 
@@ -1138,7 +1138,7 @@ bool CUDABlas::DoBlasHemv(Stream *stream, blas::UpperLower uplo, uint64 n,
 bool CUDABlas::DoBlasHer(Stream *stream, blas::UpperLower uplo, uint64 n,
                          float alpha,
                          const DeviceMemory<std::complex<float>> &x, int incx,
-  ger                      DeviceMemory<std::complex<float>> *a, int lda) {
+                         DeviceMemory<std::complex<float>> *a, int lda) {
   return false;//DoBlasInternal(
       //dynload::hipblasCher, stream, true /* = pointer_mode_host */,
       //CUDABlasUpperLower(uplo), n, &alpha, CUDAComplex(CUDAMemory(x)), incx,
@@ -1737,7 +1737,7 @@ bool CUDABlas::DoBlasGemm(Stream *stream, blas::Transpose transa,
   return DoBlasInternal(
       dynload::hipblasSgemm, stream, true /* = pointer_mode_host */,
       CUDABlasTranspose(transa), CUDABlasTranspose(transb), m, n, k, &alpha,
-      CUDAMemory(a), lda, CUDAMemory(b), ldb, &beta, CUDAMemoryMutable(c), ldc);
+      const_cast<float*>(CUDAMemory(a)), lda, const_cast<float*>(CUDAMemory(b)), ldb, &beta, CUDAMemoryMutable(c), ldc);
 }
 
 bool CUDABlas::DoBlasGemm(Stream *stream, blas::Transpose transa,
@@ -1761,8 +1761,8 @@ bool CUDABlas::DoBlasGemm(Stream *stream, blas::Transpose transa,
   return DoBlasInternal(
       dynload::hipblasCgemm, stream, true /* = pointer_mode_host */,
       CUDABlasTranspose(transa), CUDABlasTranspose(transb), m, n, k,
-      CUDAComplex(&alpha), CUDAComplex(CUDAMemory(a)), lda,
-      CUDAComplex(CUDAMemory(b)), ldb, CUDAComplex(&beta),
+      CUDAComplex(&alpha), const_cast<float2*>(CUDAComplex(CUDAMemory(a))), lda,
+      const_cast<float2*>(CUDAComplex(CUDAMemory(b))), ldb, CUDAComplex(&beta),
       CUDAComplex(CUDAMemoryMutable(c)), ldc);
 }
 
