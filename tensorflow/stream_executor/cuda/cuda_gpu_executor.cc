@@ -59,10 +59,10 @@ limitations under the License.
     "No driver calls in this file, wrap driver functionality in cuda_driver.cc."
 #endif
 
-#ifdef __CUDA_RUNTIME_H__
-#error \
-    "CUDA runtime being included into CUDA GPU executor; should be driver only."
-#endif
+//#ifdef __CUDA_RUNTIME_H__
+//#error \
+//    "CUDA runtime being included into CUDA GPU executor; should be driver only."
+//#endif
 
 extern bool FLAGS_check_gpu_leaks;
 tensorflow::int32 FLAGS_register_occupancy_warning_threshold;
@@ -330,16 +330,16 @@ bool CUDAExecutor::GetKernel(const MultiKernelLoaderSpec &spec,
 bool CUDAExecutor::GetKernelMetadata(CUDAKernel *cuda_kernel,
                                      KernelMetadata *kernel_metadata) {
   int value;
-  if (!CUDADriver::FuncGetAttribute(CU_FUNC_ATTRIBUTE_NUM_REGS,
+  if (0/*CUDADriver::FuncGetAttribute(CU_FUNC_ATTRIBUTE_NUM_REGS,
                                     *cuda_kernel->cuda_function_ptr(),
-                                    &value)) {
+                                    &value)*/) {
     return false;
   }
   kernel_metadata->set_registers_per_thread(value);
 
-  if (!CUDADriver::FuncGetAttribute(CU_FUNC_ATTRIBUTE_SHARED_SIZE_BYTES,
+  if (0/*!CUDADriver::FuncGetAttribute(CU_FUNC_ATTRIBUTE_SHARED_SIZE_BYTES,
                                     *cuda_kernel->cuda_function_ptr(),
-                                    &value)) {
+                                    &value)*/) {
     return false;
   }
   kernel_metadata->set_shared_memory_bytes(value);
@@ -351,9 +351,9 @@ bool CUDAExecutor::Launch(Stream *stream, const ThreadDim &thread_dims,
                           const BlockDim &block_dims, const KernelBase &kernel,
                           const KernelArgsArrayBase &args) {
   CHECK_EQ(kernel.Arity(), args.number_of_arguments());
-  CUstream custream = AsCUDAStreamValue(stream);
+  hipStream_t custream = AsCUDAStreamValue(stream);
   const CUDAKernel *cuda_kernel = AsCUDAKernel(&kernel);
-  CUfunction cufunc = cuda_kernel->AsCUDAFunctionValue();
+  hipFunction_t cufunc = cuda_kernel->AsCUDAFunctionValue();
 
   // Only perform/print the occupancy check 1x.
   launched_kernels_mu_.lock();
@@ -487,9 +487,9 @@ bool CUDAExecutor::SynchronousMemZero(DeviceMemoryBase *location, uint64 size) {
   if (reinterpret_cast<uintptr_t>(location->opaque()) % 4 == 0 &&
       size % 4 == 0) {
     return CUDADriver::SynchronousMemsetUint32(
-        context_, AsCudaDevicePtr(location), 0x0, size / 4);
+        context_, (void*) location, 0x0, size / 4);
   }
-  return CUDADriver::SynchronousMemsetUint8(context_, AsCudaDevicePtr(location),
+  return CUDADriver::SynchronousMemsetUint8(context_, (void*) location,
                                             0x0, size);
 }
 
@@ -502,9 +502,9 @@ bool CUDAExecutor::SynchronousMemSet(DeviceMemoryBase *location, int value,
     uint32 pattern = (byte_value << 24) | (byte_value << 16) |
                      (byte_value << 8) | byte_value;
     return CUDADriver::SynchronousMemsetUint32(
-        context_, AsCudaDevicePtr(location), pattern, size / 4);
+        context_, (void*) location, pattern, size / 4);
   }
-  return CUDADriver::SynchronousMemsetUint8(context_, AsCudaDevicePtr(location),
+  return CUDADriver::SynchronousMemsetUint8(context_, (void*) location,
                                             value, size);
 }
 
@@ -543,7 +543,7 @@ bool CUDAExecutor::Memset(Stream *stream, DeviceMemoryBase *location,
           << " at location " << location << " with size " << size
           << " and pattern " << std::hex << pattern;
   return CUDADriver::AsynchronousMemsetUint8(
-      context_, AsCudaDevicePtr(location), pattern, size,
+      context_, (void*) location, pattern, size,
       AsCUDAStreamValue(stream));
 }
 
@@ -555,7 +555,7 @@ bool CUDAExecutor::Memset32(Stream *stream, DeviceMemoryBase *location,
   CHECK(reinterpret_cast<uintptr_t>(location->opaque()) % 4 == 0 &&
         size % 4 == 0);
   return CUDADriver::AsynchronousMemsetUint32(
-      context_, AsCudaDevicePtr(location), pattern, size / 4,
+      context_, (void*) location, pattern, size / 4,
       AsCUDAStreamValue(stream));
 }
 
@@ -589,8 +589,8 @@ bool CUDAExecutor::HostCallback(Stream *stream,
                                        InternalHostCallback, callback_ptr);
 }
 
-/* static */ void CUDAExecutor::InternalHostCallback(CUstream stream,
-                                                     CUresult status,
+/* static */ void CUDAExecutor::InternalHostCallback(hipStream_t stream,
+                                                     hipError_t status,
                                                      void *data) {
   std::function<void()> *callback =
       reinterpret_cast<std::function<void()> *>(data);
@@ -976,7 +976,7 @@ DeviceDescription *CUDAExecutor::PopulateDeviceDescription() const {
     builder.set_numa_node(numa_node);
   }
 
-  CUdevprop prop;
+  hipDeviceProp_t prop;
   if (CUDADriver::GetDeviceProperties(&prop, device_ordinal_)) {
     builder.set_threads_per_block_limit(prop.maxThreadsPerBlock);
 

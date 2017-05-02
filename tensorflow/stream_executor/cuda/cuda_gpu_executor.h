@@ -229,7 +229,7 @@ class CUDAExecutor : public internal::StreamExecutorInterface {
   // data: User-provided callback provided to HostCallback() above, captured
   //       as a std::function<void()>. Allocated/initialized inside
   //       HostCallback() and owned and deleted by this call.
-  static void InternalHostCallback(CUstream stream, CUresult status,
+  static void InternalHostCallback(hipStream_t stream, hipError_t status,
                                    void *data);
 
   // Collects metadata for the specified kernel.

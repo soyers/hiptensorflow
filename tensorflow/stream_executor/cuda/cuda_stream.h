@@ -86,7 +86,7 @@ class CUDAStream : public internal::StreamInterface {
 CUDAStream *AsCUDAStream(Stream *stream);
 
 // Extracts a CUstream from a CUDAStream-backed Stream object.
-CUstream AsCUDAStreamValue(Stream *stream);
+hipStream_t AsCUDAStreamValue(Stream *stream);
 
 }  // namespace cuda
 }  // namespace gputools

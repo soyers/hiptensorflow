@@ -43,7 +43,7 @@ port::Status CUDAEvent::Record(CUDAStream* stream) {
 }
 
 Event::Status CUDAEvent::PollForStatus() {
-  port::StatusOr<CUresult> status =
+  port::StatusOr<hipError_t> status =
       CUDADriver::QueryEvent(parent_->cuda_context(), cuda_event_);
   if (!status.ok()) {
     LOG(ERROR) << "Error polling for event status: "

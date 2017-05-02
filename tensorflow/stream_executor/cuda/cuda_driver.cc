@@ -115,8 +115,9 @@ PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipEventRecord);
 PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipEventSynchronize);
 
 PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(cuFuncGetAttribute); //TODO
-
+#if defined(__HIP_PLATFORM_HCC__)
 PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipFuncSetCacheConfig);
+#endif
 PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipGetErrorName);
 PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipGetErrorString);
 PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipInit);
@@ -141,13 +142,13 @@ PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipMemsetD8);
 //PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(cuMemsetD8Async);//TODO
 PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipModuleGetFunction);
 PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipModuleGetGlobal);
-PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(cuModuleLoadData);
+PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipModuleLoadData);
 //PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(cuModuleLoadFatBinary);//TODO
 PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipModuleUnload);
 PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipOccupancyMaxActiveBlocksPerMultiprocessor);
 PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipPointerGetAttributes);
 PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipStreamAddCallback);
-PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipStreamCreate);
+PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipStreamCreateWithFlags);
 PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipStreamDestroy);
 PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipStreamQuery);
 PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipStreamSynchronize);
@@ -251,7 +252,7 @@ string ToString(hipError_t result) {
     // Encountered an uncorrectable ECC error during execution.
     OSTREAM_CUDA_ERROR(ECCNotCorrectable)
 
-#ifdef __NVCC__
+#ifdef __HIP_PLATFORM_NVCC__
     // Load/store on an invalid address. Must reboot all context.
     case 700:
       return "CUDA_ERROR_ILLEGAL_ADDRESS";
@@ -323,11 +324,11 @@ string ToString(hipError_t result) {
     
     OSTREAM_CUDA_ERROR(ContextAlreadyInUse)
     OSTREAM_CUDA_ERROR(PeerAccessUnsupported)
-#ifdef __NVCC__
-    OSTREAM_CUDA_ERROR(NOT_PERMITTED)
-    OSTREAM_CUDA_ERROR(NOT_SUPPORTED)
-#endif
-    OSTREAM_CUDA_ERROR(UNKNOWN)  // Unknown internal error to CUDA.
+//#ifdef __HIP_PLATFORM_NVCC__
+//    OSTREAM_CUDA_ERROR(NOT_PERMITTED)
+//    OSTREAM_CUDA_ERROR(NOT_SUPPORTED)
+//#endif
+    OSTREAM_CUDA_ERROR(Unknown)  // Unknown internal error to CUDA.
     default:
       return port::StrCat("hipError_t(", static_cast<int>(result), ")");
   }
@@ -466,7 +467,7 @@ string CUDAPointerToDeviceString(hipDeviceptr_t pointer) {
 // Returns a stringified memory space associated with pointer, primarily for
 // logging purposes. Returns "?" if the memory space could not be successfully
 // queried.
-string CUDAPointerToMemorySpaceString(hipDeviceptr_t pointer) {
+string CUDAPointerToMemorySpaceString(void *pointer) {
   auto value = CUDADriver::GetPointerMemorySpace(pointer);
   if (value.ok()) {
     return MemorySpaceString(value.ValueOrDie());
@@ -541,7 +542,7 @@ static port::Status InternalInit() {
 
 /* static */ port::Status CUDADriver::GetDevice(int device_ordinal,
                                                 hipDevice_t *device) {
-  hipError_t res = dynload::hipDeviceGet(device, device_ordinal);
+  hipError_t res = dynload::hipGetDevice(device);
   if (res == hipSuccess) {
     return port::Status::OK();
   }
@@ -667,7 +668,7 @@ bool DeviceOptionsToContextFlags(DeviceOptions device_options, int *flags) {
 /* static */ bool CUDADriver::FuncSetCacheConfig(hipFunction_t function,
                                                  hipFuncCache_t cache_config) {
   hipError_t res;
-#ifdef __NVCC__
+#ifdef __HIP_PLATFORM_NVCC__
   res = hipSuccess;
 #elif defined(__HIP_PLATFORM_HCC__)
   dynload::hipFuncSetCacheConfig(function, cache_config);
@@ -950,7 +951,7 @@ CUDADriver::ContextGetSharedMemConfig(CudaContext* context) {
   ScopedActivateContext activated{context};
   //ToDo(mcw): hipDevice_t On NV path, CUdevice(hipDevice_t) represents “int”, while on HCC path, hipDevice_t represents an internal structure – ihipDevice_t;
   hipDevice_t device;
-#ifdef __NVCC__
+#ifdef __HIP_PLATFORM_NVCC__
   device = -1;
 #elif defined(__HIP_PLATFORM_HCC__)
   device = NULL;
@@ -1360,7 +1361,7 @@ CUDADriver::ContextGetSharedMemConfig(CudaContext* context) {
   }*/
 
   ScopedActivateContext activated{context};
-  hipError_t res = dynload::hipEventCreateWithFlags(result, cuflags);
+  hipError_t res = dynload::hipEventCreate(result);
 
   if (res == hipSuccess) {
     return port::Status::OK();
@@ -1486,7 +1487,7 @@ static port::StatusOr<T> GetSimpleAttribute(hipDevice_t device,
   int value = -1;
   //ToDo(mcw): hipDevice_t passing deviceId as 0
   hipError_t result;
-#ifdef __NVCC__
+#ifdef __HIP_PLATFORM_NVCC__
   result = dynload::hipDeviceGetAttribute(&value, attribute, device);
 #elif defined(__HIP_PLATFORM_HCC__)
   result = dynload::hipDeviceGetAttribute(&value, attribute, 0);
@@ -1547,7 +1548,7 @@ static port::StatusOr<T> GetSimpleAttribute(hipDevice_t device,
   int value;
   hipError_t res;
 //ToDo(mcw): hipDevice_t passing default deviceId as 0
-#ifdef __NVCC__
+#ifdef __HIP_PLATFORM_NVCC__
   res = dynload::hipDeviceGetAttribute(
       &value, hipDeviceAttributeMaxGridDimX, device);
 #elif defined(__HIP_PLATFORM_HCC__)
@@ -1559,7 +1560,7 @@ static port::StatusOr<T> GetSimpleAttribute(hipDevice_t device,
     return false;
   }
   *x = value;
-#ifdef __NVCC__
+#ifdef __HIP_PLATFORM_NVCC__
   res = dynload::hipDeviceGetAttribute(
       &value, hipDeviceAttributeMaxGridDimY, device);
 #elif defined(__HIP_PLATFORM_HCC__)
@@ -1571,7 +1572,7 @@ static port::StatusOr<T> GetSimpleAttribute(hipDevice_t device,
     return false;
   }
   *y = value;
-#ifdef __NVCC__
+#ifdef __HIP_PLATFORM_NVCC__
   res = dynload::hipDeviceGetAttribute(
       &value, hipDeviceAttributeMaxGridDimZ, device);
 #elif defined(__HIP_PLATFORM_HCC__)
@@ -1655,23 +1656,23 @@ static port::StatusOr<T> GetSimpleAttribute(hipDevice_t device,
 /* static */ string CUDADriver::GetPCIBusID(hipDevice_t device) {
   string pci_bus_id;
   static const int kBufferSize = 64;
-#ifdef __NVCC__
-  port::InlinedVector<char, 4> chars(kBufferSize);
+//#ifdef __HIP_PLATFORM_NVCC__
+//  port::InlinedVector<char, 4> chars(kBufferSize);
+//#elif defined (__HIP_PLATFORM_HCC__)
+  char chars[kBufferSize];
   chars[kBufferSize - 1] = '\0';
-#elif defined (__HIP_PLATFORM_HCC__)
-  char chars[100];
-#endif
+//#endif
   hipError_t res = dynload::hipDeviceGetPCIBusId(chars, kBufferSize - 1, device);
   if (res != hipSuccess) {
     LOG(ERROR) << "failed to query PCI bus id for device: " << ToString(res);
     return pci_bus_id;
   }
 
- #ifdef __NVCC__
-  pci_bus_id = std::to_string(chars);
-#elif defined (__HIP_PLATFORM_HCC__)
+// #ifdef __HIP_PLATFORM_NVCC__
+//  pci_bus_id = std::to_string(chars);
+//#elif defined (__HIP_PLATFORM_HCC__)
   pci_bus_id = chars; 
-#endif
+//#endif
   return pci_bus_id;
 }
 
@@ -1694,7 +1695,8 @@ static port::StatusOr<T> GetSimpleAttribute(hipDevice_t device,
                << to_device.status();
     return false;
   }
-#ifdef __NVCC__
+
+#ifdef __HIP_PLATFORM_NVCC__
   hipError_t res = dynload::hipDeviceCanAccessPeer(
       &can_access_peer, from_device.ValueOrDie(), to_device.ValueOrDie());
 #elif defined (__HIP_PLATFORM_HCC__)

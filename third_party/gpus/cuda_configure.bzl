@@ -625,8 +625,8 @@ def _find_libs_hip(repository_ctx, hip_config):
   """
   cpu_value = hip_config.cpu_value
   return {
-      #"hip": _find_hip_lib(
-          #"hip", repository_ctx, cpu_value, hip_config.hip_path),
+      "hip": _find_hip_lib(
+          "hip", repository_ctx, cpu_value, hip_config.hip_path),
       "hipblas": _find_hip_lib(
           "hipblas", repository_ctx, cpu_value, hip_config.hip_lib_path + "/hipblas"),
       "hiprng": _find_hip_lib(

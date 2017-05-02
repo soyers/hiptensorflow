@@ -76,8 +76,8 @@ string GetCudnnVersion() { return TF_CUDNN_VERSION; }
       dso_handle);
 #else
   port::Status status = GetDsoHandle(
-      FindDsoPath(port::Env::Default()->FormatLibraryFileName("cuda", "1"),
-                  GetCudaDriverLibraryPath()),
+      FindDsoPath("libhip.so",
+                  GetCudaLibraryDirPath()),
       dso_handle);
 #if defined(__APPLE__)
   // On Mac OS X, CUDA sometimes installs libcuda.dylib instead of

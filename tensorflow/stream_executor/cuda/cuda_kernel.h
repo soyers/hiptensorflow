@@ -30,10 +30,11 @@ limitations under the License.
 #include "tensorflow/stream_executor/platform/logging.h"
 #include "cuda/include/cuda.h"
 
-#ifdef PLATFORMS_GPUS_CUDA_DYNAMIC_LIBCUDA_DYNAMIC_LIBCUDA_H_
-#error \
-    "No driver calls in this file, wrap driver functionality in cuda_driver.cc."
-#endif
+//TODO: enable this once all driver APIs got supported 
+//#ifdef PLATFORMS_GPUS_CUDA_DYNAMIC_LIBCUDA_DYNAMIC_LIBCUDA_H_
+//#error \
+//    "No driver calls in this file, wrap driver functionality in cuda_driver.cc."
+//#endif
 
 //#ifdef __CUDA_RUNTIME_H__
 //#error \
@@ -87,16 +88,16 @@ class CUDAKernel : public internal::KernelInterface {
 
   // Returns the current kernel cache configuration preference as a
   // CUfunc_cache.
-  CUfunc_cache GetCUDACacheConfig() const {
+  hipFuncCache_t GetCUDACacheConfig() const {
     switch (preferred_cache_config_) {
       case KernelCacheConfig::kNoPreference:
-        return CU_FUNC_CACHE_PREFER_NONE;
+        return cudaFuncCachePreferNone;
       case KernelCacheConfig::kPreferShared:
-        return CU_FUNC_CACHE_PREFER_SHARED;
+        return cudaFuncCachePreferShared;
       case KernelCacheConfig::kPreferL1:
-        return CU_FUNC_CACHE_PREFER_L1;
+        return cudaFuncCachePreferL1;
       case KernelCacheConfig::kPreferEqual:
-        return CU_FUNC_CACHE_PREFER_EQUAL;
+        return cudaFuncCachePreferEqual;
       default:
         LOG(FATAL) << "Unknown KernelCacheConfig"
                    << static_cast<int32>(preferred_cache_config_);
@@ -104,7 +105,7 @@ class CUDAKernel : public internal::KernelInterface {
   }
 
  private:
-  CUfunction cuda_function_;  // Wrapped CUDA kernel handle.
+  hipFunction_t cuda_function_;  // Wrapped CUDA kernel handle.
   unsigned arity_;            // Number of formal parameters the kernel takes.
 
   // Preferred (but not required) cache configuration for this kernel.
