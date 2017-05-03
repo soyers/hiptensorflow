@@ -21,7 +21,7 @@ limitations under the License.
 #include <algorithm>
 #include <array>
 
-#include "cuda/include/cuda.h"
+#include "cuda/include/hip/hip_runtime.h"
 #include "tensorflow/core/framework/register_types.h"
 #include "tensorflow/core/kernels/conv_2d.h"
 #include "tensorflow/core/util/cuda_kernel_helper.h"
@@ -438,7 +438,7 @@ void RunSwapDimension1And2InTensor3(const GPUDevice& d, const T* input,
     };
     int total_tiles_count = input_dims_in_tiles[0] * input_dims_in_tiles[1] *
                             input_dims_in_tiles[2];
-    hipLaunchKernel(HIP_KERNEL_NAME(SwapDimension1And2InTensor3UsingTiles<T, TileSize, NumSubTiles>), dim3(total_tiles_count, dim3(TileSize), dim3(NumSubTiles)), 0, d.stream(), 
+    hipLaunchKernel(HIP_KERNEL_NAME(SwapDimension1And2InTensor3UsingTiles<T, TileSize, NumSubTiles>), dim3(total_tiles_count), dim3(TileSize, NumSubTiles), 0, d.stream(), 
         input, input_dims, output);
   } else {
     int total_element_count = input_dims[0] * input_dims[1] * input_dims[2];

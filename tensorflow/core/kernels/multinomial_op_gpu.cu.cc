@@ -38,7 +38,7 @@ using GPUDevice = Eigen::GpuDevice;
 
 // Kernel for Multinomial op.  Data is interpreted to have the following shapes:
 //   scores: [B, S, C];  maxima: [B, S];  output: [B, S].
-__global__ void MultinomialKernel(hipLaunchParm lphipLaunchParm lp,
+__global__ void MultinomialKernel(hipLaunchParm lp,
                                   int32 nthreads, const int32 num_classes,
                                   const int32 num_samples, const float* scores,
                                   const float* maxima, int64* output) {

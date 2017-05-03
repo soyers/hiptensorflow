@@ -499,7 +499,7 @@ void GPUTracerImpl::AddCorrelationId(uint32 correlation_id,
         auto *funcParams = reinterpret_cast<const cudaMemcpy_v3020_params *>(
             cbInfo->functionParams);
         size_t count = funcParams->count;
-        enum hipMemcpyKind kind = funcParams->kind;
+        enum cudaMemcpyKind kind = funcParams->kind;
         VLOG(2) << "MEMCPY count " << count << " kind " << kind;
       }
       if (tls_annotation) {

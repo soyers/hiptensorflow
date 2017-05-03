@@ -16,7 +16,7 @@ limitations under the License.
 // TODO(opensource): Use a more generic sounding preprocessor name than
 // GOOGLE_CUDA
 #if GOOGLE_CUDA
-
+#include "cuda/include/hip/hip_runtime.h"
 #define EIGEN_USE_GPU
 
 #include "tensorflow/core/common_runtime/gpu/gpu_device.h"
