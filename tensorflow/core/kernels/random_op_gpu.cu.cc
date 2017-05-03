@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 /* Copyright 2015 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -131,8 +132,8 @@ struct FillPhiloxRandomKernel<Distribution, false> {
                               Distribution dist) {
     const int kGroupSize = Distribution::kResultElementCount;
 
-    const int32 thread_id = blockIdx.x * blockDim.x + threadIdx.x;
-    const int32 total_thread_count = gridDim.x * blockDim.x;
+    const int32 thread_id = hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x;
+    const int32 total_thread_count = hipGridDim_x * hipBlockDim_x;
     int32 offset = thread_id * kGroupSize;
     gen.Skip(thread_id);
 
@@ -172,8 +173,8 @@ struct FillPhiloxRandomKernel<Distribution, true> {
                                              kReservedSamplesPerOutput /
                                              PhiloxRandom::kResultElementCount;
 
-    const int32 thread_id = blockIdx.x * blockDim.x + threadIdx.x;
-    const int32 total_thread_count = gridDim.x * blockDim.x;
+    const int32 thread_id = hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x;
+    const int32 total_thread_count = hipGridDim_x * hipBlockDim_x;
     int64 group_index = thread_id;
     int64 offset = group_index * kGroupSize;
 
@@ -222,8 +223,7 @@ void FillPhiloxRandom<GPUDevice, Distribution>::operator()(
       (d.getNumCudaMultiProcessors() * d.maxCudaThreadsPerMultiProcessor()) /
       block_size;
 
-  FillPhiloxRandomKernelLaunch<
-      Distribution><<<num_blocks, block_size, 0, d.stream()>>>(gen, data, size,
+  hipLaunchKernel(HIP_KERNEL_NAME(FillPhiloxRandomKernelLaunch<Distribution>), dim3(num_blocks), dim3(block_size), 0, d.stream(), gen, data, size,
                                                                dist);
 };
 

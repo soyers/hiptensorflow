@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 /* Copyright 2015 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -83,8 +84,7 @@ struct ScatterFunctor<GPUDevice, T, Index, op> {
     const Index indices_size = indices.size();
     const Index updates_size = updates.size();
     CudaLaunchConfig config = GetCudaLaunchConfig(updates_size, d);
-    ScatterOpCustomKernel<T, Index, op>
-        <<<config.block_count, config.thread_per_block, 0, d.stream()>>>(
+    hipLaunchKernel(HIP_KERNEL_NAME(ScatterOpCustomKernel<T, Index, op>), dim3(config.block_count), dim3(config.thread_per_block), 0, d.stream(), 
             params.data(), updates.data(), indices.data(),
             first_dim_size, updates_size, indices_size);
     return -1;

@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 /* Copyright 2016 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -164,8 +165,7 @@ struct ResizeBilinear<GPUDevice, T> {
     if (total_count == 0) return;
 
     CudaLaunchConfig config = GetCudaLaunchConfig(total_count, d);
-    ResizeBilinearKernel<
-        T><<<config.block_count, config.thread_per_block, 0, d.stream()>>>(
+    hipLaunchKernel(HIP_KERNEL_NAME(ResizeBilinearKernel<T>), dim3(config.block_count), dim3(config.thread_per_block), 0, d.stream(), 
         config.virtual_thread_count, images.data(), height_scale, width_scale,
         batch, in_height, in_width, channels, out_height, out_width,
         output.data());
@@ -194,14 +194,13 @@ struct ResizeBilinearGrad<GPUDevice, T> {
     total_count = batch * original_height * original_width * channels;
     if (total_count == 0) return;
     config = GetCudaLaunchConfig(total_count, d);
-    SetZero<<<config.block_count, config.thread_per_block, 0, d.stream()>>>(
+    hipLaunchKernel(HIP_KERNEL_NAME(SetZero), dim3(config.block_count), dim3(config.thread_per_block), 0, d.stream(), 
         config.virtual_thread_count, output_grad.data());
 
     // Accumulate.
     total_count = batch * resized_height * resized_width * channels;
     config = GetCudaLaunchConfig(total_count, d);
-    ResizeBilinearGradKernel<
-        T><<<config.block_count, config.thread_per_block, 0, d.stream()>>>(
+    hipLaunchKernel(HIP_KERNEL_NAME(ResizeBilinearGradKernel<T>), dim3(config.block_count), dim3(config.thread_per_block), 0, d.stream(), 
         config.virtual_thread_count, input_grad.data(), height_scale,
         width_scale, batch, original_height, original_width, channels,
         resized_height, resized_width, output_grad.data());

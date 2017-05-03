@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 /* Copyright 2015 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -141,8 +142,7 @@ struct SpaceToBatchFunctor<GPUDevice, T, NUM_BLOCK_DIMS, B2S> {
     }
     CudaLaunchConfig config =
         GetCudaLaunchConfig(static_cast<int32>(total_count), d);
-    S2B<T, NUM_BLOCK_DIMS,
-        B2S><<<config.block_count, config.thread_per_block, 0, d.stream()>>>(
+    hipLaunchKernel(HIP_KERNEL_NAME(S2B<T, NUM_BLOCK_DIMS,B2S>), dim3(config.block_count), dim3(config.thread_per_block), 0, d.stream(), 
         config.virtual_thread_count, const_cast<T*>(space_tensor.data()), args,
         const_cast<T*>(batch_tensor.data()));
     return Status::OK();

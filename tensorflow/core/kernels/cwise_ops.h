@@ -552,7 +552,7 @@ struct scalar_rint_op {
   EIGEN_EMPTY_STRUCT_CTOR(scalar_rint_op)
   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE const Scalar
   operator()(const Scalar& a) const {
-#if defined(__CUDACC__)
+#if defined(__HIPCC__)
     return ::rint(a);
 #elif defined(__ANDROID__)
     return rint(a);

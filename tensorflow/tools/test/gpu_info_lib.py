@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 # Copyright 2016 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -45,13 +46,13 @@ def _gather_gpu_devices_proc():
 
 class CUDADeviceProperties(ct.Structure):
   # See $CUDA_HOME/include/cuda_runtime_api.h for the definition of
-  # the cudaDeviceProp struct.
+  # the hipDeviceProp_t struct.
   _fields_ = [
       ("name", ct.c_char * 256),
       ("totalGlobalMem", ct.c_size_t),
       ("sharedMemPerBlock", ct.c_size_t),
       ("regsPerBlock", ct.c_int),
-      ("warpSize", ct.c_int),
+      ("hipWarpSize", ct.c_int),
       ("memPitch", ct.c_size_t),
       ("maxThreadsPerBlock", ct.c_int),
       ("maxThreadsDim", ct.c_int * 3),
@@ -130,22 +131,22 @@ def _gather_gpu_devices_cudart():
     raise NotImplementedError("Cannot identify system.")
 
   version = ct.c_int()
-  rc = libcudart.cudaRuntimeGetVersion(ct.byref(version))
-  if rc != 0:
-    raise ValueError("Could not get version")
-  if version.value < 6050:
-    raise NotImplementedError("CUDA version must be between >= 6.5")
+#  rc = libcudart.cudaRuntimeGetVersion(ct.byref(version))
+#  if rc != 0:
+#    raise ValueError("Could not get version")
+#  if version.value < 6050:
+#    raise NotImplementedError("CUDA version must be between >= 6.5")
 
   device_count = ct.c_int()
-  libcudart.cudaGetDeviceCount(ct.byref(device_count))
+  libcudart.hipGetDeviceCount(ct.byref(device_count))
 
   for i in range(device_count.value):
     properties = CUDADeviceProperties()
-    rc = libcudart.cudaGetDeviceProperties(ct.byref(properties), i)
+    rc = libcudart.hipGetDeviceProperties(ct.byref(properties), i)
     if rc != 0:
       raise ValueError("Could not get device properties")
     pci_bus_id = " " * 13
-    rc = libcudart.cudaDeviceGetPCIBusId(ct.c_char_p(pci_bus_id), 13, i)
+    rc = libcudart.hipDeviceGetPCIBusId(ct.c_char_p(pci_bus_id), 13, i)
     if rc != 0:
       raise ValueError("Could not get device PCI bus id")
 

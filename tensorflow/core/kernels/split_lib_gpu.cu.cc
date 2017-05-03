@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 /* Copyright 2015 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -71,8 +72,8 @@ __global__ void SplitOpKernel(const T* input, int32 prefix_dim_size,
   const int32 num_split = output_ptr_data.size;
   T** output_ptrs = GetCudaDeviceArrayOnDevice(&output_ptr_data);
 
-  eigen_assert(blockDim.y == 1);
-  eigen_assert(blockDim.z == 1);
+  eigen_assert(hipBlockDim_y == 1);
+  eigen_assert(hipBlockDim_z == 1);
   eigen_assert(split_dim_size % num_split == 0);
 
   int32 size = prefix_dim_size * split_dim_size * suffix_dim_size;
@@ -111,7 +112,7 @@ __global__ void split_v_kernel(const T* input_ptr,
   IntType* col_scan = GetCudaDeviceArrayOnDevice(&output_scan);
 
   // do upper_bound on col to find which pointer we should be using
-  IntType gidx = blockIdx.x * blockDim.x + threadIdx.x;
+  IntType gidx = hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x;
   int num_outputs = output_ptr_data.size;
 
   // verbose declaration needed due to template
@@ -119,8 +120,8 @@ __global__ void split_v_kernel(const T* input_ptr,
   IntType* smem_col_scan = reinterpret_cast<IntType*>(smem);
 
   if (useSmem) {
-    IntType lidx = threadIdx.y * blockDim.x + threadIdx.x;
-    IntType blockSize = blockDim.x * blockDim.y;
+    IntType lidx = hipThreadIdx_y * hipBlockDim_x + hipThreadIdx_x;
+    IntType blockSize = hipBlockDim_x * hipBlockDim_y;
 
     for (IntType i = lidx; i < output_scan.size; i += blockSize) {
       smem_col_scan[i] = col_scan[i];
@@ -138,7 +139,7 @@ __global__ void split_v_kernel(const T* input_ptr,
 
   IntType curr_offset = col_scan[segment];
   IntType curr_segment = segment;
-  for (; gidx < total_cols; gidx += blockDim.x * gridDim.x) {
+  for (; gidx < total_cols; gidx += hipBlockDim_x * hipGridDim_x) {
     IntType curr_col_offset;
     while ((curr_col_offset = col_scan[curr_segment + 1]) <= gidx) {
       curr_offset = curr_col_offset;
@@ -149,8 +150,8 @@ __global__ void split_v_kernel(const T* input_ptr,
     IntType segment_width = curr_col_offset - curr_offset;
     T* output_ptr = output_ptrs[curr_segment];
 
-    IntType gidy = blockIdx.y * blockDim.y + threadIdx.y;
-    for (; gidy < total_rows; gidy += blockDim.y * gridDim.y)
+    IntType gidy = hipBlockIdx_y * hipBlockDim_y + hipThreadIdx_y;
+    for (; gidy < total_rows; gidy += hipBlockDim_y * hipGridDim_y)
       output_ptr[gidy * segment_width + local_col] =
           input_ptr[gidy * total_cols + gidx];
   }
@@ -165,8 +166,8 @@ __global__ void SplitVOpKernel_fixed(
   const int32 num_split = output_ptr_data.size;
   T** output_ptrs = GetCudaDeviceArrayOnDevice(&output_ptr_data);
 
-  eigen_assert(blockDim.y == 1);
-  eigen_assert(blockDim.z == 1);
+  eigen_assert(hipBlockDim_y == 1);
+  eigen_assert(hipBlockDim_z == 1);
 
   int32 size = prefix_dim_size * suffix_dim_size;
   int32 piece_size = suffix_dim_size / num_split;
@@ -191,8 +192,7 @@ struct SplitOpGPULaunch {
     CudaLaunchConfig config = GetCudaLaunchConfig(
         prefix_dim_size * split_dim_size * suffix_dim_size, d);
 
-    SplitOpKernel<
-        T><<<config.block_count, config.thread_per_block, 0, d.stream()>>>(
+    hipLaunchKernel(HIP_KERNEL_NAME(SplitOpKernel<T>), dim3(config.block_count), dim3(config.thread_per_block), 0, d.stream(), 
         input, prefix_dim_size, split_dim_size, suffix_dim_size,
         output_ptr_data);
   }
@@ -208,8 +208,7 @@ struct SplitVOpGPULaunch {
       CudaLaunchConfig config =
           GetCudaLaunchConfig(total_rows * total_cols, gpu_device);
 
-      SplitVOpKernel_fixed<T><<<config.block_count, config.thread_per_block, 0,
-                                gpu_device.stream()>>>(
+      hipLaunchKernel(HIP_KERNEL_NAME(SplitVOpKernel_fixed<T>), dim3(config.block_count), dim3(config.thread_per_block), 0, gpu_device.stream(), 
           input_ptr, total_rows, total_cols, output_ptr_data);
     } else {
       auto config = GetCuda2DLaunchConfig(total_cols, total_rows, gpu_device);

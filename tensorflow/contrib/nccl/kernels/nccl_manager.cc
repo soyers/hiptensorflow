@@ -396,7 +396,7 @@ void NcclManager::RunCollective(const string& key, Collective* collective) {
 void NcclManager::LoopKernelLaunches(NcclStream* nccl_stream) {
   perftools::gputools::Stream* comm_stream = nccl_stream->stream.get();
   ScopedActivateExecutorContext scoped_context(nccl_stream->executor);
-  const cudaStream_t* cu_stream = reinterpret_cast<const cudaStream_t*>(
+  const hipStream_t* cu_stream = reinterpret_cast<const hipStream_t*>(
       comm_stream->implementation()->CudaStreamMemberHack());
 
   while (true) {
