@@ -248,9 +248,7 @@ bool MaxPoolBackwardNoMask(const float* bottom_data, const int batch,
 
   hipLaunchKernel(HIP_KERNEL_NAME(SetZero), dim3((bottom_size + kThreadsPerBlock - 1) / kThreadsPerBlock), dim3(kThreadsPerBlock), 0, d.stream(), bottom_size, bottom_diff);
 
-  MaxPoolBackwardNoMaskNHWC<<<(top_size + kThreadsPerBlock - 1) /
-                                  kThreadsPerBlock,
-                              kThreadsPerBlock, 0, d.stream()>>>(
+  hipLaunchKernel(HIP_KERNEL_NAME(MaxPoolBackwardNoMaskNHWC), dim3((top_size + kThreadsPerBlock - 1) / kThreadsPerBlock), dim3(kThreadsPerBlock), 0, d.stream(), 
       top_size, bottom_data, height, width, channels, pooled_height,
       pooled_width, kernel_h, kernel_w, stride_h, stride_w, pad_t, pad_l,
       top_diff, bottom_diff);
@@ -271,9 +269,7 @@ bool MaxPoolBackwardNoMask(const Eigen::half* bottom_data, const int batch,
 
   hipLaunchKernel(HIP_KERNEL_NAME(SetZero), dim3((bottom_size + kThreadsPerBlock - 1) / kThreadsPerBlock), dim3(kThreadsPerBlock), 0, d.stream(), bottom_size, bottom_diff);
 
-  MaxPoolBackwardNoMaskNHWC<<<(top_size + kThreadsPerBlock - 1) /
-                                  kThreadsPerBlock,
-                              kThreadsPerBlock, 0, d.stream()>>>(
+  hipLaunchKernel(HIP_KERNEL_NAME(MaxPoolBackwardNoMaskNHWC), dim3((top_size + kThreadsPerBlock - 1) / kThreadsPerBlock), dim3(kThreadsPerBlock), 0, d.stream(), 
       top_size, bottom_data, height, width, channels, pooled_height,
       pooled_width, kernel_h, kernel_w, stride_h, stride_w, pad_t, pad_l,
       top_diff, bottom_diff);

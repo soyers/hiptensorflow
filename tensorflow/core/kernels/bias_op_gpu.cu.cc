@@ -206,10 +206,8 @@ void BiasGradGPU<T>::compute(const GPUDevice& d, const T* output_backprop,
   // Check if we have enough shared memory.
   if (shared_memory_size <= max_shared_memory_size) {
     if (data_format == FORMAT_NHWC) {
-      BiasGradNHWC_SharedAtomics<
-          T><<<config.block_count, config.thread_per_block, shared_memory_size,
-               d.stream()>>>(total_count, output_backprop, bias_backprop,
-                             bias_size);
+      hipLaunchKernel(HIP_KERNEL_NAME(BiasGradNHWC_SharedAtomics<T>), dim3(config.block_count), dim3(config.thread_per_block), shared_memory_size, d.stream(), 
+        total_count, output_backprop, bias_backprop, bias_size);
     } else {
       // Round up the block count to multiple of bias_size.
       int group_size = (config.block_count + bias_size - 1) / bias_size;

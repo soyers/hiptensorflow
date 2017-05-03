@@ -219,14 +219,10 @@ struct SplitVOpGPULaunch {
       // 4096 inputs is a lot, most code will take the smem path
       const int32 kMaxSmemBytesPerformance = 16384;
       if (smem_usage < smem_max && smem_usage < kMaxSmemBytesPerformance)
-        split_v_kernel<T, IntType,
-                       true><<<config.block_count, config.thread_per_block,
-                               smem_usage, gpu_device.stream()>>>(
+        hipLaunchKernel(HIP_KERNEL_NAME(split_v_kernel<T, IntType, true>), dim3(config.block_count), dim3(config.thread_per_block), smem_usage, gpu_device.stream(), 
             input_ptr, output_scan, total_rows, total_cols, output_ptr_data);
       else
-        split_v_kernel<T, IntType,
-                       false><<<config.block_count, config.thread_per_block, 0,
-                                gpu_device.stream()>>>(
+        hipLaunchKernel(HIP_KERNEL_NAME(split_v_kernel<T, IntType, false>), dim3(config.block_count), dim3(config.thread_per_block), 0, gpu_device.stream(), 
             input_ptr, output_scan, total_rows, total_cols, output_ptr_data);
     }
   }
