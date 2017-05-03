@@ -37,7 +37,8 @@ typedef Eigen::GpuDevice GPUDevice;
 namespace {
 
 template <typename T>
-__global__ void DilationKernel(const int32 nthreads, const T* input_ptr,
+__global__ void DilationKernel(hipLaunchParm lp,
+                               const int32 nthreads, const T* input_ptr,
                                const T* filter_ptr, int batch, int input_rows,
                                int input_cols, int depth, int filter_rows,
                                int filter_cols, int output_rows,
@@ -78,7 +79,7 @@ __global__ void DilationKernel(const int32 nthreads, const T* input_ptr,
 }
 
 template <typename T>
-__global__ void DilationBackpropInputKernel(
+__global__ void DilationBackpropInputKernel(hipLaunchParm lp,
     const int32 nthreads, const T* input_ptr, const T* filter_ptr,
     const T* out_backprop_ptr, int batch, int input_rows, int input_cols,
     int depth, int filter_rows, int filter_cols, int output_rows,
@@ -128,7 +129,7 @@ __global__ void DilationBackpropInputKernel(
 }
 
 template <typename T>
-__global__ void DilationBackpropFilterKernel(
+__global__ void DilationBackpropFilterKernel(hipLaunchParm lp,
     const int32 nthreads, const T* input_ptr, const T* filter_ptr,
     const T* out_backprop_ptr, int batch, int input_rows, int input_cols,
     int depth, int filter_rows, int filter_cols, int output_rows,

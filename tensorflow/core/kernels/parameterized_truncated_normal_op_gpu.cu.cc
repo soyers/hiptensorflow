@@ -48,8 +48,8 @@ namespace functor {
 typedef Eigen::GpuDevice GPUDevice;
 
 template <typename T>
-__global__ void __launch_bounds__(1024)
-    TruncatedNormalKernel(random::PhiloxRandom gen, T* data, int64 num_batches,
+__global__ void __launch_bounds__(1024, 1)
+    TruncatedNormalKernel(hipLaunchParm lp, random::PhiloxRandom gen, T* data, int64 num_batches,
                           int64 samples_per_batch, int64 num_elements,
                           const T* means, bool single_mean, const T* stddevs,
                           bool single_stddev, const T* minvals,

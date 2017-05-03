@@ -33,7 +33,7 @@ using GPUDevice = Eigen::GpuDevice;
 // Each element is mapped from input to output by a combination of its
 // 'segment_ids' mapping and 'inner_dim_size'.
 template <typename T, typename Index>
-__global__ void UnsortedSegmentSumCustomKernel(
+__global__ void UnsortedSegmentSumCustomKernel(hipLaunchParm lp,
     const Index input_outer_dim_size, const Index inner_dim_size,
     const Index output_outer_dim_size, const Index* segment_ids, const T* input,
     T* output) {

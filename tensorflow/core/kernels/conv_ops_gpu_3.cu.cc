@@ -127,7 +127,8 @@ EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Index<IndexCount> FlatToTensorIndex(
 
 // A Cuda custom kernel that swaps dimension-0 and dimension-2 of a 3D tensor.
 template <typename T>
-__global__ void SwapDimension0And2InTensor3(int nthreads, const T* input,
+__global__ void SwapDimension0And2InTensor3(hipLaunchParm lp,
+                                            int nthreads, const T* input,
                                             Dimension<3> input_dims,
                                             T* output) {
   Dimension<3> output_dims;
@@ -153,7 +154,8 @@ __global__ void SwapDimension0And2InTensor3(int nthreads, const T* input,
 
 // A Cuda custom kernel that swaps dimension-1 and dimension-2 of a 3D tensor.
 template <typename T>
-__global__ void SwapDimension1And2InTensor3(int nthreads, const T* input,
+__global__ void SwapDimension1And2InTensor3(hipLaunchParm lp,
+                                            int nthreads, const T* input,
                                             Dimension<3> input_dims,
                                             T* output) {
   Dimension<3> output_dims;
@@ -187,7 +189,8 @@ __global__ void SwapDimension1And2InTensor3(int nthreads, const T* input,
 // threads in a warp (32 in nvidia GPUs).  With a TileSize of 32, NumSubTiles ==
 // 4 or 8 seems to get the best performance on K40 GPUs.
 template <typename T, int TileSize, int NumSubTiles>
-__global__ void SwapDimension1And2InTensor3UsingTiles(const T* input,
+__global__ void SwapDimension1And2InTensor3UsingTiles(hipLaunchParm lp,
+                                                      const T* input,
                                                       Dimension<3> input_dims,
                                                       T* output) {
   // One extra line in the inner dimension to avoid share memory bank conflict.
@@ -276,7 +279,8 @@ __global__ void SwapDimension1And2InTensor3UsingTiles(const T* input,
 // A Cuda custom kernel that convert input to output, given proper padding on
 // the left and the top. The padded value is zero.
 template <typename T, int NDIMS>
-__global__ void PadInputCustomKernelNHWC(int nthreads, const T* input,
+__global__ void PadInputCustomKernelNHWC(hipLaunchParm lp,
+                                         int nthreads, const T* input,
                                          Dimension<NDIMS> input_dims, T* output,
                                          Dimension<NDIMS> output_dims,
                                          Dimension<NDIMS - 2> padding_left) {
@@ -305,7 +309,8 @@ __global__ void PadInputCustomKernelNHWC(int nthreads, const T* input,
 }
 
 template <typename T, int NDIMS>
-__global__ void PadInputCustomKernelNCHW(int nthreads, const T* input,
+__global__ void PadInputCustomKernelNCHW(hipLaunchParm lp,
+                                         int nthreads, const T* input,
                                          Dimension<NDIMS> input_dims, T* output,
                                          Dimension<NDIMS> output_dims,
                                          Dimension<NDIMS - 2> padding_left) {

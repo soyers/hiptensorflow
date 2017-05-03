@@ -40,7 +40,7 @@ DEFINE_GPU_KERNELS(float)
 #undef DEFINE_GPU_KERNELS
 
 template <typename dtype>
-__global__ void AvePoolBackwardNHWC(const int nthreads,
+__global__ void AvePoolBackwardNHWC(hipLaunchParm lp, const int nthreads,
                                     const dtype* const top_diff, const int num,
                                     const int height, const int width,
                                     const int channels, const int pooled_height,

@@ -30,7 +30,8 @@ namespace tensorflow {
 namespace {
 
 template <typename T>
-__global__ void ResizeNearestNeighborNHWC(const int nthreads, const T* bottom_data,
+__global__ void ResizeNearestNeighborNHWC(hipLaunchParm lp,
+                                          const int nthreads, const T* bottom_data,
                                           const int in_height, const int in_width,
                                           const int channels, const int out_height,
                                           const int out_width, const float height_scale,
@@ -53,7 +54,7 @@ __global__ void ResizeNearestNeighborNHWC(const int nthreads, const T* bottom_da
 }
 
 template <typename T>
-__global__ void ResizeNearestNeighborBackwardNHWC(
+__global__ void ResizeNearestNeighborBackwardNHWC(hipLaunchParm lp,
                                    const int nthreads, const T* top_diff,
                                    const int in_height, const int in_width,
                                    const int channels, const int out_height,

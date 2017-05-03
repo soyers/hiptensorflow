@@ -36,7 +36,8 @@ typedef Eigen::GpuDevice GPUDevice;
 
 // A Cuda kernel to compute the depthwise convolution forward pass.
 template <typename T>
-__global__ void DepthwiseConv2dGPUKernel(const DepthwiseArgs args,
+__global__ void DepthwiseConv2dGPUKernel(hipLaunchParm lp,
+                                         const DepthwiseArgs args,
                                          const T* input, const T* filter,
                                          T* output, int num_outputs) {
   const int in_rows = args.in_rows;
@@ -135,7 +136,8 @@ template struct DepthwiseConv2dGPULaunch<double>;
 
 // A Cuda kernel to compute the depthwise convolution backprop w.r.t. input.
 template <typename T>
-__global__ void DepthwiseConv2dBackpropInputGPUKernel(const DepthwiseArgs args,
+__global__ void DepthwiseConv2dBackpropInputGPUKernel(hipLaunchParm lp,
+                                                      const DepthwiseArgs args,
                                                       const T* out_backprop,
                                                       const T* filter,
                                                       T* in_backprop,
@@ -215,7 +217,8 @@ template struct DepthwiseConv2dBackpropInputGPULaunch<double>;
 
 // A Cuda kernel to compute the depthwise convolution backprop w.r.t. filter.
 template <typename T>
-__global__ void DepthwiseConv2dBackpropFilterGPUKernel(const DepthwiseArgs args,
+__global__ void DepthwiseConv2dBackpropFilterGPUKernel(hipLaunchParm lp,
+                                                       const DepthwiseArgs args,
                                                        const T* out_backprop,
                                                        const T* input,
                                                        T* filter_backprop,

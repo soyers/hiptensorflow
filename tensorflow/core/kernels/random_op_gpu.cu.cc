@@ -203,8 +203,8 @@ struct FillPhiloxRandomKernel<Distribution, true> {
 
 // A simple launch pad to call the correct function templates to fill the data
 template <class Distribution>
-__global__ void __launch_bounds__(1024)
-    FillPhiloxRandomKernelLaunch(random::PhiloxRandom base_gen,
+__global__ void __launch_bounds__(1024, 1)
+    FillPhiloxRandomKernelLaunch(hipLaunchParm lp, random::PhiloxRandom base_gen,
                                  typename Distribution::ResultElementType* data,
                                  int64 size, Distribution dist) {
   FillPhiloxRandomKernel<Distribution,

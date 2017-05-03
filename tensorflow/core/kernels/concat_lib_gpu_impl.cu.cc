@@ -34,7 +34,7 @@ typedef Eigen::GpuDevice GPUDevice;
 namespace {
 
 template <typename T, typename IntType>
-__global__ void concat_fixed_kernel(
+__global__ void concat_fixed_kernel(hipLaunchParm lp,
     CudaDeviceArrayStruct<const T*> input_ptr_data, int split_size,
     int total_rows, int total_cols, T* output) {
   const T** input_ptrs = GetCudaDeviceArrayOnDevice(&input_ptr_data);
@@ -58,7 +58,7 @@ __global__ void concat_fixed_kernel(
 
 // cannot be in anonymous namespace due to extern shared memory
 template <typename T, typename IntType, bool useSmem>
-__global__ void concat_variable_kernel(
+__global__ void concat_variable_kernel(hipLaunchParm lp,
     CudaDeviceArrayStruct<const T*> input_ptr_data,
     CudaDeviceArrayStruct<IntType> output_scan, IntType total_rows,
     IntType total_cols, T* output) {

@@ -28,7 +28,7 @@ namespace tensorflow {
 typedef Eigen::GpuDevice GPUDevice;
 
 template <typename T, typename Index, int IXDIM>
-__global__ void GatherSliceOpKernel(
+__global__ void GatherSliceOpKernel(hipLaunchParm lp,
     const T* params, const Index* indices, T* out,
     const Eigen::array<int64, IXDIM> batch_strides,
     const Eigen::array<int64, IXDIM> batch_indices, const int64 indices_size,

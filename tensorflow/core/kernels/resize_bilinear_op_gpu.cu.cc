@@ -34,7 +34,8 @@ typedef Eigen::GpuDevice GPUDevice;
 namespace {
 
 template <typename T>
-__global__ void ResizeBilinearKernel(const int32 nthreads, const T* images,
+__global__ void ResizeBilinearKernel(hipLaunchParm lp,
+                                     const int32 nthreads, const T* images,
                                      float height_scale, float width_scale,
                                      int batch, int in_height, int in_width,
                                      int channels, int out_height,
@@ -85,7 +86,7 @@ __global__ void ResizeBilinearKernel(const int32 nthreads, const T* images,
 }
 
 template <typename T>
-__global__ void ResizeBilinearGradKernel(
+__global__ void ResizeBilinearGradKernel(hipLaunchParm lp,
     const int32 nthreads, const float* input_grad, float height_scale,
     float width_scale, int batch, int original_height, int original_width,
     int channels, int resized_height, int resized_width, T* output_grad) {

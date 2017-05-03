@@ -31,7 +31,7 @@ namespace tensorflow {
 typedef Eigen::GpuDevice GPUDevice;
 
 template <typename T, typename Index, scatter_op::UpdateOp op>
-__global__ void ScatterOpCustomKernel(
+__global__ void ScatterOpCustomKernel(hipLaunchParm lp,
     T* params, const T* updates, const Index* indices,
     Index first_dim_size, Index updates_size, Index indices_size) {
   Index update_block = updates_size / indices_size;

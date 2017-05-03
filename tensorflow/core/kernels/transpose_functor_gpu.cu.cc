@@ -26,7 +26,8 @@ namespace tensorflow {
 namespace internal {
 
 template <typename T>
-__global__ void TransposeKernel(int nthreads, const T* src, const int32* buf,
+__global__ void TransposeKernel(hipLaunchParm lp,
+                                int nthreads, const T* src, const int32* buf,
                                 const int32 ndims, T* dst) {
   const int32* in_strides = buf;
   const int32* out_strides = buf + ndims;

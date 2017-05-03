@@ -46,7 +46,8 @@ struct AccumulatorType<Eigen::half> {
 // Definition of the GPU implementations declared in bias_op.cc.
 
 template <typename T>
-__global__ void BiasNHWCKernel(int32 nthreads, const T* input, const T* bias,
+__global__ void BiasNHWCKernel(hipLaunchParm lp,
+                               int32 nthreads, const T* input, const T* bias,
                                T* output, int32 bias_size) {
   CUDA_1D_KERNEL_LOOP(index, nthreads) {
     int32 bias_offset = index % bias_size;
@@ -55,7 +56,8 @@ __global__ void BiasNHWCKernel(int32 nthreads, const T* input, const T* bias,
 }
 
 template <typename T>
-__global__ void BiasNCHWKernel(int32 nthreads, const T* input, const T* bias,
+__global__ void BiasNCHWKernel(hipLaunchParm lp,
+                               int32 nthreads, const T* input, const T* bias,
                                T* output, int32 bias_size, int32 image_size) {
   CUDA_1D_KERNEL_LOOP(index, nthreads) {
     int32 index2 = index / image_size;
@@ -89,7 +91,8 @@ void BiasGPU<T>::compute(const GPUDevice& d, const T* input, const T* bias,
 
 // A naive implementation that is functional on all cases.
 template <typename T>
-__global__ void BiasGradNHWC_Naive(int32 nthreads, const T* output_backprop,
+__global__ void BiasGradNHWC_Naive(hipLaunchParm lp,
+                                   int32 nthreads, const T* output_backprop,
                                    T* bias_backprop, int32 bias_size) {
   CUDA_1D_KERNEL_LOOP(index, nthreads) {
     int32 bias_offset = index % bias_size;
@@ -99,7 +102,8 @@ __global__ void BiasGradNHWC_Naive(int32 nthreads, const T* output_backprop,
 
 // A naive implementation that is functional on all cases.
 template <typename T>
-__global__ void BiasGradNCHW_Naive(int32 nthreads, const T* output_backprop,
+__global__ void BiasGradNCHW_Naive(hipLaunchParm lp,
+                                   int32 nthreads, const T* output_backprop,
                                    T* bias_backprop, int32 bias_size,
                                    int32 image_size) {
   CUDA_1D_KERNEL_LOOP(index, nthreads) {
@@ -112,7 +116,7 @@ __global__ void BiasGradNCHW_Naive(int32 nthreads, const T* output_backprop,
 HIP_DYNAMIC_SHARED( char, s_buf)
 
 template <typename T>
-__global__ void BiasGradNHWC_SharedAtomics(int32 nthreads,
+__global__ void BiasGradNHWC_SharedAtomics(hipLaunchParm lp, int32 nthreads,
                                            const T* output_backprop,
                                            T* bias_backprop, int32 bias_size) {
   typedef typename AccumulatorType<T>::type AccT;
@@ -135,7 +139,8 @@ __global__ void BiasGradNHWC_SharedAtomics(int32 nthreads,
 }
 
 template <typename T>
-__global__ void BiasGradNCHW_SharedAtomics(const T* output_backprop,
+__global__ void BiasGradNCHW_SharedAtomics(hipLaunchParm lp,
+                                           const T* output_backprop,
                                            T* bias_backprop, int32 batch,
                                            int32 bias_size, int32 image_size,
                                            int group_size) {

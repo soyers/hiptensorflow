@@ -51,7 +51,8 @@ namespace {
 // const int output_size = batch * channels * pooled_height * pooled_width;
 // hipLaunchKernel(HIP_KERNEL_NAME(MaxPoolForwardNCHW), dim3((output_size + kThreadsPerBlock - 1) / kThreadsPerBlock), dim3(//                      kThreadsPerBlock), 0, cuda_stream, ...);
 template <typename dtype>
-__global__ void MaxPoolForwardNCHW(const int nthreads, const dtype* bottom_data,
+__global__ void MaxPoolForwardNCHW(hipLaunchParm lp,
+                                   const int nthreads, const dtype* bottom_data,
                                    const int channels, const int height,
                                    const int width, const int pooled_height,
                                    const int pooled_width, const int kernel_h,
@@ -90,7 +91,8 @@ __global__ void MaxPoolForwardNCHW(const int nthreads, const dtype* bottom_data,
 }
 
 template <typename dtype>
-__global__ void MaxPoolForwardNHWC(const int nthreads, const dtype* bottom_data,
+__global__ void MaxPoolForwardNHWC(hipLaunchParm lp,
+                                   const int nthreads, const dtype* bottom_data,
                                    const int height, const int width,
                                    const int channels, const int pooled_height,
                                    const int pooled_width, const int kernel_h,
@@ -130,7 +132,7 @@ __global__ void MaxPoolForwardNHWC(const int nthreads, const dtype* bottom_data,
 }
 
 template <typename dtype>
-__global__ void MaxPoolBackwardNoMaskNHWC(
+__global__ void MaxPoolBackwardNoMaskNHWC(hipLaunchParm lp,
     const int nthreads, const dtype* bottom_data, const int height,
     const int width, const int channels, const int pooled_height,
     const int pooled_width, const int kernel_h, const int kernel_w,
@@ -189,7 +191,8 @@ __global__ void MaxPoolBackwardNoMaskNHWC(
 // the kernel is run, you will need to make sure that bottom_diff is filled with
 // zero first.
 template <typename dtype>
-__global__ void MaxPoolBackward(const int nthreads, const dtype* top_diff,
+__global__ void MaxPoolBackward(hipLaunchParm lp,
+                                const int nthreads, const dtype* top_diff,
                                 const int64* mask, const int top_offset,
                                 const int bottom_offset, dtype* bottom_diff) {
   CUDA_1D_KERNEL_LOOP(index, nthreads) {

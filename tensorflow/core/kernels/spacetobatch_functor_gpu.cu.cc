@@ -46,7 +46,8 @@ struct S2BParameters {
 // To simplify template implementation given lack of constexpr if, both the
 // input and output pointers are non-const.
 template <typename T, int NUM_BLOCK_DIMS, bool B2S>
-__global__ void S2B(const int32 nthreads, T* space_tensor_ptr,
+__global__ void S2B(hipLaunchParm lp,
+                    const int32 nthreads, T* space_tensor_ptr,
                     S2BParameters<NUM_BLOCK_DIMS> args, T* batch_tensor_ptr) {
   CUDA_1D_KERNEL_LOOP(batch_tensor_idx, nthreads) {
     int32 remaining_batch_tensor_idx = batch_tensor_idx;

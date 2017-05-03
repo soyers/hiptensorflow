@@ -29,7 +29,7 @@ namespace tensorflow {
 typedef Eigen::GpuDevice GPUDevice;
 
 template <typename dtype>
-__global__ void D2S(const int32 nthreads, const dtype* input_ptr,
+__global__ void D2S(hipLaunchParm lp, const int32 nthreads, const dtype* input_ptr,
                     const int block_size, const int batch_size,
                     const int input_height, const int input_width,
                     const int input_depth, const int output_height,

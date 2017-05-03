@@ -254,7 +254,7 @@ CUDA_ATOMIC_WRAPPER(Add, Eigen::half) {
 }
 
 template <typename T>
-__global__ void SetZero(const int nthreads, T* bottom_diff) {
+__global__ void SetZero(hipLaunchParm lp, const int nthreads, T* bottom_diff) {
   CUDA_1D_KERNEL_LOOP(index, nthreads) { *(bottom_diff + index) = T(0); }
 }
 

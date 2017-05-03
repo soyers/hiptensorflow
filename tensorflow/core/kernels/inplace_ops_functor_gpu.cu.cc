@@ -28,7 +28,8 @@ namespace functor {
 typedef Eigen::GpuDevice Device;
 
 template <typename T>
-__global__ void DoParallelConcatOpKernel(int nthreads, const int64 rows,
+__global__ void DoParallelConcatOpKernel(hipLaunchParm lp,
+                                         int nthreads, const int64 rows,
                                          const int64 cols, int32 loc,
                                          const T* src, T* dst) {
   CUDA_1D_KERNEL_LOOP(idx, nthreads) {
