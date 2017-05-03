@@ -92,7 +92,7 @@ class CUDARng : public rng::RngSupport {
   CUDAExecutor *parent_;
 
   // cuRANDalibrary handle on the device.
-  //curandGenerator_t rng_ GUARDED_BY(mu_);
+  hiprngGenerator_t rng_ GUARDED_BY(mu_);
 
   SE_DISALLOW_COPY_AND_ASSIGN(CUDARng);
 };

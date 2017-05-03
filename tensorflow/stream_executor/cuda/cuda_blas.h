@@ -103,7 +103,7 @@ class CUDABlas : public blas::BlasSupport {
   CUDAExecutor *parent_;
 
   // cuBLAS library handle on the device.
-  //cublasHandle_t blas_ GUARDED_BY(mu_);
+  hipblasHandle_t blas_ GUARDED_BY(mu_);
 
   SE_DISALLOW_COPY_AND_ASSIGN(CUDABlas);
 };
