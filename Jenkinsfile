@@ -12,25 +12,6 @@ properties([buildDiscarder(logRotator(
 
 ////////////////////////////////////////////////////////////////////////
 // -- HELPER AUXILLARY FUNCTIONS
-// Construct the path of the build directory
-// This doesn't parse in a jenkinsfile because of returning multiple values
-// https://issues.jenkins-ci.org/browse/JENKINS-38846
-// def build_directory( String build_config, String root_path )
-// {
-//   String build_dir_rel = ""
-
-//   if( build_config.equalsIgnoreCase( 'release' ) )
-//   {
-//     build_dir_rel = "build/release"
-//   }
-//   else
-//   {
-//     build_dir_rel = "build/debug"
-//   }
-//   String build_dir_abs = "${root_path}/${build_dir_rel}"
-
-//   return [ build_dir_rel, build_dir_abs ]
-// }
 
 ////////////////////////////////////////////////////////////////////////
 // Construct the relative path of the build directory
@@ -49,7 +30,7 @@ String build_directory_rel( String build_config )
 ////////////////////////////////////////////////////////////////////////
 // -- FUNCTIONS RELATED TO BUILD
 // This encapsulates running of unit tests
-def docker_build_image(  )
+def docker_build_image( String src_dir_abs )
 {
   String project = "hiptensorflow"
   String build_type_name = "build-ubuntu-16.04"
@@ -59,7 +40,7 @@ def docker_build_image(  )
 
   stage('ubuntu-16.04 image')
   {
-    dir('src/hiptensorflow/docker')
+    dir("${src_dir_abs}/hiptensorflow/docker")
     {
       build_image = docker.build( "${project}/${build_image_name}:latest", "-f ${dockerfile_name} ." )
     }
@@ -233,7 +214,7 @@ def hiptensorflow_build_pipeline( String build_config )
   String source_dir_abs = checkout_and_version( "${workspace_dir_abs}" )
 
   // Create/reuse a docker image that represents the hiptensorflow build environment
-  def hiptensorflow_build_image = docker_build_image( )
+  def hiptensorflow_build_image = docker_build_image( "${source_dir_abs}" )
 
   String build_dir_rel = build_directory_rel( build_config );
   String build_dir_abs = "${workspace_dir_abs}/" + build_dir_rel
@@ -241,7 +222,7 @@ def hiptensorflow_build_pipeline( String build_config )
   // Build hiptensorflow inside of the build environment
   docker_build_inside_image( hiptensorflow_build_image, "${build_config}", "${source_dir_abs}", "${build_dir_abs}" )
 
-  docker_upload_artifactory( "${build_config}", "${workspace_dir_abs}" )
+  // docker_upload_artifactory( "${build_config}", "${workspace_dir_abs}" )
 
   return void
 }

@@ -19,15 +19,18 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install --no-instal
     cmake \
     python-dev \
     python-numpy \
-    swig \
+    python-setuptools \
     python-wheel \
+    swig \
+    rsync \
     libcurl4-openssl-dev \
+    oracle-java8-installer \
     pkg-config \
     zip \
     zlib1g-dev \
     unzip \
     bash-completion \
-    oracle-java8-installer \
+    libopenblas-dev \
     rocm-dev \
     && \
     apt-get clean && \
