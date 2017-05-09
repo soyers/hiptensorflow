@@ -90,7 +90,7 @@ class EigenCudaStreamDevice : public ::Eigen::StreamInterface {
         reinterpret_cast<unsigned int*>(scratch + Eigen::kCudaScratchSize);
     stream_ = cuda_stream;
     allocator_ = alloc;
-    device_prop_ = &Eigen::m_deviceProperties[gpu_id];
+    *(const_cast<hipDeviceProp_t*>(device_prop_)) = Eigen::m_deviceProperties[gpu_id];
   }
 
   const hipStream_t& stream() const override { return *stream_; }
