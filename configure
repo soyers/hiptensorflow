@@ -210,17 +210,30 @@ else
     esac
   done
 
+  ## Set up HIP-related environment settings
+
+  while [ "$TF_NEED_HIP" == "" ]; do
+    read -p "Do you wish to build TensorFlow with HIP support? [y/N] " INPUT
+    case $INPUT in
+      [Yy]* ) echo "HIP support will be enabled for TensorFlow"; TF_NEED_HIP=1;;
+      [Nn]* ) echo "No HIP support will be enabled for TensorFlow"; TF_NEED_HIP=0;;
+      "" ) echo "No HIP support will be enabled for TensorFlow"; TF_NEED_HIP=0;;
+      * ) echo "Invalid selection: " $INPUT;;
+    esac
+  done
+
   export TF_NEED_CUDA
   export TF_NEED_OPENCL
+  export TF_NEED_HIP
   export TF_GPU_PLATFORM
 fi
-if [[ "$TF_NEED_CUDA" == "0" ]] && [[ "$TF_NEED_OPENCL" == "0" ]]; then
+if [[ "$TF_NEED_CUDA" == "0" ]] && [[ "$TF_NEED_OPENCL" == "0" ]] && [[ "$TF_NEED_HIP" == "0" ]]; then
   echo "Configuration finished"
   bazel_clean_and_fetch
   exit
 fi
 
-if [ "$TF_NEED_CUDA" == "1" ]; then
+if [ "$TF_NEED_HIP" == "1" ]; then
   # Set up which gcc nvcc should use as the host compiler
   # No need to set this on Windows
   while ! is_windows && true; do
