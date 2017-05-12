@@ -12,7 +12,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
-
+#ifdef __HIP_PLATFORM_NVCC__
 #include "tensorflow/stream_executor/cuda/cuda_dnn.h"
 
 #include <functional>
@@ -3527,3 +3527,4 @@ void initialize_cudnn() {
 
 REGISTER_MODULE_INITIALIZER(register_cudnn,
                             { perftools::gputools::initialize_cudnn(); });
+#endif

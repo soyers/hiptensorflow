@@ -55,11 +55,11 @@ class CUDAFftPlan : public fft::Plan {
 
   // Get FFT direction in cuFFT based on FFT type.
   int GetFftDirection() const;
-  cufftHandle GetPlan() const { return plan_; }
+  hipfftHandle GetPlan() const { return plan_; }
 
  private:
   CUDAExecutor *parent_;
-  cufftHandle plan_;
+  hipfftHandle plan_;
   fft::Type fft_type_;
 };
 

@@ -109,12 +109,16 @@ static CUDATimer *AsCUDATimer(Timer *timer) {
 // N.B. we must lose constness in order to pass a suitable type to the existing
 // libcuda APIs, so the caller should take care to only pass the result of const
 // GPU memory conversions to libcuda functions which will honor constness.
-static CUdeviceptr AsCudaDevicePtr(const DeviceMemoryBase &gpu_mem) {
-  return reinterpret_cast<CUdeviceptr>(gpu_mem.opaque());
+static hipDeviceptr_t AsCudaDevicePtr(const DeviceMemoryBase &gpu_mem) {
+#ifdef __HIP_PLATFORM_NVCC__
+  return reinterpret_cast<hipDeviceptr_t>(gpu_mem.opaque());
+#elif defined(__HIP_PLATFORM_HCC__)
+  return const_cast<hipDeviceptr_t>(gpu_mem.opaque());
+#endif
 }
 
 // See description on const version above.
-static CUdeviceptr AsCudaDevicePtr(DeviceMemoryBase *gpu_mem) {
+static hipDeviceptr_t AsCudaDevicePtr(DeviceMemoryBase *gpu_mem) {
   return AsCudaDevicePtr(*gpu_mem);
 }
 
@@ -231,7 +235,7 @@ static string GetBinaryDir(bool strip_exe) {
 bool CUDAExecutor::GetKernel(const MultiKernelLoaderSpec &spec,
                              KernelBase *kernel) {
   CUDAKernel *cuda_kernel = AsCUDAKernel(kernel);
-  CUmodule module = nullptr;
+  hipModule_t module = nullptr;
   const string *kernelname;
 
   const OnDiskKernelLoaderSpec *on_disk_spec = nullptr;
@@ -648,7 +652,7 @@ void CUDAExecutor::DeallocateTimer(Timer *timer) {
 }
 
 bool CUDAExecutor::CreateStreamDependency(Stream *dependent, Stream *other) {
-  CUevent other_completed_event = *AsCUDAStream(other)->completed_event();
+  hipEvent_t other_completed_event = *AsCUDAStream(other)->completed_event();
   bool ok = CUDADriver::RecordEvent(context_, other_completed_event,
                                     AsCUDAStreamValue(other))
       .ok();
@@ -746,7 +750,7 @@ port::Status CUDAExecutor::EnablePeerAccessTo(StreamExecutorInterface *other) {
 }
 
 SharedMemoryConfig CUDAExecutor::GetDeviceSharedMemoryConfig() {
-  port::StatusOr<CUsharedconfig> cuda_config =
+  port::StatusOr<hipSharedMemConfig> cuda_config =
       CUDADriver::ContextGetSharedMemConfig(context_);
   if (!cuda_config.ok()) {
     // Don't log; the failed call will log necessary output.
@@ -754,11 +758,23 @@ SharedMemoryConfig CUDAExecutor::GetDeviceSharedMemoryConfig() {
   }
 
   switch (cuda_config.ValueOrDie()) {
+#ifdef __HIP_PLATFORM_NVCC__
     case CU_SHARED_MEM_CONFIG_DEFAULT_BANK_SIZE:
+#elif defined (__HIP_PLATFORM_HCC__)
+    case hipSharedMemBankSizeDefault:
+#endif
       return SharedMemoryConfig::kDefault;
+#ifdef __HIP_PLATFORM_NVCC__
     case CU_SHARED_MEM_CONFIG_FOUR_BYTE_BANK_SIZE:
+#elif defined (__HIP_PLATFORM_HCC__)
+    case hipSharedMemBankSizeFourByte:
+#endif
       return SharedMemoryConfig::kFourByte;
+#ifdef __HIP_PLATFORM_NVCC__
     case CU_SHARED_MEM_CONFIG_EIGHT_BYTE_BANK_SIZE:
+#elif defined (__HIP_PLATFORM_HCC__)
+    case hipSharedMemBankSizeEightByte:
+#endif
       return SharedMemoryConfig::kEightByte;
     default:
       LOG(FATAL) << "Invalid shared memory configuration returned: "
@@ -768,16 +784,28 @@ SharedMemoryConfig CUDAExecutor::GetDeviceSharedMemoryConfig() {
 
 port::Status CUDAExecutor::SetDeviceSharedMemoryConfig(
     SharedMemoryConfig config) {
-  CUsharedconfig cuda_config;
+  hipSharedMemConfig cuda_config;
   switch (config) {
     case SharedMemoryConfig::kDefault:
+#ifdef __HIP_PLATFORM_NVCC__
       cuda_config = CU_SHARED_MEM_CONFIG_DEFAULT_BANK_SIZE;
+#elif defined (__HIP_PLATFORM_HCC__)
+      cuda_config = hipSharedMemBankSizeDefault;
+#endif
       break;
     case SharedMemoryConfig::kFourByte:
+#ifdef __HIP_PLATFORM_NVCC__
       cuda_config = CU_SHARED_MEM_CONFIG_FOUR_BYTE_BANK_SIZE;
+#elif defined (__HIP_PLATFORM_HCC__)
+      cuda_config = hipSharedMemBankSizeFourByte;
+#endif
       break;
     case SharedMemoryConfig::kEightByte:
+#ifdef __HIP_PLATFORM_NVCC__
       cuda_config = CU_SHARED_MEM_CONFIG_EIGHT_BYTE_BANK_SIZE;
+#elif defined (__HIP_PLATFORM_HCC__)
+      cuda_config = hipSharedMemBankSizeEightByte;
+#endif
       break;
     default:
       LOG(FATAL) << "Invalid shared memory configuration specified: "
@@ -796,7 +824,7 @@ bool CUDAExecutor::GetSymbol(const string& symbol_name, void **mem,
     mutex_lock lock{disk_modules_mu_};
     for (auto &it : disk_modules_) {
       if (CUDADriver::GetModuleSymbol(context_, it.second, symbol_name.c_str(),
-                                      reinterpret_cast<CUdeviceptr *>(mem),
+                                      reinterpret_cast<hipDeviceptr_t *>(mem),
                                       bytes)) {
         return true;
       }
@@ -807,7 +835,7 @@ bool CUDAExecutor::GetSymbol(const string& symbol_name, void **mem,
     mutex_lock lock{in_memory_modules_mu_};
     for (auto &it : in_memory_modules_) {
       if (CUDADriver::GetModuleSymbol(context_, it.second, symbol_name.c_str(),
-                                      reinterpret_cast<CUdeviceptr *>(mem),
+                                      reinterpret_cast<hipDeviceptr_t *>(mem),
                                       bytes)) {
         return true;
       }

@@ -52,9 +52,9 @@ Event::Status CUDAEvent::PollForStatus() {
   }
 
   switch (status.ValueOrDie()) {
-    case CUDA_SUCCESS:
+    case hipSuccess:
       return Event::Status::kComplete;
-    case CUDA_ERROR_NOT_READY:
+    case hipErrorNotReady:
       return Event::Status::kPending;
     default:
       LOG(INFO) << "Error condition returned for event status: "
@@ -63,7 +63,7 @@ Event::Status CUDAEvent::PollForStatus() {
   }
 }
 
-const CUevent& CUDAEvent::cuda_event() {
+const hipEvent_t& CUDAEvent::cuda_event() {
   return cuda_event_;
 }
 

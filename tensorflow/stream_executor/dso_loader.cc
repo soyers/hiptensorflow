@@ -50,10 +50,17 @@ string GetCudnnVersion() { return TF_CUDNN_VERSION; }
   // libcudnn is versioned differently than the other libraries and may have a
   // different version number than other CUDA libraries.  See b/22397368 for
   // some details about the complications surrounding this.
+#ifdef __HIP_PLATFORM_NVCC__ 
   return GetDsoHandle(FindDsoPath(port::Env::Default()->FormatLibraryFileName(
                                       "cudnn", GetCudnnVersion()),
                                   GetCudaLibraryDirPath()),
                       dso_handle);
+#elif defined(__HIP_PLATFORM_HCC__)
+  return GetDsoHandle(FindDsoPath("libMLOpen.so",
+                                  GetCudaLibraryDirPath()),
+                                  dso_handle);
+#endif
+
 }
 
 /* static */ port::Status DsoLoader::GetCufftDsoHandle(void** dso_handle) {

@@ -146,7 +146,9 @@ PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipModuleGetGlobal);
 PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipModuleLoadData);
 //PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(cuModuleLoadFatBinary);//TODO
 PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipModuleUnload);
+#ifdef __HIP_PLATFORM_NVCC__
 PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipOccupancyMaxActiveBlocksPerMultiprocessor);
+#endif
 PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipPointerGetAttributes);
 PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipStreamAddCallback);
 PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipStreamCreateWithFlags);
@@ -572,7 +574,7 @@ static port::Status InternalInit() {
 bool DeviceOptionsToContextFlags(DeviceOptions device_options, int *flags) {
   static_assert(DeviceOptions::kMask == 0xf,
                 "needs update for new device options");
-
+#ifdef __HIP_PLATFORM_NVCC__
   if (device_options.flags() & DeviceOptions::kDoNotReclaimStackAllocation) {
     *flags |= CU_CTX_LMEM_RESIZE_TO_MAX;
   }
@@ -588,7 +590,7 @@ bool DeviceOptionsToContextFlags(DeviceOptions device_options, int *flags) {
   if (device_options.flags() & DeviceOptions::kScheduleBlockingSync) {
     *flags |= CU_CTX_SCHED_BLOCKING_SYNC;
   }
-
+#endif
   return true;
 }
 
@@ -683,7 +685,7 @@ bool DeviceOptionsToContextFlags(DeviceOptions device_options, int *flags) {
   return true;
 }
 
-/* static */ port::StatusOr<CUsharedconfig>
+/* static */ port::StatusOr<hipSharedMemConfig>
 CUDADriver::ContextGetSharedMemConfig(CudaContext* context) {
   hipSharedMemConfig shared_mem_config;
   ScopedActivateContext activation{context};
@@ -1739,8 +1741,12 @@ static port::StatusOr<T> GetSimpleAttribute(hipDevice_t device,
   ScopedActivateContext activation{context};
 
   int max_blocks;
+#ifdef __HIP_PLATFORM_NVCC__
   hipError_t result = dynload::hipOccupancyMaxActiveBlocksPerMultiprocessor(
       &max_blocks, const_cast<void*>((void*)kernel), threads_per_block, dynamic_shared_memory_bytes);
+#elif defined(__HIP_PLATFORM_HCC__)
+  hipError_t result = hipSuccess;
+#endif
   if (result != hipSuccess) {
     return port::Status{
         port::error::INTERNAL,

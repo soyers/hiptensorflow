@@ -119,11 +119,12 @@ def _gcc_host_compiler_includes(repository_ctx, cc):
 
 
 def _enable_cuda(repository_ctx):
+  enable_cuda = 0
   if "TF_NEED_CUDA" in repository_ctx.os.environ:
     enable_cuda = repository_ctx.os.environ["TF_NEED_CUDA"].strip()
-    return enable_cuda == "1"
-  return False
-
+  if "TF_NEED_HIP" in repository_ctx.os.environ:
+    enable_cuda = repository_ctx.os.environ["TF_NEED_HIP"].strip()
+  return enable_cuda == "1"
 
 def _cuda_toolkit_path(repository_ctx):
   """Finds the cuda toolkit directory.
@@ -633,6 +634,8 @@ def _find_libs_hip(repository_ctx, hip_config):
           "hiprng", repository_ctx, cpu_value, hip_config.hip_lib_path + "/hiprng"),
       "hipfft": _find_hip_lib(
           "hipfft", repository_ctx, cpu_value, hip_config.hip_lib_path + "/hipfft"),
+      "MLOpen": _find_hip_lib(
+          "MLOpen", repository_ctx, cpu_value, hip_config.hip_lib_path + "/MLOpen"),
   }
 
 def _find_cudnn_header_dir(repository_ctx, cudnn_install_basedir):
@@ -698,11 +701,18 @@ def _get_cuda_config(repository_ctx):
       compute_capabilities: A list of the system's CUDA compute capabilities.
       cpu_value: The name of the host operating system.
   """
+  gpu_value =  _find_gpu_platform(repository_ctx) 
   cpu_value = _cpu_value(repository_ctx)
-  cuda_toolkit_path = _cuda_toolkit_path(repository_ctx)
-  cuda_version = _cuda_version(repository_ctx, cuda_toolkit_path, cpu_value)
-  cudnn_install_basedir = _cudnn_install_basedir(repository_ctx)
-  cudnn_version = _cudnn_version(repository_ctx, cudnn_install_basedir, cpu_value)
+  if gpu_value == "NVIDIA":
+    cuda_toolkit_path = _cuda_toolkit_path(repository_ctx)
+    cuda_version = _cuda_version(repository_ctx, cuda_toolkit_path, cpu_value)
+    cudnn_install_basedir = _cudnn_install_basedir(repository_ctx)
+    cudnn_version = _cudnn_version(repository_ctx, cudnn_install_basedir, cpu_value)
+  if gpu_value == "AMD":
+    cuda_toolkit_path = "/opt/rocm"
+    cuda_version = "1.0"
+    cudnn_install_basedir = "/opt/rocm"
+    cudnn_version = "1.0"
   return struct(
       cuda_toolkit_path = cuda_toolkit_path,
       cudnn_install_basedir = cudnn_install_basedir,
@@ -727,12 +737,14 @@ def _get_hip_config(repository_ctx):
       cpu_value: The name of the host operating system.
   """
   cpu_value = _cpu_value(repository_ctx)
+  gpu_value = _find_gpu_platform(repository_ctx)
   hip_path = _hip_path(repository_ctx)
   hip_lib_path = _hip_lib_path(repository_ctx)
   return struct(
       hip_path = hip_path,
       hip_lib_path = hip_lib_path,
-      cpu_value = cpu_value)
+      cpu_value = cpu_value,
+      gpu_value = gpu_value)
 
 
 def _tpl(repository_ctx, tpl, substitutions={}, out=None):
@@ -871,21 +883,21 @@ def _create_cuda_repository(repository_ctx):
   cuda_config = _get_cuda_config(repository_ctx)
   hip_config = _get_hip_config(repository_ctx)
 
-  cudnn_header_dir = _find_cudnn_header_dir(repository_ctx,
-                                            cuda_config.cudnn_install_basedir)
+  #cudnn_header_dir = _find_cudnn_header_dir(repository_ctx,
+  #                                          cuda_config.cudnn_install_basedir)
 
   # Set up symbolic links for the cuda toolkit. We link at the individual file
   # level not at the directory level. This is because the external library may
   # have a different file layout from our desired structure.
-  cuda_toolkit_path = cuda_config.cuda_toolkit_path
+  #cuda_toolkit_path = cuda_config.cuda_toolkit_path
   hip_path = hip_config.hip_path
   hiplib_path = hip_config.hip_lib_path
 
-  _symlink_dir(repository_ctx, cuda_toolkit_path + "/include", "cuda/include")
-  _symlink_dir(repository_ctx, cuda_toolkit_path + "/bin", "cuda/bin")
-  _symlink_dir(repository_ctx, cuda_toolkit_path + "/nvvm", "cuda/nvvm")
-  _symlink_dir(repository_ctx, cuda_toolkit_path + "/extras/CUPTI/include",
-               "cuda/extras/CUPTI/include")
+  #_symlink_dir(repository_ctx, cuda_toolkit_path + "/include", "cuda/include")
+  #_symlink_dir(repository_ctx, cuda_toolkit_path + "/bin", "cuda/bin")
+  #_symlink_dir(repository_ctx, cuda_toolkit_path + "/nvvm", "cuda/nvvm")
+  #_symlink_dir(repository_ctx, cuda_toolkit_path + "/extras/CUPTI/include",
+  #             "cuda/extras/CUPTI/include")
   _symlink_dir(repository_ctx, hip_path + "/include", "cuda/include")
   _symlink_dir(repository_ctx, hip_path + "/bin", "cuda/bin")
 
@@ -901,18 +913,21 @@ def _create_cuda_repository(repository_ctx):
   _symlink_dir(repository_ctx, hiplib_path + "/hipblas/include",
                          "cuda/include/hipblas")
 
-  cuda_libs = _find_libs(repository_ctx, cuda_config)
-  for lib in cuda_libs.values():
-    repository_ctx.symlink(lib.path, "cuda/lib/" + lib.file_name)
+  #Including MLOpen header
+  _symlink_dir(repository_ctx, hiplib_path + "/MLOpen/include/",
+                         "cuda/include/MLOpen")
+  #cuda_libs = _find_libs(repository_ctx, cuda_config)
+  #for lib in cuda_libs.values():
+  #  repository_ctx.symlink(lib.path, "cuda/lib/" + lib.file_name)
   hip_libs = _find_libs_hip(repository_ctx, hip_config)
   for lib in hip_libs.values():
     repository_ctx.symlink(lib.path, "cuda/lib/" + lib.file_name)
 
   # Set up the symbolic links for cudnn if cudnn was was not installed to
   # CUDA_TOOLKIT_PATH.
-  if not repository_ctx.path("cuda/include/cudnn.h").exists:
-    repository_ctx.symlink(cudnn_header_dir + "/cudnn.h",
-                           "cuda/include/cudnn.h")
+  #if not repository_ctx.path("cuda/include/cudnn.h").exists:
+  #  repository_ctx.symlink(cudnn_header_dir + "/cudnn.h",
+  #                         "cuda/include/cudnn.h")
 
   # Set up BUILD file for cuda/
   _tpl(repository_ctx, "cuda:build_defs.bzl",
@@ -921,15 +936,15 @@ def _create_cuda_repository(repository_ctx):
        })
   _tpl(repository_ctx, "cuda:BUILD",
        {
-           "%{cudart_static_lib}": cuda_libs["cudart_static"].file_name,
+           "%{cudart_static_lib}": hip_libs["hip"].file_name,
            "%{cudart_static_linkopt}": _cudart_static_linkopt(
                cuda_config.cpu_value),
-           "%{cudart_lib}": cuda_libs["cudart"].file_name,
+           "%{cudart_lib}": hip_libs["hip"].file_name,
            "%{cublas_lib}": hip_libs["hipblas"].file_name,
-           "%{cudnn_lib}": cuda_libs["cudnn"].file_name,
+           "%{cudnn_lib}": hip_libs["MLOpen"].file_name,
            "%{cufft_lib}": hip_libs["hipfft"].file_name,
            "%{curand_lib}": hip_libs["hiprng"].file_name,
-           "%{cupti_lib}": cuda_libs["cupti"].file_name,
+           #"%{cupti_lib}": cuda_libs["cupti"].file_name,
        })
 
   _tpl(repository_ctx, "cuda:platform.bzl",
@@ -945,7 +960,7 @@ def _create_cuda_repository(repository_ctx):
   gcc_host_compiler_includes = _gcc_host_compiler_includes(repository_ctx, cc)
   _tpl(repository_ctx, "crosstool:CROSSTOOL",
        {
-           "%{cuda_include_path}": cuda_config.cuda_toolkit_path + '/include',
+           #"%{cuda_include_path}": cuda_config.cuda_toolkit_path + '/include',
            "%{hip_include_path}": hip_config.hip_path + '/include',
            "%{gcc_host_compiler_includes}": gcc_host_compiler_includes,
        })

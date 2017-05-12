@@ -45,7 +45,7 @@ namespace perftools {
 namespace gputools {
 namespace cuda {
 
-// Wraps a CUfunction to implement the platform-independent KernelInterface.
+// Wraps a hipFunction_t to implement the platform-independent KernelInterface.
 class CUDAKernel : public internal::KernelInterface {
  public:
   CUDAKernel() : cuda_function_(nullptr), arity_(0),
@@ -60,17 +60,17 @@ class CUDAKernel : public internal::KernelInterface {
   void set_arity(unsigned arity) { arity_ = arity; }
   unsigned Arity() const override { return arity_; }
 
-  // Returns the CUfunction value for passing to the CUDA API.
-  CUfunction AsCUDAFunctionValue() const {
+  // Returns the hipFunction_t value for passing to the CUDA API.
+  hipFunction_t AsCUDAFunctionValue() const {
     DCHECK(cuda_function_ != nullptr);
-    return const_cast<CUfunction>(cuda_function_);
+    return const_cast<hipFunction_t>(cuda_function_);
   }
 
-  // Returns the slot that the CUfunction is stored within for this object,
-  // for the CUDA API which wants to load into a CUfunction*.
-  CUfunction *cuda_function_ptr() { return &cuda_function_; }
+  // Returns the slot that the hipFunction_t is stored within for this object,
+  // for the CUDA API which wants to load into a hipFunction_t*.
+  hipFunction_t *cuda_function_ptr() { return &cuda_function_; }
 
-  // CUDA supports setting the preferred cache configuration of a CUfunction
+  // CUDA supports setting the preferred cache configuration of a hipFunction_t
   // (more-or-less equivalent to a CUDAKernel). We support this via the below
   // functions; users can set a preference, and that is applied when the kernel
   // is [lazy-]loaded (in CUDAExecutor::Launch). The alternative would be to
@@ -91,13 +91,29 @@ class CUDAKernel : public internal::KernelInterface {
   hipFuncCache_t GetCUDACacheConfig() const {
     switch (preferred_cache_config_) {
       case KernelCacheConfig::kNoPreference:
+#ifdef __HIP_PLATFORM_NVCC__
         return cudaFuncCachePreferNone;
+#elif defined(__HIP_PLATFORM_HCC__)
+        return hipFuncCachePreferNone;
+#endif
       case KernelCacheConfig::kPreferShared:
+#ifdef __HIP_PLATFORM_NVCC__
         return cudaFuncCachePreferShared;
+#elif defined(__HIP_PLATFORM_HCC__)
+        return hipFuncCachePreferShared;
+#endif
       case KernelCacheConfig::kPreferL1:
+#ifdef __HIP_PLATFORM_NVCC__
         return cudaFuncCachePreferL1;
+#elif defined(__HIP_PLATFORM_HCC__)
+        return hipFuncCachePreferL1;
+#endif
       case KernelCacheConfig::kPreferEqual:
+#ifdef __HIP_PLATFORM_NVCC__
         return cudaFuncCachePreferEqual;
+#elif defined(__HIP_PLATFORM_HCC__)
+        return hipFuncCachePreferEqual;
+#endif
       default:
         LOG(FATAL) << "Unknown KernelCacheConfig"
                    << static_cast<int32>(preferred_cache_config_);
