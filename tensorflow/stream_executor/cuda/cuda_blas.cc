@@ -1761,8 +1761,8 @@ bool CUDABlas::DoBlasGemm(Stream *stream, blas::Transpose transa,
   return DoBlasInternal(
       dynload::hipblasCgemm, stream, true /* = pointer_mode_host */,
       CUDABlasTranspose(transa), CUDABlasTranspose(transb), m, n, k,
-      CUDAComplex(&alpha), const_cast<float2*>(CUDAComplex(CUDAMemory(a))), lda,
-      const_cast<float2*>(CUDAComplex(CUDAMemory(b))), ldb, CUDAComplex(&beta),
+      CUDAComplex(&alpha), const_cast<const hipFloatComplex*>(CUDAComplex(CUDAMemory(a))), lda,
+      const_cast<const hipFloatComplex*>(CUDAComplex(CUDAMemory(b))), ldb, CUDAComplex(&beta),
       CUDAComplex(CUDAMemoryMutable(c)), ldc);
 }
 
