@@ -43,7 +43,7 @@ toolchain {
   toolchain_identifier: "local_linux"
 
   tool_path { name: "ar" path: "/usr/bin/ar" }
-  tool_path { name: "compat-ld" path: "/usr/bin/ld" }
+  tool_path { name: "compat-ld" path: "/opt/rocm/hip/bin/hip" }
   tool_path { name: "cpp" path: "/usr/bin/cpp" }
   tool_path { name: "dwp" path: "/usr/bin/dwp" }
   # As part of the TensorFlow release, we place some cuda-related compilation
@@ -63,7 +63,7 @@ toolchain {
 
   # C(++) compiles invoke the compiler (as that is the one knowing where
   # to find libraries), but we provide LD so other rules can invoke the linker.
-  tool_path { name: "ld" path: "/usr/bin/ld" }
+  tool_path { name: "ld" path: "/opt/rocm/hip/bin/hip" }
 
   tool_path { name: "nm" path: "/usr/bin/nm" }
   tool_path { name: "objcopy" path: "/usr/bin/objcopy" }
@@ -172,7 +172,7 @@ toolchain {
   toolchain_identifier: "local_darwin"
 
   tool_path { name: "ar" path: "/usr/bin/libtool" }
-  tool_path { name: "compat-ld" path: "/usr/bin/ld" }
+  tool_path { name: "compat-ld" path: "/opt/rocm/hip/bin/hip" }
   tool_path { name: "cpp" path: "/usr/bin/cpp" }
   tool_path { name: "dwp" path: "/usr/bin/dwp" }
   tool_path { name: "gcc" path: "clang/bin/crosstool_wrapper_driver_is_not_gcc" }
@@ -187,7 +187,7 @@ toolchain {
   # setting from the local compiler, and also how to make incremental builds correct.
   cxx_builtin_include_directory: "/"
   tool_path { name: "gcov" path: "/usr/bin/gcov" }
-  tool_path { name: "ld" path: "/usr/bin/ld" }
+  tool_path { name: "ld" path: "/opt/rocm/hip/bin/hip" }
   tool_path { name: "nm" path: "/usr/bin/nm" }
   tool_path { name: "objcopy" path: "/usr/bin/objcopy" }
   objcopy_embed_flag: "-I"

@@ -48,6 +48,7 @@ import pipes
 # Template values set by cuda_autoconf.
 CPU_COMPILER = ('%{cpu_compiler}')
 GCC_HOST_COMPILER_PATH = ('%{gcc_host_compiler_path}')
+GPU_PLATFORM = ('%{gpu_platform}') 
 
 CURRENT_DIR = os.path.dirname(sys.argv[0])
 NVCC_PATH = CURRENT_DIR + '/../../../cuda/bin/hipcc'
@@ -138,6 +139,9 @@ def GetNvccOptions(argv):
 
   args, _ = parser.parse_known_args(argv)
 
+  if GPU_PLATFORM == "AMD":
+    return ''
+
   if args.nvcc_options:
     options = _update_options(sum(args.nvcc_options, []))
     return ' '.join(['--'+a for a in options])
@@ -198,22 +202,29 @@ def InvokeNvcc(argv, log=False):
 
   supported_cuda_compute_capabilities = [ %{cuda_compute_capabilities} ]
   nvccopts = '-D_FORCE_INLINES '
-  for capability in supported_cuda_compute_capabilities:
-    capability = capability.replace('.', '')
-    nvccopts += r'-gencode arch=compute_%s,\"code=sm_%s\" ' % (
-        capability, capability)
+ # for capability in supported_cuda_compute_capabilities:
+ #   capability = capability.replace('.', '')
+ #   if GPU_PLATFORM == "NVIDIA":
+ #     nvccopts += r'-gencode arch=compute_%s,\"code=sm_%s\" ' % (
+ #         capability, capability)
+  
   nvccopts += ' ' + nvcc_compiler_options
   nvccopts += undefines
   nvccopts += defines
   nvccopts += std_options
   nvccopts += m_options
+  compileropt = ' '
+  compilerbindir = ' '
+#  if GPU_PLAFORM == "NVIDIA":
+#    compileropt = ' --compiler-options'
+#    compilerbindir = ' --compiler-bindir='
 
   if depfiles:
     # Generate the dependency file
     depfile = depfiles[0]
-    cmd = (NVCC_PATH + ' ' + nvccopts +
-           ' --compiler-options \\"' + host_compiler_options + '\\"' +
-           ' --compiler-bindir=' + GCC_HOST_COMPILER_PATH +
+    cmd = (NVCC_PATH + ' ' + nvccopts + compileropt +
+           ' \\"' + host_compiler_options + '\\"' +
+           compilerbindir + GCC_HOST_COMPILER_PATH +
            ' -I .' +
            ' ' + includes + ' ' + srcs + ' -M -o ' + depfile)
     if log: Log(cmd)
@@ -221,9 +232,9 @@ def InvokeNvcc(argv, log=False):
     if exit_status != 0:
       return exit_status
 
-  cmd = (NVCC_PATH + ' ' + nvccopts +
-         ' --compiler-options \\"' + host_compiler_options + ' -fPIC\\"' +
-         ' --compiler-bindir=' + GCC_HOST_COMPILER_PATH +
+  cmd = (NVCC_PATH + ' ' + nvccopts + compileropt +
+         ' \\"' + host_compiler_options + ' -fPIC\\"' +
+         compilerbindir + GCC_HOST_COMPILER_PATH +
          ' -I .' +
          ' ' + opt + includes + ' -c ' + srcs + out)
 

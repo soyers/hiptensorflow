@@ -972,6 +972,7 @@ def _create_cuda_repository(repository_ctx):
        {
            "%{cpu_compiler}": str(cc),
            "%{cuda_version}": cuda_config.cuda_version,
+           "%{gpu_platform}": hip_config.gpu_value,
            "%{gcc_host_compiler_path}": str(cc),
            "%{cuda_compute_capabilities}": ", ".join(
                ["\"%s\"" % c for c in cuda_config.compute_capabilities]),

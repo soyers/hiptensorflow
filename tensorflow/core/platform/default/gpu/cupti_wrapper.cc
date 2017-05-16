@@ -16,7 +16,7 @@ limitations under the License.
 #include "tensorflow/core/platform/default/gpu/cupti_wrapper.h"
 
 #if GOOGLE_CUDA
-
+#ifdef __HIP_PLATFORM_NVCC__
 #include <string>
 
 #include "tensorflow/core/platform/env.h"
@@ -128,5 +128,5 @@ CUptiResult CuptiWrapper::Unsubscribe(CUpti_SubscriberHandle subscriber) {
 }  // namespace profiler
 }  // namespace gputools
 }  // namespace perftools
-
+#endif
 #endif  // GOOGLE_CUDA

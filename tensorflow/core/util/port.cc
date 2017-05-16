@@ -33,7 +33,13 @@ bool CudaSupportsHalfMatMulAndConv() {
 #if GOOGLE_CUDA
   // NOTE: We check compile-time and not runtime, since the check for
   // whether we include the fp16 kernels or not is compile-time.
+#ifdef __HIP_PLATFORM_NVCC__
   return CUDA_VERSION >= 7050;
+#elif defined(__HIP_PLATFROM_HCC__)
+//TODO: enable in future if hip supports cuda version above 7.5
+  return false;
+#endif
+
 #else
   return false;
 #endif
