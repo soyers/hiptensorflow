@@ -53,6 +53,7 @@ temp_workaround_http_archive = repository_rule(
    })
 
 EIGEN_PATH = "/opt/rocm/hipeigen"
+NCCL_PATH = "/opt/rocm/hipnccl"
 # If TensorFlow is linked as a submodule.
 # path_prefix and tf_repo_name are no longer used.
 def tf_workspace(path_prefix = "", tf_repo_name = ""):
@@ -78,6 +79,12 @@ def tf_workspace(path_prefix = "", tf_repo_name = ""):
     name = "eigen_archive",
     path = EIGEN_PATH,
     build_file = str(Label("//third_party:eigen.BUILD")),
+  )
+
+  native.new_local_repository(
+    name = "nccl_archive",
+    path = NCCL_PATH,
+    build_file = str(Label("//third_party:nccl.BUILD")),
   )
 
   native.new_http_archive(
@@ -392,13 +399,13 @@ def tf_workspace(path_prefix = "", tf_repo_name = ""):
       actual = "@zlib_archive//:zlib",
   )
 
-  native.new_http_archive(
-      name = "nccl_archive",
-      url = "https://github.com/nvidia/nccl/archive/024d1e267845f2ed06f3e2e42476d50f04a00ee6.tar.gz",
-      sha256 = "6787f0eed88d52ee8e32956fa4947d92c139da469f1d8e311c307f27d641118e",
-      strip_prefix = "nccl-024d1e267845f2ed06f3e2e42476d50f04a00ee6",
-      build_file = str(Label("//third_party:nccl.BUILD")),
-  )
+#  native.new_http_archive(
+#      name = "nccl_archive",
+#      url = "https://github.com/nvidia/nccl/archive/024d1e267845f2ed06f3e2e42476d50f04a00ee6.tar.gz",
+#      sha256 = "6787f0eed88d52ee8e32956fa4947d92c139da469f1d8e311c307f27d641118e",
+#      strip_prefix = "nccl-024d1e267845f2ed06f3e2e42476d50f04a00ee6",
+#      build_file = str(Label("//third_party:nccl.BUILD")),
+#  )
 
   # Make junit-4.12 available as //external:junit
   native.http_jar(
