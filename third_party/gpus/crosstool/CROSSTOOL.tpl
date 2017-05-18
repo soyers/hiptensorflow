@@ -128,6 +128,8 @@ toolchain {
   cxx_builtin_include_directory: "/opt/rocm/hipblas/include"
   cxx_builtin_include_directory: "/opt/rocm/hipfft/include"
   cxx_builtin_include_directory: "/opt/rocm/hiprng/include"
+  cxx_builtin_include_directory: "/opt/rocm/hcc/include"
+  cxx_builtin_include_directory: "/opt/rocm/hcc-1.0/compiler/lib/clang/5.0.0/include/"
 
   compilation_mode_flags {
     mode: DBG

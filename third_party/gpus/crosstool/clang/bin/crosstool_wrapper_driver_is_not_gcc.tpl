@@ -109,8 +109,8 @@ def GetHostCompilerOptions(argv):
     opts += ' -iquote ' + ' -iquote '.join(sum(args.iquote, []))
   if args.g:
     opts += ' -g' + ' -g'.join(sum(args.g, []))
-  if args.fno_canonical_system_headers:
-    opts += ' -fno-canonical-system-headers'
+  #if args.fno_canonical_system_headers:
+  #  opts += ' -fno-canonical-system-headers'
   if args.sysroot:
     opts += ' --sysroot ' + args.sysroot[0]
 
@@ -202,11 +202,11 @@ def InvokeNvcc(argv, log=False):
 
   supported_cuda_compute_capabilities = [ %{cuda_compute_capabilities} ]
   nvccopts = '-D_FORCE_INLINES '
- # for capability in supported_cuda_compute_capabilities:
- #   capability = capability.replace('.', '')
- #   if GPU_PLATFORM == "NVIDIA":
- #     nvccopts += r'-gencode arch=compute_%s,\"code=sm_%s\" ' % (
- #         capability, capability)
+  #for capability in supported_cuda_compute_capabilities:
+  #  capability = capability.replace('.', '')
+  #  if GPU_PLATFORM == "NVIDIA":
+  #    nvccopts += r'-gencode arch=compute_%s,\"code=sm_%s\" ' % (
+  #        capability, capability)
   
   nvccopts += ' ' + nvcc_compiler_options
   nvccopts += undefines
@@ -215,15 +215,15 @@ def InvokeNvcc(argv, log=False):
   nvccopts += m_options
   compileropt = ' '
   compilerbindir = ' '
-#  if GPU_PLAFORM == "NVIDIA":
-#    compileropt = ' --compiler-options'
-#    compilerbindir = ' --compiler-bindir='
+  #if GPU_PLATFORM == "NVIDIA":
+  #  compileropt = ' --compiler-options'
+  #  compilerbindir = ' --compiler-bindir='
 
   if depfiles:
     # Generate the dependency file
     depfile = depfiles[0]
-    cmd = (NVCC_PATH + ' ' + nvccopts + compileropt +
-           ' \\"' + host_compiler_options + '\\"' +
+    cmd = (NVCC_PATH + ' ' + nvccopts +
+           host_compiler_options +
            compilerbindir + GCC_HOST_COMPILER_PATH +
            ' -I .' +
            ' ' + includes + ' ' + srcs + ' -M -o ' + depfile)
@@ -233,14 +233,14 @@ def InvokeNvcc(argv, log=False):
       return exit_status
 
   cmd = (NVCC_PATH + ' ' + nvccopts + compileropt +
-         ' \\"' + host_compiler_options + ' -fPIC\\"' +
+         host_compiler_options + ' -fPIC' +
          compilerbindir + GCC_HOST_COMPILER_PATH +
          ' -I .' +
          ' ' + opt + includes + ' -c ' + srcs + out)
 
   # TODO(zhengxq): for some reason, 'gcc' needs this help to find 'as'.
   # Need to investigate and fix.
-  cmd = 'PATH=' + PREFIX_DIR + ' ' + cmd
+  #cmd = 'PATH=' + PREFIX_DIR + ' ' + cmd
   if log: Log(cmd)
   return os.system(cmd)
 
