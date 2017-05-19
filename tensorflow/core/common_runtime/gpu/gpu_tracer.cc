@@ -14,7 +14,7 @@ limitations under the License.
 ==============================================================================*/
 
 #include "tensorflow/core/common_runtime/gpu/gpu_tracer.h"
-
+#if 0
 #if GOOGLE_CUDA
 
 #include <stdlib.h>
@@ -626,3 +626,4 @@ GPUTracer *CreateGPUTracer() { return nullptr; }
 }  // namespace tensorflow
 
 #endif  // GOOGLE_CUDA
+#endif
