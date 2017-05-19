@@ -87,6 +87,33 @@ namespace dynload {
   } __name;                                                                  \
   const char *DynLoadShim__##__name::kName = #__name;
 
+#define __PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(__name, __func)                    \
+  struct DynLoadShim__##__name {                                             \
+    static const char *kName;                                                \
+    using FuncPointerT = std::add_pointer<decltype(::__func)>::type;         \
+    static void *GetDsoHandle() {                                            \
+      /*static auto status = internal::CachedDsoLoader::GetLibcudaDsoHandle();*/ \
+      return nullptr;                                                        \
+    }                                                                        \
+    static FuncPointerT LoadOrDie() {                                        \
+      void *f;                                                               \
+      port::Status s = port::Env::Default()->GetSymbolFromLibrary(           \
+          GetDsoHandle(), kName, &f);                                        \
+      CHECK(s.ok()) << "could not find " << kName                            \
+                    << " in libcuda DSO; dlerror: " << s.error_message();    \
+      return reinterpret_cast<FuncPointerT>(f);                              \
+    }                                                                        \
+    static FuncPointerT DynLoad() {                                          \
+      static FuncPointerT f = LoadOrDie();                                   \
+      return f;                                                              \
+    }                                                                        \
+    template <typename... Args>                                              \
+    hipError_t operator()(Args... args) {                                    \
+      return DynLoad()(args...);                                             \
+    }                                                                        \
+  } __name;                                                                  \
+  const char *DynLoadShim__##__name::kName = #__name;
+
 PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipCtxCreate);
 PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipCtxDestroy);
 PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipCtxEnablePeerAccess);
@@ -123,7 +150,7 @@ PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipGetErrorName);
 PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipGetErrorString);
 PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipInit);
 PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipModuleLaunchKernel);
-PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipMalloc);
+__PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipMalloc, hipMalloc<void>);
 PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipMemcpyDtoD);
 PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipMemcpyDtoH);
 PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipMemcpyHtoD);
@@ -134,7 +161,7 @@ PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipMemGetAddressRange);
 PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipFree);
 PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipHostFree);
 PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipMemGetInfo);
-PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipHostMalloc);
+__PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipHostMalloc, hipHostMalloc<void>);
 PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipHostRegister);
 PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipHostUnregister);
 PERFTOOLS_GPUTOOLS_LIBCUDA_WRAP(hipMemset);
