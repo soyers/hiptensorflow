@@ -217,9 +217,9 @@ void FillPhiloxRandom<GPUDevice, Distribution>::operator()(
     OpKernelContext*, const GPUDevice& d, random::PhiloxRandom gen,
     typename Distribution::ResultElementType* data, int64 size,
     Distribution dist) {
-  const int32 block_size = d.maxCudaThreadsPerBlock();
+  const int32 block_size = d.maxHipThreadsPerBlock();
   const int32 num_blocks =
-      (d.getNumCudaMultiProcessors() * d.maxCudaThreadsPerMultiProcessor()) /
+      (d.getNumHipMultiProcessors() * d.maxHipThreadsPerMultiProcessor()) /
       block_size;
 
   hipLaunchKernel(HIP_KERNEL_NAME(FillPhiloxRandomKernelLaunch<Distribution>), dim3(num_blocks), dim3(block_size), 0, d.stream(), gen, data, size,

@@ -57,9 +57,9 @@ template <typename T>
 struct CheckNumericsLaunch {
   void Run(const GPUDevice &d, const T *data, int size,
            int abnormal_detected[2]) {
-    const int32 block_size = d.maxCudaThreadsPerBlock();
+    const int32 block_size = d.maxHipThreadsPerBlock();
     const int32 num_blocks =
-        (d.getNumCudaMultiProcessors() * d.maxCudaThreadsPerMultiProcessor()) /
+        (d.getNumHipMultiProcessors() * d.maxHipThreadsPerMultiProcessor()) /
         block_size;
 
     hipLaunchKernel(HIP_KERNEL_NAME(CheckNumericsKernel<T>), dim3(num_blocks), dim3(block_size), 0, d.stream(), 

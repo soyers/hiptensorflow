@@ -87,7 +87,7 @@ class EigenCudaStreamDevice : public ::Eigen::StreamInterface {
     }
     scratch_ = scratch;
     semaphore_ =
-        reinterpret_cast<unsigned int*>(scratch + Eigen::kCudaScratchSize);
+        reinterpret_cast<unsigned int*>(scratch + Eigen::kHipScratchSize);
     stream_ = cuda_stream;
     allocator_ = alloc;
     *(const_cast<hipDeviceProp_t*>(device_prop_)) = Eigen::m_deviceProperties[gpu_id];
@@ -144,7 +144,7 @@ class EigenCudaStreamDevice : public ::Eigen::StreamInterface {
     const int64 step_id_;
   };
 
-  static void CUDART_CB asyncFree(hipStream_t stream, hipError_t status,
+  static void asyncFree(hipStream_t stream, hipError_t status,
                                   void* userData) {
     AsyncFreeData* data = static_cast<AsyncFreeData*>(userData);
     if (LogMemory::IsEnabled()) {
@@ -232,7 +232,7 @@ Status BaseGPUDevice::Init(const SessionOptions& options) {
     streams_.push_back({stream, host_to_device_stream, device_to_host_stream,
                         device_to_device_stream});
 
-    size_t scratch_buffer_size = Eigen::kCudaScratchSize + sizeof(unsigned int);
+    size_t scratch_buffer_size = Eigen::kHipScratchSize + sizeof(unsigned int);
     void* scratch_buffer = gpu_allocator_->AllocateRaw(
         Allocator::kAllocatorAlignment, scratch_buffer_size);
     if (scratch_buffer == nullptr) {
@@ -246,7 +246,7 @@ Status BaseGPUDevice::Init(const SessionOptions& options) {
                                               scratch_buffer_size));
 
     bool ok = executor_->SynchronousMemZero(
-        &mem, Eigen::kCudaScratchSize + sizeof(unsigned int));
+        &mem, Eigen::kHipScratchSize + sizeof(unsigned int));
     if (!ok) {
       return errors::FailedPrecondition(
           "Failed to memcopy into scratch buffer for device ", gpu_id_);
