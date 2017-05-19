@@ -27,8 +27,6 @@ limitations under the License.
 
 namespace tensorflow {
 
-namespace {
-
 typedef Eigen::GpuDevice GPUDevice;
 
 // A Cuda kernel to check if each element is Inf or Nan. If any exists, the
@@ -52,8 +50,6 @@ __global__ void CheckNumericsKernel(hipLaunchParm lp,
     offset += total_thread_count;
   }
 }
-
-}  // namespace
 
 // A simple launch pad to launch the Cuda kernels that checks the numerical
 // abnormality in the given array

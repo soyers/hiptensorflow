@@ -30,8 +30,6 @@ namespace tensorflow {
 
 typedef Eigen::GpuDevice GPUDevice;
 
-namespace {
-
 template <typename T, typename IntType>
 __global__ void concat_fixed_kernel(hipLaunchParm lp,
     CudaDeviceArrayStruct<const T*> input_ptr_data, int split_size,
@@ -52,8 +50,6 @@ __global__ void concat_fixed_kernel(hipLaunchParm lp,
     }
   }
 }
-
-}  // end namespace
 
 // cannot be in anonymous namespace due to extern shared memory
 template <typename T, typename IntType, bool useSmem>

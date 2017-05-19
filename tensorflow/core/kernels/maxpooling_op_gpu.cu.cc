@@ -27,7 +27,6 @@ limitations under the License.
 #include "tensorflow/core/util/cuda_kernel_helper.h"
 
 namespace tensorflow {
-namespace {
 // This is Yangqing's custom kernel for the maxpooling operation. There are
 // three functions: MaxPoolForwardNCHW and MaxPoolForwardNHWC are the two
 // forward functions, dealing with the forward case. MaxPoolBackward is the
@@ -202,7 +201,6 @@ __global__ void MaxPoolBackward(hipLaunchParm lp,
 }
 
 #undef CUDA_1D_KERNEL_LOOP
-}  // namespace
 
 bool MaxPoolForwardWithOptionalArgmax(
     const float* bottom_data, const int batch, const int height,

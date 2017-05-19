@@ -62,8 +62,6 @@ DEFINE_GPU_KERNELS(bfloat16);
 
 }  // namespace functor
 
-namespace {
-
 template <typename T>
 __global__ void SplitOpKernel(hipLaunchParm lp,
                               const T* input, int32 prefix_dim_size,
@@ -98,7 +96,6 @@ __global__ void SplitOpKernel(hipLaunchParm lp,
   }
 }
 
-}  // namespace
 
 // cannot be in anonymous namespace due to extern shared memory
 // very similar to the concat kernel except the input/output logic

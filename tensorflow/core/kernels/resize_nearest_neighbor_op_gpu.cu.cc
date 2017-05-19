@@ -26,7 +26,6 @@ limitations under the License.
 #include "tensorflow/core/util/cuda_kernel_helper.h"
 
 namespace tensorflow {
-namespace {
 
 template <typename T>
 __global__ void ResizeNearestNeighborNHWC(hipLaunchParm lp,
@@ -75,8 +74,6 @@ __global__ void ResizeNearestNeighborBackwardNHWC(hipLaunchParm lp,
     CudaAtomicAdd(bottom_diff_n + idx, ldg(top_diff + index));
   }
 }
-
-}  // namespace
 
 template <typename T>
 bool ResizeNearestNeighbor(const T* bottom_data, const int batch,

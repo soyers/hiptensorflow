@@ -30,8 +30,6 @@ namespace tensorflow {
 
 typedef Eigen::GpuDevice GPUDevice;
 
-namespace {
-
 template <typename T>
 __global__ void CropAndResizeKernel(hipLaunchParm lp,
     const int32 nthreads, const T* image_ptr, const float* boxes_ptr,
@@ -313,8 +311,6 @@ __global__ void CropAndResizeBackpropBoxesKernel(hipLaunchParm lp,
     CudaAtomicAdd(grads_boxes_ptr + b * 4 + 3, dx2);
   }
 }
-
-}  // namespace
 
 namespace functor {
 

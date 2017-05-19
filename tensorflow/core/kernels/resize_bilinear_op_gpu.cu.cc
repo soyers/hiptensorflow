@@ -30,7 +30,6 @@ namespace tensorflow {
 
 typedef Eigen::GpuDevice GPUDevice;
 
-namespace {
 
 template <typename T>
 __global__ void ResizeBilinearKernel(hipLaunchParm lp,
@@ -142,8 +141,6 @@ __global__ void ResizeBilinearGradKernel(hipLaunchParm lp,
                   static_cast<T>(x_lerp * dbottom));
   }
 }
-
-}  // namespace
 
 namespace functor {
 
