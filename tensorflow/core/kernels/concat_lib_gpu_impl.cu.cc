@@ -65,7 +65,8 @@ __global__ void concat_variable_kernel(hipLaunchParm lp,
   IntType num_inputs = input_ptr_data.size;
 
   // verbose declaration needed due to template
-  extern __shared__ __align__(sizeof(T)) unsigned char smem[];
+  //extern __shared__ __align__(sizeof(T)) unsigned char smem[];
+  HIP_DYNAMIC_SHARED(unsigned char, smem);
   IntType* smem_col_scan = reinterpret_cast<IntType*>(smem);
 
   if (useSmem) {
