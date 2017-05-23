@@ -29,8 +29,6 @@ limitations under the License.
 
 namespace tensorflow {
 
-namespace {
-
 typedef Eigen::GpuDevice GPUDevice;
 
 // A Cuda kernel to compute the depthwise convolution forward pass.
@@ -111,7 +109,6 @@ __global__ void DepthwiseConv2dGPUKernel(hipLaunchParm lp,
     output[thread_id] = sum;
   }
 }
-}  // namespace
 
 // A simple launch pad to launch the Cuda kernel for depthwise convolution.
 template <typename T>
