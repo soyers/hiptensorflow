@@ -88,6 +88,8 @@ struct Dimension : Array<int, IndexCount, 1> {
       : Base(a0, a1, a2) {}
   EIGEN_STRONG_INLINE Dimension(const std::array<int, IndexCount>& array)
       : Base(array) {}
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Dimension(const int* array)
+      : Base(array[0], array[1]) {}
 };
 
 // An index type with compile-time known size.
