@@ -105,7 +105,7 @@ struct SparseTensorDenseMatMulFunctor<GPUDevice, T, ADJ_A, ADJ_B> {
 
 #if !defined(EIGEN_HAS_INDEX_LIST)
     Eigen::Tensor<int, 2>::Dimensions matrix_1_by_nnz{{ 1, nnz }};
-    Eigen::array<int, 2> n_by_1{{ n, 1 }};
+    Eigen::array<int, 2> n_by_1(n,1);
     Eigen::array<int, 1> reduce_on_rows{{ 0 }};
 #else
     Eigen::IndexList<Eigen::type2index<1>, int> matrix_1_by_nnz;
