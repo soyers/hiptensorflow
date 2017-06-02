@@ -76,7 +76,7 @@ String checkout_and_version( String workspace_dir_abs )
 
       // checkout hipeigen
       checkout( [$class: 'GitSCM',
-          branches: [[name: '*/upstream']],
+          branches: [[name: '*/develop']],
           doGenerateSubmoduleConfigurations: false,
           extensions: [[$class: 'CloneOption', depth: 1, noTags: false, reference: '', shallow: true], [$class: 'RelativeTargetDirectory', relativeTargetDir: "${source_dir_abs}/hipeigen"]],
           submoduleCfg: [],
@@ -230,7 +230,7 @@ def hiptensorflow_build_pipeline( String build_config )
 ////////////////////////////////////////////////////////////////////////
 // -- MAIN
 // This following are build nodes; start of build pipeline
-node('docker && rocm')
+node('docker && rocmtest')
 {
   hiptensorflow_build_pipeline( 'Release' )
 }
