@@ -2988,7 +2988,7 @@ bool CudnnSupport::DoPoolForward(
   ScopedPoolingDescriptor pooling_desc{parent_, pooling_dimensions};
   void *WorkSpace = NULL;
   size_t WorkSpaceSize;
-  status = miopenPoolingGetWorkSpaceSize(dest_desc.handle(), &WorkSpaceSize);
+  status = dynload::miopenPoolingGetWorkSpaceSize(parent_, dest_desc.handle(), &WorkSpaceSize);
   if (status != miopenStatusSuccess) {
     LOG(ERROR) << "failed to enqueue forward pooling on stream: "
                << ToString(status);
@@ -3031,7 +3031,7 @@ bool CudnnSupport::DoPoolForward(
   ScopedPoolingDescriptor pooling_desc{parent_, pooling_dimensions};
   void *WorkSpace = NULL;
   size_t WorkSpaceSize;
-  status = miopenPoolingGetWorkSpaceSize(dest_desc.handle(), &WorkSpaceSize);
+  status = dynload::miopenPoolingGetWorkSpaceSize(parent_, dest_desc.handle(), &WorkSpaceSize);
   if (status != miopenStatusSuccess) {
     LOG(ERROR) << "failed to enqueue forward pooling on stream: "
                << ToString(status);
