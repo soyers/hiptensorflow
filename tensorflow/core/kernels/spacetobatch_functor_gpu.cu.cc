@@ -37,6 +37,33 @@ struct S2BParameters {
   int32 space_tensor_spatial_shape[NUM_BLOCK_DIMS];
   int32 pad_start[NUM_BLOCK_DIMS];
   int32 block_shape[NUM_BLOCK_DIMS];
+
+#if defined(__HIPCC__)
+  __host__ __device__ S2BParameters() { }
+
+  __host__ __device__ S2BParameters(const int32 STB, const int32 *BTS, const int32 *STSS,
+                                    const int32 *PS, const int32 *BS) {
+    space_tensor_batch = STB;
+    for (int i=0; i<NUM_BLOCK_DIMS+2; i++)
+      batch_tensor_shape[i] = BTS[i];
+    for (int i=0; i<NUM_BLOCK_DIMS; i++) {
+      space_tensor_spatial_shape[i] = STSS[i];
+      pad_start[i] = PS[i];
+      block_shape[i] = BS[i];
+    }
+  }
+
+  __host__ __device__ S2BParameters(const S2BParameters &s2bParam) {
+    space_tensor_batch = s2bParam.space_tensor_batch;
+    for (int i=0; i<NUM_BLOCK_DIMS+2; i++)
+      batch_tensor_shape[i] = s2bParam.batch_tensor_shape[i];
+    for (int i=0; i<NUM_BLOCK_DIMS; i++) {
+      space_tensor_spatial_shape[i] = s2bParam.space_tensor_spatial_shape[i];
+      pad_start[i] = s2bParam.pad_start[i];
+      block_shape[i] = s2bParam.block_shape[i];
+    }
+  }
+#endif
 };
 
 // GPU kernel for space-to-batch (if B2S = false) and batch-to-space conversion
