@@ -13,6 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
+#include "cuda/include/hiprng/hiprng.h"
 #include "tensorflow/stream_executor/cuda/cuda_rng.h"
 
 #include "tensorflow/stream_executor/cuda/cuda_activation.h"
@@ -27,30 +28,29 @@ limitations under the License.
 #include "tensorflow/stream_executor/lib/status.h"
 #include "tensorflow/stream_executor/platform/logging.h"
 #include "tensorflow/stream_executor/rng.h"
-#include "cuda/include/curand.h"
 
-// Formats curandStatus_t to output prettified values into a log stream.
-std::ostream &operator<<(std::ostream &in, const curandStatus_t &status) {
-#define OSTREAM_CURAND_STATUS(__name) \
-  case CURAND_STATUS_##__name:        \
-    in << "CURAND_STATUS_" #__name;   \
+// Formats hiprngStatus_t to output prettified values into a log stream.
+std::ostream &operator<<(std::ostream &in, const hiprngStatus_t &status) {
+#define OSTREAM_HIPRNG_STATUS(__name) \
+  case HIPRNG_STATUS_##__name:        \
+    in << "HIPRNG_STATUS_" #__name;   \
     return in;
 
   switch (status) {
-    OSTREAM_CURAND_STATUS(SUCCESS)
-    OSTREAM_CURAND_STATUS(VERSION_MISMATCH)
-    OSTREAM_CURAND_STATUS(NOT_INITIALIZED)
-    OSTREAM_CURAND_STATUS(ALLOCATION_FAILED)
-    OSTREAM_CURAND_STATUS(TYPE_ERROR)
-    OSTREAM_CURAND_STATUS(OUT_OF_RANGE)
-    OSTREAM_CURAND_STATUS(LENGTH_NOT_MULTIPLE)
-    OSTREAM_CURAND_STATUS(LAUNCH_FAILURE)
-    OSTREAM_CURAND_STATUS(PREEXISTING_FAILURE)
-    OSTREAM_CURAND_STATUS(INITIALIZATION_FAILED)
-    OSTREAM_CURAND_STATUS(ARCH_MISMATCH)
-    OSTREAM_CURAND_STATUS(INTERNAL_ERROR)
+    OSTREAM_HIPRNG_STATUS(SUCCESS)
+    OSTREAM_HIPRNG_STATUS(VERSION_MISMATCH)
+    OSTREAM_HIPRNG_STATUS(NOT_INITIALIZED)
+    OSTREAM_HIPRNG_STATUS(ALLOCATION_FAILED)
+    OSTREAM_HIPRNG_STATUS(TYPE_ERROR)
+    OSTREAM_HIPRNG_STATUS(OUT_OF_RANGE)
+    OSTREAM_HIPRNG_STATUS(LENGTH_NOT_MULTIPLE)
+    OSTREAM_HIPRNG_STATUS(LAUNCH_FAILURE)
+    OSTREAM_HIPRNG_STATUS(PREEXISTING_FAILURE)
+    OSTREAM_HIPRNG_STATUS(INITIALIZATION_FAILED)
+    OSTREAM_HIPRNG_STATUS(ARCH_MISMATCH)
+    OSTREAM_HIPRNG_STATUS(INTERNAL_ERROR)
     default:
-      in << "curandStatus_t(" << static_cast<int>(status) << ")";
+      in << "hiprngStatus_t(" << static_cast<int>(status) << ")";
       return in;
   }
 }
@@ -63,7 +63,7 @@ PLUGIN_REGISTRY_DEFINE_PLUGIN_ID(kCuRandPlugin);
 
 namespace dynload {
 
-#define PERFTOOLS_GPUTOOLS_CURAND_WRAP(__name)                              \
+#define PERFTOOLS_GPUTOOLS_HIPRNG_WRAP(__name)                              \
   struct DynLoadShim__##__name {                                            \
     static const char *kName;                                               \
     using FuncPointerT = std::add_pointer<decltype(::__name)>::type;        \
@@ -76,7 +76,7 @@ namespace dynload {
       port::Status s = port::Env::Default()->GetSymbolFromLibrary(          \
           GetDsoHandle(), kName, &f);                                       \
       CHECK(s.ok()) << "could not find " << kName                           \
-                    << " in curand DSO; dlerror: " << s.error_message();    \
+                    << " in hiprng DSO; dlerror: " << s.error_message();    \
       return reinterpret_cast<FuncPointerT>(f);                             \
     }                                                                       \
     static FuncPointerT DynLoad() {                                         \
@@ -84,22 +84,22 @@ namespace dynload {
       return f;                                                             \
     }                                                                       \
     template <typename... Args>                                             \
-    curandStatus_t operator()(CUDAExecutor *parent, Args... args) {         \
+    hiprngStatus_t operator()(CUDAExecutor *parent, Args... args) {         \
       cuda::ScopedActivateExecutorContext sac{parent};                      \
       return DynLoad()(args...);                                            \
     }                                                                       \
   } __name;                                                                 \
   const char *DynLoadShim__##__name::kName = #__name;
 
-PERFTOOLS_GPUTOOLS_CURAND_WRAP(curandCreateGenerator);
-PERFTOOLS_GPUTOOLS_CURAND_WRAP(curandDestroyGenerator);
-PERFTOOLS_GPUTOOLS_CURAND_WRAP(curandSetStream);
-PERFTOOLS_GPUTOOLS_CURAND_WRAP(curandGenerateUniform);
-PERFTOOLS_GPUTOOLS_CURAND_WRAP(curandGenerateUniformDouble);
-PERFTOOLS_GPUTOOLS_CURAND_WRAP(curandSetPseudoRandomGeneratorSeed);
-PERFTOOLS_GPUTOOLS_CURAND_WRAP(curandSetGeneratorOffset);
-PERFTOOLS_GPUTOOLS_CURAND_WRAP(curandGenerateNormal);
-PERFTOOLS_GPUTOOLS_CURAND_WRAP(curandGenerateNormalDouble);
+PERFTOOLS_GPUTOOLS_HIPRNG_WRAP(hiprngCreateGenerator);
+PERFTOOLS_GPUTOOLS_HIPRNG_WRAP(hiprngDestroyGenerator);
+PERFTOOLS_GPUTOOLS_HIPRNG_WRAP(hiprngSetStream);
+PERFTOOLS_GPUTOOLS_HIPRNG_WRAP(hiprngGenerateUniform);
+PERFTOOLS_GPUTOOLS_HIPRNG_WRAP(hiprngGenerateUniformDouble);
+PERFTOOLS_GPUTOOLS_HIPRNG_WRAP(hiprngSetPseudoRandomGeneratorSeed);
+PERFTOOLS_GPUTOOLS_HIPRNG_WRAP(hiprngSetGeneratorOffset);
+PERFTOOLS_GPUTOOLS_HIPRNG_WRAP(hiprngGenerateNormal);
+PERFTOOLS_GPUTOOLS_HIPRNG_WRAP(hiprngGenerateNormalDouble);
 
 }  // namespace dynload
 
@@ -130,7 +130,7 @@ CUDARng::CUDARng(CUDAExecutor *parent) : parent_(parent), rng_(nullptr) {}
 
 CUDARng::~CUDARng() {
   if (rng_ != nullptr) {
-    dynload::curandDestroyGenerator(parent_, rng_);
+    dynload::hiprngDestroyGenerator(parent_, rng_);
   }
 }
 
@@ -138,9 +138,9 @@ bool CUDARng::Init() {
   mutex_lock lock{mu_};
   CHECK(rng_ == nullptr);
 
-  curandStatus_t ret =
-      dynload::curandCreateGenerator(parent_, &rng_, CURAND_RNG_PSEUDO_DEFAULT);
-  if (ret != CURAND_STATUS_SUCCESS) {
+  hiprngStatus_t ret =
+      dynload::hiprngCreateGenerator(parent_, &rng_, HIPRNG_RNG_PSEUDO_DEFAULT);
+  if (ret != HIPRNG_STATUS_SUCCESS) {
     LOG(ERROR) << "failed to create random number generator: " << ret;
     return false;
   }
@@ -150,9 +150,9 @@ bool CUDARng::Init() {
 }
 
 bool CUDARng::SetStream(Stream *stream) {
-  curandStatus_t ret =
-      dynload::curandSetStream(parent_, rng_, AsCUDAStreamValue(stream));
-  if (ret != CURAND_STATUS_SUCCESS) {
+  hiprngStatus_t ret =
+      dynload::hiprngSetStream(parent_, rng_, AsCUDAStreamValue(stream));
+  if (ret != HIPRNG_STATUS_SUCCESS) {
     LOG(ERROR) << "failed to set stream for random generation: " << ret;
     return false;
   }
@@ -186,18 +186,18 @@ bool CUDARng::DoPopulateRandUniformInternal(Stream *stream,
     element_count *= 2;
   }
 
-  curandStatus_t ret;
+  hiprngStatus_t ret;
   if (std::is_same<T, float>::value ||
       std::is_same<T, std::complex<float>>::value) {
-    ret = dynload::curandGenerateUniform(
+    ret = dynload::hiprngGenerateUniform(
         parent_, rng_, reinterpret_cast<float *>(CUDAMemoryMutable(v)),
         element_count);
   } else {
-    ret = dynload::curandGenerateUniformDouble(
+    ret = dynload::hiprngGenerateUniformDouble(
         parent_, rng_, reinterpret_cast<double *>(CUDAMemoryMutable(v)),
         element_count);
   }
-  if (ret != CURAND_STATUS_SUCCESS) {
+  if (ret != HIPRNG_STATUS_SUCCESS) {
     LOG(ERROR) << "failed to do uniform generation of " << v->ElementCount()
                << " " << TypeString<T>() << "s at " << v->opaque() << ": "
                << ret;
@@ -237,10 +237,10 @@ bool CUDARng::DoPopulateRandGaussianInternal(Stream *stream, ElemT mean,
   }
 
   uint64 element_count = v->ElementCount();
-  curandStatus_t ret =
+  hiprngStatus_t ret =
       func(parent_, rng_, CUDAMemoryMutable(v), element_count, mean, stddev);
 
-  if (ret != CURAND_STATUS_SUCCESS) {
+  if (ret != HIPRNG_STATUS_SUCCESS) {
     LOG(ERROR) << "failed to do gaussian generation of " << v->ElementCount()
                << " floats at " << v->opaque() << ": " << ret;
     return false;
@@ -252,13 +252,13 @@ bool CUDARng::DoPopulateRandGaussianInternal(Stream *stream, ElemT mean,
 bool CUDARng::DoPopulateRandGaussian(Stream *stream, float mean, float stddev,
                                      DeviceMemory<float> *v) {
   return DoPopulateRandGaussianInternal(stream, mean, stddev, v,
-                                        dynload::curandGenerateNormal);
+                                        dynload::hiprngGenerateNormal);
 }
 
 bool CUDARng::DoPopulateRandGaussian(Stream *stream, double mean, double stddev,
                                      DeviceMemory<double> *v) {
   return DoPopulateRandGaussianInternal(stream, mean, stddev, v,
-                                        dynload::curandGenerateNormalDouble);
+                                        dynload::hiprngGenerateNormalDouble);
 }
 
 bool CUDARng::SetSeed(Stream *stream, const uint8 *seed, uint64 seed_bytes) {
@@ -275,15 +275,15 @@ bool CUDARng::SetSeed(Stream *stream, const uint8 *seed, uint64 seed_bytes) {
 
   // Requires 8 bytes of seed data; checked in RngSupport::CheckSeed (above)
   // (which itself requires 16 for API consistency with host RNG fallbacks).
-  curandStatus_t ret = dynload::curandSetPseudoRandomGeneratorSeed(
+  hiprngStatus_t ret = dynload::hiprngSetPseudoRandomGeneratorSeed(
       parent_, rng_, *(reinterpret_cast<const uint64 *>(seed)));
-  if (ret != CURAND_STATUS_SUCCESS) {
+  if (ret != HIPRNG_STATUS_SUCCESS) {
     LOG(ERROR) << "failed to set rng seed: " << ret;
     return false;
   }
 
-  ret = dynload::curandSetGeneratorOffset(parent_, rng_, 0);
-  if (ret != CURAND_STATUS_SUCCESS) {
+  ret = dynload::hiprngSetGeneratorOffset(parent_, rng_, 0);
+  if (ret != HIPRNG_STATUS_SUCCESS) {
     LOG(ERROR) << "failed to reset rng position: " << ret;
     return false;
   }
@@ -296,7 +296,7 @@ bool CUDARng::SetSeed(Stream *stream, const uint8 *seed, uint64 seed_bytes) {
 
 namespace gpu = ::perftools::gputools;
 
-REGISTER_MODULE_INITIALIZER(register_curand, {
+REGISTER_MODULE_INITIALIZER(register_hiprng, {
   gpu::port::Status status =
       gpu::PluginRegistry::Instance()
           ->RegisterFactory<gpu::PluginRegistry::RngFactory>(

@@ -33,6 +33,8 @@ class MatrixDiagPartGenerator {
   MatrixDiagPartGenerator(typename TTypes<T, 3>::ConstTensor input)
       : input_(input) {}
 
+  EIGEN_DEVICE_FUNC ~MatrixDiagPartGenerator() {}
+
   EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE T
   operator()(const Eigen::array<Eigen::DenseIndex, 2>& coords) const {
     Eigen::array<Eigen::DenseIndex, 3> diag_from_coords(
@@ -50,6 +52,8 @@ class MatrixDiagGenerator {
   EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE
   MatrixDiagGenerator(typename TTypes<T, 2>::ConstTensor input)
       : input_(input) {}
+
+  EIGEN_DEVICE_FUNC ~MatrixDiagGenerator() {}
 
   EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE T
   operator()(const Eigen::array<Eigen::DenseIndex, 3>& coords) const {

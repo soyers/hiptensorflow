@@ -636,13 +636,16 @@ class ProfileResult {
   bool is_valid() const { return is_valid_; }
   void set_is_valid(bool val) { is_valid_ = val; }
   AlgorithmType algorithm() const { return algorithm_; }
+  size_t scratch_size() const { return scratch_size_; }
   void set_algorithm(AlgorithmType val) { algorithm_ = val; }
+  void set_scratch_size(size_t val) { scratch_size_ = val; }
   float elapsed_time_in_ms() const { return elapsed_time_in_ms_; }
   void set_elapsed_time_in_ms(float val) { elapsed_time_in_ms_ = val; }
 
  private:
   bool is_valid_ = false;
   AlgorithmType algorithm_ = kDefaultAlgorithm;
+  size_t scratch_size_ = 0;
   float elapsed_time_in_ms_ = std::numeric_limits<float>::max();
 };
 
@@ -656,14 +659,21 @@ class AlgorithmConfig {
  public:
   AlgorithmConfig()
       : algorithm_(kDefaultAlgorithm),
-        algorithm_no_scratch_(kDefaultAlgorithm) {}
+        algorithm_no_scratch_(kDefaultAlgorithm),
+	algorithm_scratch_size_(0) {}
   explicit AlgorithmConfig(AlgorithmType algorithm)
-      : algorithm_(algorithm), algorithm_no_scratch_(kDefaultAlgorithm) {}
-  AlgorithmConfig(AlgorithmType algorithm, AlgorithmType algorithm_no_scratch)
-      : algorithm_(algorithm), algorithm_no_scratch_(algorithm_no_scratch) {}
+      : algorithm_(algorithm), algorithm_no_scratch_(kDefaultAlgorithm), 
+        algorithm_scratch_size_(0) {}
+  AlgorithmConfig(AlgorithmType algorithm, AlgorithmType algorithm_no_scratch,
+ 		  size_t algorithm_scratch_size = 0)
+      : algorithm_(algorithm), algorithm_no_scratch_(algorithm_no_scratch),
+        algorithm_scratch_size_(algorithm_scratch_size)
+ {}
   AlgorithmType algorithm() const { return algorithm_; }
   void set_algorithm(AlgorithmType val) { algorithm_ = val; }
   AlgorithmType algorithm_no_scratch() const { return algorithm_no_scratch_; }
+  size_t algorithm_scratch_size() const { return algorithm_scratch_size_; }
+  void set_algorithm_scratch_size(size_t val) { algorithm_scratch_size_ = val; }
   void set_algorithm_no_scratch(AlgorithmType val) {
     algorithm_no_scratch_ = val;
   }
@@ -671,6 +681,7 @@ class AlgorithmConfig {
  private:
   AlgorithmType algorithm_;
   AlgorithmType algorithm_no_scratch_;
+  size_t	algorithm_scratch_size_;
 };
 
 // Describes a local response normalization (LRN). LRN is used e.g. in
@@ -1209,14 +1220,16 @@ class DnnSupport {
                              const dnn::BatchDescriptor& input_dimensions,
                              const DeviceMemory<float>& input_data,
                              const dnn::BatchDescriptor& output_dimensions,
-                             DeviceMemory<float>* output_data) = 0;
+                             DeviceMemory<float>* output_data,
+                             ScratchAllocator* workspace_allocator = nullptr) = 0;
 
   virtual bool DoPoolForward(Stream* stream,
                              const dnn::PoolingDescriptor& pooling_dimensions,
                              const dnn::BatchDescriptor& input_dimensions,
                              const DeviceMemory<Eigen::half>& input_data,
                              const dnn::BatchDescriptor& output_dimensions,
-                             DeviceMemory<Eigen::half>* output_data) = 0;
+                             DeviceMemory<Eigen::half>* output_data,
+                             ScratchAllocator* workspace_allocator = nullptr) = 0;
 
   // Performs differentiation of the pooling operation.
   virtual bool DoPoolBackward(Stream* stream,
@@ -1226,7 +1239,8 @@ class DnnSupport {
                               const dnn::BatchDescriptor& output_dimensions,
                               const DeviceMemory<float>& output_data,
                               const DeviceMemory<float>& input_diff_data,
-                              DeviceMemory<float>* output_diff_data) = 0;
+                              DeviceMemory<float>* output_diff_data,
+                              ScratchAllocator* workspace_allocator = nullptr) = 0;
 
   virtual bool DoPoolBackward(Stream* stream,
                               const dnn::PoolingDescriptor& pooling_dimensions,
@@ -1235,7 +1249,8 @@ class DnnSupport {
                               const dnn::BatchDescriptor& output_dimensions,
                               const DeviceMemory<Eigen::half>& output_data,
                               const DeviceMemory<Eigen::half>& input_diff_data,
-                              DeviceMemory<Eigen::half>* output_diff_data) = 0;
+                              DeviceMemory<Eigen::half>* output_diff_data,
+                              ScratchAllocator* workspace_allocator = nullptr) = 0;
 
   // Applies local response normalization to the values from
   // input_data and writes the result to output_data. See comments on
@@ -1279,7 +1294,8 @@ class DnnSupport {
       const DeviceMemory<float>& raw_data,
       const DeviceMemory<float>& normalized_data,
       const DeviceMemory<float>& normalized_variable_gradient,
-      DeviceMemory<float>* raw_variable_gradient) {
+      DeviceMemory<float>* raw_variable_gradient,
+      ScratchAllocator* workspace_allocator = nullptr) {
     return false;
   }
 
@@ -1607,4 +1623,3 @@ class DnnSupport {
 }  // namespace perftools
 
 #endif  // TENSORFLOW_STREAM_EXECUTOR_DNN_H_
-

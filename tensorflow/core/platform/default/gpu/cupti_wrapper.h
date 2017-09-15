@@ -18,6 +18,8 @@ limitations under the License.
 
 #if GOOGLE_CUDA
 
+#ifdef __HIP_PLATFORM_NVCC__
+
 #include <stddef.h>
 #include <stdint.h>
 #if defined(WIN32)
@@ -75,5 +77,5 @@ class CuptiWrapper {
 }  // namespace perftools
 
 #endif  // GOOGLE_CUDA
-
+#endif
 #endif  // THIRD_PARTY_TENSORFLOW_CORE_PLATFORM_DEFAULT_CUPTI_WRAPPER_H_

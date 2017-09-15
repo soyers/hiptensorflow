@@ -34,6 +34,8 @@ class OverwriteDiagGenerator {
                          typename TTypes<T, 3>::Tensor output)
       : diag_(diag), output_(output) {}
 
+  EIGEN_DEVICE_FUNC ~OverwriteDiagGenerator() {}
+
   EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE T
   operator()(const Eigen::array<Eigen::DenseIndex, 2>& coords) const {
     Eigen::array<Eigen::DenseIndex, 3> diag_from_coords(

@@ -32,7 +32,7 @@ using GPUDevice = Eigen::GpuDevice;
 // Each element is mapped from input to output by a combination of its
 // 'segment_ids' mapping and 'inner_dim_size'.
 template <typename T, typename Index>
-__global__ void UnsortedSegmentSumCustomKernel(
+__global__ void UnsortedSegmentSumCustomKernel(hipLaunchParm lp,
     const Index input_outer_dim_size, const Index inner_dim_size,
     const Index output_outer_dim_size, const Index* segment_ids, const T* input,
     T* output) {
@@ -67,7 +67,7 @@ struct UnsortedSegmentSumFunctor<GPUDevice, T, Index> {
     }
     // Set 'output' to zeros.
     CudaLaunchConfig config = GetCudaLaunchConfig(output.size(), d);
-    SetZero<<<config.block_count, config.thread_per_block, 0, d.stream()>>>(
+    hipLaunchKernel(HIP_KERNEL_NAME(SetZero), dim3(config.block_count), dim3(config.thread_per_block), 0, d.stream(), 
         output.size(), output.data());
     if (data_size == 0 || segment_ids_shape.num_elements() == 0) {
       return;
@@ -83,9 +83,7 @@ struct UnsortedSegmentSumFunctor<GPUDevice, T, Index> {
     const Index input_inner_dim_size = input_total_size / input_outer_dim_size;
 
     config = GetCudaLaunchConfig(input_total_size, d);
-    UnsortedSegmentSumCustomKernel<
-        T,
-        Index><<<config.block_count, config.thread_per_block, 0, d.stream()>>>(
+    hipLaunchKernel(HIP_KERNEL_NAME(UnsortedSegmentSumCustomKernel<T,Index>), dim3(config.block_count), dim3(config.thread_per_block), 0, d.stream(), 
         input_outer_dim_size, input_inner_dim_size, output_rows,
         segment_ids.data(), data, output.data());
   }

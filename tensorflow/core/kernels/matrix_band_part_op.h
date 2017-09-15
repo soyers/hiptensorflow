@@ -42,6 +42,8 @@ class MatrixBandPartGenerator {
                 : T());
   }
 
+  EIGEN_DEVICE_FUNC ~MatrixBandPartGenerator() {}
+
  private:
   const Eigen::DenseIndex num_lower_;
   const Eigen::DenseIndex num_upper_;

@@ -39,7 +39,7 @@ DEFINE_GPU_KERNELS(float)
 #undef DEFINE_GPU_KERNELS
 
 template <typename dtype>
-__global__ void AvePoolBackwardNHWC(const int nthreads,
+__global__ void AvePoolBackwardNHWC(hipLaunchParm lp, const int nthreads,
                                     const dtype* const top_diff, const int num,
                                     const int height, const int width,
                                     const int channels, const int pooled_height,
@@ -90,8 +90,7 @@ bool RunAvePoolBackwardNHWC(const T* const top_diff, const int num,
                             const GPUDevice& d) {
   int x_size = num * height * width * channels;
   CudaLaunchConfig config = GetCudaLaunchConfig(x_size, d);
-  AvePoolBackwardNHWC<
-      T><<<config.block_count, config.thread_per_block, 0, d.stream()>>>(
+  hipLaunchKernel(HIP_KERNEL_NAME(AvePoolBackwardNHWC<T>), dim3(config.block_count), dim3(config.thread_per_block), 0, d.stream(), 
       config.virtual_thread_count, top_diff, num, height, width, channels,
       pooled_height, pooled_width, kernel_h, kernel_w, stride_h, stride_w,
       pad_t, pad_t, bottom_diff);

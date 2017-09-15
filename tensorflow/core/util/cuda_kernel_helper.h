@@ -24,8 +24,8 @@ limitations under the License.
 #include "tensorflow/core/platform/types.h"
 
 #define CUDA_1D_KERNEL_LOOP(i, n)                            \
-  for (int i = blockIdx.x * blockDim.x + threadIdx.x; i < n; \
-       i += blockDim.x * gridDim.x)
+  for (int i = hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x; i < n; \
+       i += hipBlockDim_x * hipGridDim_x)
 
 namespace tensorflow {
 
@@ -49,12 +49,12 @@ inline CudaLaunchConfig GetCudaLaunchConfig(int work_element_count,
                                             const GPUDevice& d) {
   const int virtual_thread_count = work_element_count;
   const int physical_thread_count = std::min(
-      d.getNumCudaMultiProcessors() * d.maxCudaThreadsPerMultiProcessor(),
+      d.getNumHipMultiProcessors() * d.maxHipThreadsPerMultiProcessor(),
       virtual_thread_count);
-  const int thread_per_block = std::min(1024, d.maxCudaThreadsPerBlock());
+  const int thread_per_block = std::min(1024, d.maxHipThreadsPerBlock());
   const int block_count = std::min(
       (physical_thread_count + thread_per_block - 1) / thread_per_block,
-      d.getNumCudaMultiProcessors());
+      d.getNumHipMultiProcessors());
 
   CudaLaunchConfig config;
   config.virtual_thread_count = virtual_thread_count;
@@ -81,7 +81,7 @@ inline Cuda2DLaunchConfig GetCuda2DLaunchConfig(int xdim, int ydim,
   int block_rows = std::max(kThreadsPerBlock / block_cols, 1);
 
   const int physical_thread_count =
-      d.getNumCudaMultiProcessors() * d.maxCudaThreadsPerMultiProcessor();
+      d.getNumHipMultiProcessors() * d.maxHipThreadsPerMultiProcessor();
 
   const int max_blocks = std::max(physical_thread_count / kThreadsPerBlock, 1);
 
@@ -131,7 +131,7 @@ __device__ __host__ inline T ldg(const T* address) {
 // CUDA provides atomic ops, but not for all types.  We provide wrappers
 // for some ops and provide implementation for all reasonable types.
 #define CUDA_ATOMIC_WRAPPER(op, T) \
-  __device__ __forceinline__ T CudaAtomic##op(T* address, T val)
+  __device__ inline T CudaAtomic##op(T* address, T val)
 
 #define USE_CUDA_ATOMIC(op, T) \
   CUDA_ATOMIC_WRAPPER(op, T) { return atomic##op(address, val); }
@@ -253,7 +253,7 @@ CUDA_ATOMIC_WRAPPER(Add, Eigen::half) {
 }
 
 template <typename T>
-__global__ void SetZero(const int nthreads, T* bottom_diff) {
+__global__ void SetZero(hipLaunchParm lp, const int nthreads, T* bottom_diff) {
   CUDA_1D_KERNEL_LOOP(index, nthreads) { *(bottom_diff + index) = T(0); }
 }
 

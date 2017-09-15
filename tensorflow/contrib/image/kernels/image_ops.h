@@ -45,6 +45,8 @@ class ProjectiveGenerator {
                       typename TTypes<float>::ConstMatrix transforms)
       : input_(input), transforms_(transforms) {}
 
+  EIGEN_DEVICE_FUNC ~ProjectiveGenerator() {}
+
   EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE T
   operator()(const array<DenseIndex, 4>& coords) const {
     array<DenseIndex, 4> input_coords;

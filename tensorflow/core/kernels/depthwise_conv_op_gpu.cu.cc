@@ -29,13 +29,12 @@ limitations under the License.
 
 namespace tensorflow {
 
-namespace {
-
 typedef Eigen::GpuDevice GPUDevice;
 
 // A Cuda kernel to compute the depthwise convolution forward pass.
 template <typename T>
-__global__ void DepthwiseConv2dGPUKernel(const DepthwiseArgs args,
+__global__ void DepthwiseConv2dGPUKernel(hipLaunchParm lp,
+                                         const DepthwiseArgs args,
                                          const T* input, const T* filter,
                                          T* output, int num_outputs) {
   const int in_rows = args.in_rows;
@@ -110,7 +109,6 @@ __global__ void DepthwiseConv2dGPUKernel(const DepthwiseArgs args,
     output[thread_id] = sum;
   }
 }
-}  // namespace
 
 // A simple launch pad to launch the Cuda kernel for depthwise convolution.
 template <typename T>
@@ -124,8 +122,7 @@ struct DepthwiseConv2dGPULaunch {
         args.batch * args.out_rows * args.out_cols * args.out_depth;
     CudaLaunchConfig config = GetCudaLaunchConfig(num_outputs, d);
 
-    DepthwiseConv2dGPUKernel<
-        T><<<config.block_count, config.thread_per_block, 0, d.stream()>>>(
+    hipLaunchKernel(HIP_KERNEL_NAME(DepthwiseConv2dGPUKernel<T>), dim3(config.block_count), dim3(config.thread_per_block), 0, d.stream(), 
         args, input, filter, output, num_outputs);
   }
 };
@@ -135,7 +132,8 @@ template struct DepthwiseConv2dGPULaunch<double>;
 
 // A Cuda kernel to compute the depthwise convolution backprop w.r.t. input.
 template <typename T>
-__global__ void DepthwiseConv2dBackpropInputGPUKernel(const DepthwiseArgs args,
+__global__ void DepthwiseConv2dBackpropInputGPUKernel(hipLaunchParm lp,
+                                                      const DepthwiseArgs args,
                                                       const T* out_backprop,
                                                       const T* filter,
                                                       T* in_backprop,
@@ -205,8 +203,7 @@ struct DepthwiseConv2dBackpropInputGPULaunch {
         args.batch * args.in_rows * args.in_cols * args.in_depth;
     CudaLaunchConfig config = GetCudaLaunchConfig(num_in_backprop, d);
 
-    DepthwiseConv2dBackpropInputGPUKernel<
-        T><<<config.block_count, config.thread_per_block, 0, d.stream()>>>(
+    hipLaunchKernel(HIP_KERNEL_NAME(DepthwiseConv2dBackpropInputGPUKernel<T>), dim3(config.block_count), dim3(config.thread_per_block), 0, d.stream(), 
         args, out_backprop, filter, in_backprop, num_in_backprop);
   }
 };
@@ -216,7 +213,8 @@ template struct DepthwiseConv2dBackpropInputGPULaunch<double>;
 
 // A Cuda kernel to compute the depthwise convolution backprop w.r.t. filter.
 template <typename T>
-__global__ void DepthwiseConv2dBackpropFilterGPUKernel(const DepthwiseArgs args,
+__global__ void DepthwiseConv2dBackpropFilterGPUKernel(hipLaunchParm lp,
+                                                       const DepthwiseArgs args,
                                                        const T* out_backprop,
                                                        const T* input,
                                                        T* filter_backprop,
@@ -316,8 +314,7 @@ struct DepthwiseConv2dBackpropFilterGPULaunch {
         args.batch * args.out_rows * args.out_cols * args.out_depth;
     CudaLaunchConfig config = GetCudaLaunchConfig(num_out_backprop, d);
 
-    DepthwiseConv2dBackpropFilterGPUKernel<
-        T><<<config.block_count, config.thread_per_block, 0, d.stream()>>>(
+    hipLaunchKernel(HIP_KERNEL_NAME(DepthwiseConv2dBackpropFilterGPUKernel<T>), dim3(config.block_count), dim3(config.thread_per_block), 0, d.stream(), 
         args, out_backprop, input, filter_backprop, num_out_backprop);
   }
 };

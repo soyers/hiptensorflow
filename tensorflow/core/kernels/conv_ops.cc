@@ -601,6 +601,8 @@ void LaunchConv2DOp<GPUDevice, T>::launch(
   AlgorithmConfig algorithm_config;
   if (cudnn_use_autotune &&
       !AutoTuneConv::GetInstance()->Find(conv_parameters, &algorithm_config)) {
+  LOG(INFO) << "running auto-tune for Convolve";
+#if 0
     std::vector<AlgorithmType> algorithms;
     CHECK(stream->parent()->GetConvolveAlgorithms(&algorithms));
     ProfileResult best_result;
@@ -631,9 +633,6 @@ void LaunchConv2DOp<GPUDevice, T>::launch(
         }
       }
     }
-    OP_REQUIRES(ctx, best_result.is_valid() &&
-                         best_result.algorithm() != kDefaultAlgorithm,
-                errors::NotFound("No algorithm worked!"));
     OP_REQUIRES(ctx,
                 best_result_no_scratch.is_valid() &&
                     best_result_no_scratch.algorithm() != kDefaultAlgorithm,
@@ -641,6 +640,30 @@ void LaunchConv2DOp<GPUDevice, T>::launch(
     algorithm_config.set_algorithm(best_result.algorithm());
     algorithm_config.set_algorithm_no_scratch(
         best_result_no_scratch.algorithm());
+#else
+      ProfileResult profile_result;
+    // MIOpen has its own Find and autotuner so use it here, passing kDefaultAlgorithm to force a search
+      CudnnScratchAllocator scratch_allocator(ConvolveScratchSize, ctx);
+      bool miopen_find_status =
+          stream
+              ->ThenConvolveWithAlgorithm(
+                  input_desc, input_ptr, filter_desc, filter_ptr, conv_desc,
+                  output_desc, &output_ptr, &scratch_allocator,
+                  AlgorithmConfig(kDefaultAlgorithm), &profile_result)
+              .ok();
+
+
+    OP_REQUIRES(ctx, miopen_find_status && profile_result.is_valid() &&
+                         profile_result.algorithm() != kDefaultAlgorithm,
+                errors::NotFound("Failed to find conv algorithm!"));
+
+    algorithm_config.set_algorithm(profile_result.algorithm());
+    algorithm_config.set_algorithm_scratch_size(profile_result.scratch_size());
+    // TODO - Add support for no-scratch algorithm
+    algorithm_config.set_algorithm_no_scratch(kDefaultAlgorithm);
+#endif
+
+
     AutoTuneConv::GetInstance()->Insert(conv_parameters, algorithm_config);
   }
 

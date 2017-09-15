@@ -25,7 +25,7 @@ limitations under the License.
 #include "tensorflow/core/kernels/fill_functor.h"
 
 #if GOOGLE_CUDA
-#include "cuda/include/cuda.h"
+#include "cuda/include/hip/hip_runtime.h"
 #include "tensorflow/core/platform/stream_executor.h"
 #endif  // GOOGLE_CUDA
 
@@ -287,8 +287,8 @@ TF_CALL_complex128(REGISTER_CPU);
 #if GOOGLE_CUDA
 TF_CALL_float(REGISTER_GPU);
 TF_CALL_double(REGISTER_GPU);
-TF_CALL_complex64(REGISTER_GPU);
-TF_CALL_complex128(REGISTER_GPU);
+//TF_CALL_complex64(REGISTER_GPU);
+//TF_CALL_complex128(REGISTER_GPU);
 #if CUDA_VERSION >= 7050
 TF_CALL_half(REGISTER_GPU);
 #endif

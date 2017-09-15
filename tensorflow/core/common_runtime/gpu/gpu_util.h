@@ -22,7 +22,79 @@ limitations under the License.
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/platform/stream_executor.h"
 
+#if GOOGLE_CUDA
+#include <tuple>
+#include <unordered_map>
+#include "tensorflow/core/framework/op_kernel.h"
+#include "tensorflow/core/lib/hash/hash.h"
+#endif // GOOGLE_CUDA
+
 namespace tensorflow {
+
+#if GOOGLE_CUDA
+template <typename T>
+inline perftools::gputools::DeviceMemory<T> AsDeviceMemory(const T* cuda_memory,
+                                                           uint64 size) {
+  perftools::gputools::DeviceMemoryBase wrapped(const_cast<T*>(cuda_memory),
+                                                size * sizeof(T));
+  perftools::gputools::DeviceMemory<T> typed(wrapped);
+  return typed;
+}
+
+// Get the Cudnn workspace limit from the environment variable, which is in MB.
+// Return the workspace memory limit in bytes. If no value is set, return the
+// default value.
+int64 GetCudnnWorkspaceLimit(const string& envvar_in_mb,
+                             int64 default_value_in_bytes);
+
+// A class to provide scratch-space allocator for Stream-Executor Cudnn
+// callback. TensorFlow is responsible for releasing the temporary buffers after
+// the kernel finishes.
+class CudnnScratchAllocator : public perftools::gputools::ScratchAllocator {
+ public:
+  virtual ~CudnnScratchAllocator() {}
+  CudnnScratchAllocator(int64 memory_limit, OpKernelContext* context)
+      : memory_limit_(memory_limit), total_byte_size_(0), context_(context) {}
+  virtual int64 GetMemoryLimitInBytes(
+      perftools::gputools::Stream* stream) override {
+    return memory_limit_;
+  }
+  virtual perftools::gputools::port::StatusOr<
+      perftools::gputools::DeviceMemory<uint8>>
+  AllocateBytes(perftools::gputools::Stream* stream, int64 byte_size) override {
+    Tensor temporary_memory;
+    if (byte_size > memory_limit_) {
+      return perftools::gputools::port::StatusOr<
+          perftools::gputools::DeviceMemory<uint8>>();
+    }
+    AllocationAttributes allocation_attr;
+    allocation_attr.no_retry_on_failure = true;
+    Status allocation_status(context_->allocate_temp(
+        DT_UINT8, TensorShape({byte_size}), &temporary_memory,
+        AllocatorAttributes(), allocation_attr));
+    if (!allocation_status.ok()) {
+      return perftools::gputools::port::StatusOr<
+          perftools::gputools::DeviceMemory<uint8>>();
+    }
+    // Hold the reference of the allocated tensors until the end of the
+    // allocator.
+    allocated_tensors_.push_back(temporary_memory);
+    total_byte_size_ += byte_size;
+    return perftools::gputools::port::StatusOr<
+        perftools::gputools::DeviceMemory<uint8>>(
+        AsDeviceMemory(temporary_memory.flat<uint8>().data(),
+                       temporary_memory.flat<uint8>().size()));
+  }
+  int64 TotalByteSize() { return total_byte_size_; }
+
+ private:
+  int64 memory_limit_;
+  int64 total_byte_size_;
+  OpKernelContext* context_;
+  std::vector<Tensor> allocated_tensors_;
+};
+#endif // GOOGLE_CUDA
+
 
 class RecvTensorResponse;
 class TensorProto;

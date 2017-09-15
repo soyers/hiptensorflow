@@ -45,7 +45,8 @@ struct AccumulatorType<Eigen::half> {
 // Definition of the GPU implementations declared in bias_op.cc.
 
 template <typename T>
-__global__ void BiasNHWCKernel(int32 nthreads, const T* input, const T* bias,
+__global__ void BiasNHWCKernel(hipLaunchParm lp,
+                               int32 nthreads, const T* input, const T* bias,
                                T* output, int32 bias_size) {
   CUDA_1D_KERNEL_LOOP(index, nthreads) {
     int32 bias_offset = index % bias_size;
@@ -54,7 +55,8 @@ __global__ void BiasNHWCKernel(int32 nthreads, const T* input, const T* bias,
 }
 
 template <typename T>
-__global__ void BiasNCHWKernel(int32 nthreads, const T* input, const T* bias,
+__global__ void BiasNCHWKernel(hipLaunchParm lp,
+                               int32 nthreads, const T* input, const T* bias,
                                T* output, int32 bias_size, int32 image_size) {
   CUDA_1D_KERNEL_LOOP(index, nthreads) {
     int32 index2 = index / image_size;
@@ -77,12 +79,10 @@ void BiasGPU<T>::compute(const GPUDevice& d, const T* input, const T* bias,
   }
   CudaLaunchConfig config = GetCudaLaunchConfig(total_count, d);
   if (data_format == FORMAT_NHWC) {
-    BiasNHWCKernel<
-        T><<<config.block_count, config.thread_per_block, 0, d.stream()>>>(
+    hipLaunchKernel(HIP_KERNEL_NAME(BiasNHWCKernel<T>), dim3(config.block_count), dim3(config.thread_per_block), 0, d.stream(), 
         config.virtual_thread_count, input, bias, output, bias_size);
   } else {
-    BiasNCHWKernel<
-        T><<<config.block_count, config.thread_per_block, 0, d.stream()>>>(
+    hipLaunchKernel(HIP_KERNEL_NAME(BiasNCHWKernel<T>), dim3(config.block_count), dim3(config.thread_per_block), 0, d.stream(), 
         config.virtual_thread_count, input, bias, output, bias_size,
         image_size);
   }
@@ -90,7 +90,8 @@ void BiasGPU<T>::compute(const GPUDevice& d, const T* input, const T* bias,
 
 // A naive implementation that is functional on all cases.
 template <typename T>
-__global__ void BiasGradNHWC_Naive(int32 nthreads, const T* output_backprop,
+__global__ void BiasGradNHWC_Naive(hipLaunchParm lp,
+                                   int32 nthreads, const T* output_backprop,
                                    T* bias_backprop, int32 bias_size) {
   CUDA_1D_KERNEL_LOOP(index, nthreads) {
     int32 bias_offset = index % bias_size;
@@ -100,7 +101,8 @@ __global__ void BiasGradNHWC_Naive(int32 nthreads, const T* output_backprop,
 
 // A naive implementation that is functional on all cases.
 template <typename T>
-__global__ void BiasGradNCHW_Naive(int32 nthreads, const T* output_backprop,
+__global__ void BiasGradNCHW_Naive(hipLaunchParm lp,
+                                   int32 nthreads, const T* output_backprop,
                                    T* bias_backprop, int32 bias_size,
                                    int32 image_size) {
   CUDA_1D_KERNEL_LOOP(index, nthreads) {
@@ -110,33 +112,34 @@ __global__ void BiasGradNCHW_Naive(int32 nthreads, const T* output_backprop,
   }
 }
 
-extern __shared__ char s_buf[];
 
 template <typename T>
-__global__ void BiasGradNHWC_SharedAtomics(int32 nthreads,
+__global__ void BiasGradNHWC_SharedAtomics(hipLaunchParm lp, int32 nthreads,
                                            const T* output_backprop,
                                            T* bias_backprop, int32 bias_size) {
+  HIP_DYNAMIC_SHARED( char, s_buf)
   typedef typename AccumulatorType<T>::type AccT;
   AccT* s_data = reinterpret_cast<AccT*>(s_buf);
-  for (int32 index = threadIdx.x; index < bias_size; index += blockDim.x) {
+  for (int32 index = hipThreadIdx_x; index < bias_size; index += hipBlockDim_x) {
     s_data[index] = AccT(0);
   }
   __syncthreads();
 
-  for (int32 index = blockIdx.x * blockDim.x + threadIdx.x; index < nthreads;
-       index += blockDim.x * gridDim.x) {
+  for (int32 index = hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x; index < nthreads;
+       index += hipBlockDim_x * hipGridDim_x) {
     int32 bias_offset = index % bias_size;
     CudaAtomicAdd(s_data + bias_offset, AccT(ldg(output_backprop + index)));
   }
   __syncthreads();
 
-  for (int32 index = threadIdx.x; index < bias_size; index += blockDim.x) {
+  for (int32 index = hipThreadIdx_x; index < bias_size; index += hipBlockDim_x) {
     CudaAtomicAdd(bias_backprop + index, T(s_data[index]));
   }
 }
 
 template <typename T>
-__global__ void BiasGradNCHW_SharedAtomics(const T* output_backprop,
+__global__ void BiasGradNCHW_SharedAtomics(hipLaunchParm lp,
+                                           const T* output_backprop,
                                            T* bias_backprop, int32 batch,
                                            int32 bias_size, int32 image_size,
                                            int group_size) {
@@ -144,19 +147,19 @@ __global__ void BiasGradNCHW_SharedAtomics(const T* output_backprop,
   typedef typename AccumulatorType<T>::type AccT;
   __shared__ AccT s_data[32];
   int32 s_data_size = sizeof(s_data) / sizeof(T);
-  for (int32 index = threadIdx.x; index < s_data_size; index += blockDim.x) {
+  for (int32 index = hipThreadIdx_x; index < s_data_size; index += hipBlockDim_x) {
     s_data[index] = AccT(0);
   }
   __syncthreads();
 
   // Accumulate all the values within this thread. They all have the same bias
   // index.
-  int32 bias_index = blockIdx.x % bias_size;
-  int32 group_index = blockIdx.x / bias_size;
+  int32 bias_index = hipBlockIdx_x % bias_size;
+  int32 group_index = hipBlockIdx_x / bias_size;
   int32 total_count = batch * image_size;
   AccT sum(0);
-  for (int32 index = group_index * blockDim.x + threadIdx.x;
-       index < total_count; index += blockDim.x * group_size) {
+  for (int32 index = group_index * hipBlockDim_x + hipThreadIdx_x;
+       index < total_count; index += hipBlockDim_x * group_size) {
     int32 image_offset = index % image_size;
     int32 batch = index / image_size;
     T val = ldg(output_backprop +
@@ -166,13 +169,13 @@ __global__ void BiasGradNCHW_SharedAtomics(const T* output_backprop,
 
   // Write the accumulated sum in this thread to the shared memory. Each thread
   // shifts their write location to avoid bank conflict.
-  int bias_offset = threadIdx.x % 32;
+  int bias_offset = hipThreadIdx_x % 32;
   CudaAtomicAdd(s_data + bias_offset, sum);
   __syncthreads();
 
   // Accumulate the results in the shared memory into the first element.
   // No syncthreads is needed since this is only in the same warp.
-  int32 thread_index = threadIdx.x;
+  int32 thread_index = hipThreadIdx_x;
   if (thread_index < 16) s_data[thread_index] += s_data[thread_index + 16];
   if (thread_index < 8) s_data[thread_index] += s_data[thread_index + 8];
   if (thread_index < 4) s_data[thread_index] += s_data[thread_index + 4];
@@ -207,10 +210,8 @@ void BiasGradGPU<T>::compute(const GPUDevice& d, const T* output_backprop,
   // Check if we have enough shared memory.
   if (shared_memory_size <= max_shared_memory_size) {
     if (data_format == FORMAT_NHWC) {
-      BiasGradNHWC_SharedAtomics<
-          T><<<config.block_count, config.thread_per_block, shared_memory_size,
-               d.stream()>>>(total_count, output_backprop, bias_backprop,
-                             bias_size);
+      hipLaunchKernel(HIP_KERNEL_NAME(BiasGradNHWC_SharedAtomics<T>), dim3(config.block_count), dim3(config.thread_per_block), shared_memory_size, d.stream(), 
+        total_count, output_backprop, bias_backprop, bias_size);
     } else {
       // Round up the block count to multiple of bias_size.
       int group_size = (config.block_count + bias_size - 1) / bias_size;
@@ -218,8 +219,7 @@ void BiasGradGPU<T>::compute(const GPUDevice& d, const T* output_backprop,
       if (config.thread_per_block < kWarpSize) {
         config.thread_per_block = kWarpSize;
       }
-      BiasGradNCHW_SharedAtomics<
-          T><<<config.block_count, config.thread_per_block, 0, d.stream()>>>(
+      hipLaunchKernel(HIP_KERNEL_NAME(BiasGradNCHW_SharedAtomics<T>), dim3(config.block_count), dim3(config.thread_per_block), 0, d.stream(), 
           output_backprop, bias_backprop, batch, bias_size, image_size,
           group_size);
     }
@@ -228,12 +228,10 @@ void BiasGradGPU<T>::compute(const GPUDevice& d, const T* output_backprop,
     // output block, it is possible to process one group of elements at a time.
     // But for now, we simply fall back to the naive implementation.
     if (data_format == FORMAT_NHWC) {
-      BiasGradNHWC_Naive<
-          T><<<config.block_count, config.thread_per_block, 0, d.stream()>>>(
+      hipLaunchKernel(HIP_KERNEL_NAME(BiasGradNHWC_Naive<T>), dim3(config.block_count), dim3(config.thread_per_block), 0, d.stream(), 
           total_count, output_backprop, bias_backprop, bias_size);
     } else {
-      BiasGradNCHW_Naive<
-          T><<<config.block_count, config.thread_per_block, 0, d.stream()>>>(
+      hipLaunchKernel(HIP_KERNEL_NAME(BiasGradNCHW_Naive<T>), dim3(config.block_count), dim3(config.thread_per_block), 0, d.stream(), 
           total_count, output_backprop, bias_backprop, bias_size, image_size);
     }
   }

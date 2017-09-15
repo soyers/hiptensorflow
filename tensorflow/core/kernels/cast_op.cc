@@ -46,8 +46,8 @@ typedef Eigen::GpuDevice GPUDevice;
   FN(arg0, Eigen::half);         \
   FN(arg0, float);               \
   FN(arg0, double);              \
-  FN(arg0, std::complex<float>); \
-  FN(arg0, std::complex<double>)
+  //FN(arg0, std::complex<float>); \
+  //FN(arg0, std::complex<double>)
 
 class CastOpBase : public OpKernel {
  public:
@@ -198,8 +198,8 @@ CURRY_TYPES2(REGISTER_CAST_GPU, int64);
 CURRY_TYPES2(REGISTER_CAST_GPU, Eigen::half);
 CURRY_TYPES2(REGISTER_CAST_GPU, float);
 CURRY_TYPES2(REGISTER_CAST_GPU, double);
-CURRY_TYPES2(REGISTER_CAST_GPU, std::complex<float>);
-CURRY_TYPES2(REGISTER_CAST_GPU, std::complex<double>);
+//CURRY_TYPES2(REGISTER_CAST_GPU, std::complex<float>);
+//CURRY_TYPES2(REGISTER_CAST_GPU, std::complex<double>);
 REGISTER_CAST_GPU(float, bfloat16);
 REGISTER_CAST_GPU(bfloat16, float);
 

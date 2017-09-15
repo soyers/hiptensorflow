@@ -43,7 +43,7 @@ port::Status CUDAEvent::Record(CUDAStream* stream) {
 }
 
 Event::Status CUDAEvent::PollForStatus() {
-  port::StatusOr<CUresult> status =
+  port::StatusOr<hipError_t> status =
       CUDADriver::QueryEvent(parent_->cuda_context(), cuda_event_);
   if (!status.ok()) {
     LOG(ERROR) << "Error polling for event status: "
@@ -52,9 +52,9 @@ Event::Status CUDAEvent::PollForStatus() {
   }
 
   switch (status.ValueOrDie()) {
-    case CUDA_SUCCESS:
+    case hipSuccess:
       return Event::Status::kComplete;
-    case CUDA_ERROR_NOT_READY:
+    case hipErrorNotReady:
       return Event::Status::kPending;
     default:
       LOG(INFO) << "Error condition returned for event status: "
@@ -63,7 +63,7 @@ Event::Status CUDAEvent::PollForStatus() {
   }
 }
 
-const CUevent& CUDAEvent::cuda_event() {
+const hipEvent_t& CUDAEvent::cuda_event() {
   return cuda_event_;
 }
 

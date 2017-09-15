@@ -41,6 +41,7 @@ template <typename MATRIX>
 class MaybeAdjoint<MATRIX, false> {
  public:
   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE MaybeAdjoint(MATRIX m) : m_(m) {}
+  EIGEN_DEVICE_FUNC ~MaybeAdjoint() {}
   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE typename MATRIX::Scalar operator()(
       const typename MATRIX::Index i, const typename MATRIX::Index j) const {
     return m_(i, j);
@@ -59,6 +60,7 @@ template <typename MATRIX>
 class MaybeAdjoint<MATRIX, true> {
  public:
   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE MaybeAdjoint(MATRIX m) : m_(m) {}
+  EIGEN_DEVICE_FUNC ~MaybeAdjoint() {}
   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE typename MATRIX::Scalar operator()(
       const typename MATRIX::Index i, const typename MATRIX::Index j) const {
     return Eigen::numext::conj(m_(j, i));

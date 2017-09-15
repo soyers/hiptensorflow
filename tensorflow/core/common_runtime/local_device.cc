@@ -35,7 +35,9 @@ struct LocalDevice::EigenThreadPoolInfo {
     int32 intra_op_parallelism_threads =
         options.config.intra_op_parallelism_threads();
     if (intra_op_parallelism_threads == 0) {
-      intra_op_parallelism_threads = port::NumSchedulableCPUs();
+      //intra_op_parallelism_threads = port::NumSchedulableCPUs();
+      // XXX - limit intra-thread parallelism for stability
+      intra_op_parallelism_threads = 1;
     }
     VLOG(1) << "Local device intra op parallelism threads: "
             << intra_op_parallelism_threads;

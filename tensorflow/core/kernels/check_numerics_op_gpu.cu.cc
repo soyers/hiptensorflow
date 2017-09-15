@@ -27,17 +27,16 @@ limitations under the License.
 
 namespace tensorflow {
 
-namespace {
-
 typedef Eigen::GpuDevice GPUDevice;
 
 // A Cuda kernel to check if each element is Inf or Nan. If any exists, the
 // relevant elements in abnormal_detected will be set
 template <typename T>
-__global__ void CheckNumericsKernel(const T *data, int size,
+__global__ void CheckNumericsKernel(hipLaunchParm lp,
+                                    const T *data, int size,
                                     int abnormal_detected[2]) {
-  const int32 thread_id = blockIdx.x * blockDim.x + threadIdx.x;
-  const int32 total_thread_count = gridDim.x * blockDim.x;
+  const int32 thread_id = hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x;
+  const int32 total_thread_count = hipGridDim_x * hipBlockDim_x;
 
   int32 offset = thread_id;
 
@@ -52,20 +51,18 @@ __global__ void CheckNumericsKernel(const T *data, int size,
   }
 }
 
-}  // namespace
-
 // A simple launch pad to launch the Cuda kernels that checks the numerical
 // abnormality in the given array
 template <typename T>
 struct CheckNumericsLaunch {
   void Run(const GPUDevice &d, const T *data, int size,
            int abnormal_detected[2]) {
-    const int32 block_size = d.maxCudaThreadsPerBlock();
+    const int32 block_size = d.maxHipThreadsPerBlock();
     const int32 num_blocks =
-        (d.getNumCudaMultiProcessors() * d.maxCudaThreadsPerMultiProcessor()) /
+        (d.getNumHipMultiProcessors() * d.maxHipThreadsPerMultiProcessor()) /
         block_size;
 
-    CheckNumericsKernel<T><<<num_blocks, block_size, 0, d.stream()>>>(
+    hipLaunchKernel(HIP_KERNEL_NAME(CheckNumericsKernel<T>), dim3(num_blocks), dim3(block_size), 0, d.stream(), 
         data, size, abnormal_detected);
   }
 };

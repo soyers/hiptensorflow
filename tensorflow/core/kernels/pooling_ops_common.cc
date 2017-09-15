@@ -20,6 +20,7 @@ limitations under the License.
 #include "tensorflow/core/framework/tensor.h"
 
 #if GOOGLE_CUDA
+#include "tensorflow/core/common_runtime/gpu/gpu_util.h"
 #include "tensorflow/core/kernels/conv_2d.h"
 #include "tensorflow/core/kernels/maxpooling_op_gpu.h"
 #include "tensorflow/core/kernels/pooling_ops_common_gpu.h"
@@ -103,17 +104,6 @@ TensorShape PoolParameters::forward_output_shape() {
 }
 
 #ifdef GOOGLE_CUDA
-
-namespace {
-template <typename T>
-perftools::gputools::DeviceMemory<T> AsDeviceMemory(const T* cuda_memory,
-                                                    uint64 size) {
-  perftools::gputools::DeviceMemoryBase wrapped(const_cast<T*>(cuda_memory),
-                                                size * sizeof(T));
-  perftools::gputools::DeviceMemory<T> typed(wrapped);
-  return typed;
-}
-}  // namespace
 
 // Forward declarations of the functor specializations for GPU.
 namespace functor {
@@ -206,9 +196,16 @@ void DnnPoolingOp<T>::Compute(
   auto* stream = context->op_device_context()->stream();
   OP_REQUIRES(context, stream, errors::Internal("No GPU stream available."));
 
+  static int64 PoolingScratchSize = GetCudnnWorkspaceLimit(
+      // default value is in bytes despite the name of the environment variable
+      "TF_CUDNN_WORKSPACE_LIMIT_IN_MB", 1LL << 32  // 4GB
+      );
+
+  CudnnScratchAllocator scratch_allocator(PoolingScratchSize, context);
   bool status = stream
                     ->ThenPoolForward(pooling_desc, input_desc, input_data,
-                                      output_desc, &output_data)
+                                      output_desc, &output_data,
+                                      &scratch_allocator)
                     .ok();
   OP_REQUIRES(context, status,
               errors::Internal("cudnn PoolBackward launch failed"));
@@ -352,11 +349,18 @@ void DnnPoolingGradOp<T>::Compute(
   auto* stream = context->op_device_context()->stream();
   OP_REQUIRES(context, stream, errors::Internal("No GPU stream available."));
 
+  static int64 PoolingScratchSize = GetCudnnWorkspaceLimit(
+      // default value is in bytes despite the name of the environment variable
+      "TF_CUDNN_WORKSPACE_LIMIT_IN_MB", 1LL << 32  // 4GB
+      );
+
+  CudnnScratchAllocator scratch_allocator(PoolingScratchSize, context);
   bool status =
       stream
           ->ThenPoolBackward(pooling_desc, orig_input_desc, orig_input_data,
                              orig_output_desc, orig_output_data,
-                             output_backprop_data, &input_backprop_data)
+                             output_backprop_data, &input_backprop_data,
+                             &scratch_allocator)
           .ok();
   OP_REQUIRES(context, status,
               errors::Internal("cudnn PoolBackward launch failed"));

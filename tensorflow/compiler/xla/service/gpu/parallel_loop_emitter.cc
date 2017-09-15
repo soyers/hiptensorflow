@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 /* Copyright 2017 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -45,7 +46,7 @@ ParallelLoopEmitter::ParallelLoopEmitter(
 
 llvm_ir::IrArray::Index ParallelLoopEmitter::EmitIndexAndSetExitBasicBlock() {
   // Emit the following code in LLVM IR:
-  //   linear_index = blockIdx.x * blockDim.x + threadIdx.x;
+  //   linear_index = hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x;
   //   if (linear_index < num_elements) {
   //     array_index = LinearIndexToMultidimensionalIndex(shape_, linear_index);
   //     ...

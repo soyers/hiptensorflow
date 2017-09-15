@@ -65,6 +65,8 @@ class SparseXentLossGenerator {
         labels_(labels),
         max_depth_(max_depth) {}
 
+  EIGEN_DEVICE_FUNC ~SparseXentLossGenerator() {}
+
   EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE T
   operator()(const Eigen::array<int, 2>& coords) const {
     const int batch = coords[0];
@@ -104,6 +106,8 @@ class SparseXentGradGenerator {
         sum_exp_logits_(sum_exp_logits),
         labels_(labels),
         max_depth_(max_depth) {}
+
+  EIGEN_DEVICE_FUNC ~SparseXentGradGenerator() {}
 
   EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE T
   operator()(const Eigen::array<int, 2>& coords) const {

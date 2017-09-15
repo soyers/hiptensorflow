@@ -25,7 +25,8 @@ namespace tensorflow {
 namespace internal {
 
 template <typename T>
-__global__ void TransposeKernel(int nthreads, const T* src, const int32* buf,
+__global__ void TransposeKernel(hipLaunchParm lp,
+                                int nthreads, const T* src, const int32* buf,
                                 const int32 ndims, T* dst) {
   const int32* in_strides = buf;
   const int32* out_strides = buf + ndims;
@@ -68,7 +69,7 @@ void TransposeSimple(const Device& d, const Tensor& in,
   const T* p = reinterpret_cast<const T*>(in.tensor_data().data());
   T* q = reinterpret_cast<T*>(const_cast<char*>((out->tensor_data().data())));
   CudaLaunchConfig cfg = GetCudaLaunchConfig(nelem, d);
-  TransposeKernel<<<cfg.block_count, cfg.thread_per_block, 0, d.stream()>>>(
+  hipLaunchKernel(HIP_KERNEL_NAME(TransposeKernel), dim3(cfg.block_count), dim3(cfg.thread_per_block), 0, d.stream(), 
       cfg.virtual_thread_count, p, reinterpret_cast<const int32*>(dev_buf),
       ndims, q);
   // Safe to deallocate immediately after the kernel launch.

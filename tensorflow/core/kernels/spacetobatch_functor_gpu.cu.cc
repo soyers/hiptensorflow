@@ -37,6 +37,258 @@ struct S2BParameters {
   int32 space_tensor_spatial_shape[NUM_BLOCK_DIMS];
   int32 pad_start[NUM_BLOCK_DIMS];
   int32 block_shape[NUM_BLOCK_DIMS];
+
+  // XXX customer serializer / deserializer here are just dummy ones
+  // really depend on specializations below to function properly
+#ifdef __HCC__
+  __attribute__((annotate("user_deserialize")))
+  S2BParameters() [[cpu]][[hc]] {
+  }
+
+  __attribute__((annotate("serialize")))
+  void __cxxamp_serialize(Kalmar::Serialize &s) const {
+  }
+#endif
+};
+
+// specialization for NUM_BLOCK_DIMS=1
+template <>
+struct S2BParameters<1> {
+  int32 space_tensor_batch;
+  int32 batch_tensor_shape[3];
+  int32 space_tensor_spatial_shape[1];
+  int32 pad_start[1];
+  int32 block_shape[1];
+
+  S2BParameters() {}
+
+#ifdef __HCC__
+  __attribute__((annotate("user_deserialize")))
+  S2BParameters(int32 v0,
+                int32 v10, int32 v11, int32 v12,
+                int32 v20,
+                int32 v30,
+                int32 v40) [[cpu]][[hc]] {
+    space_tensor_batch = v0;
+
+    batch_tensor_shape[0] = v10;
+    batch_tensor_shape[1] = v11;
+    batch_tensor_shape[2] = v12;
+
+    space_tensor_spatial_shape[0] = v20;
+
+    pad_start[0] = v30;
+
+    block_shape[0] = v40;
+  }
+
+  __attribute__((annotate("serialize")))
+  void __cxxamp_serialize(Kalmar::Serialize &s) const {
+    s.Append(sizeof(int32), &space_tensor_batch);
+
+    s.Append(sizeof(int32), &batch_tensor_shape[0]);
+    s.Append(sizeof(int32), &batch_tensor_shape[1]);
+    s.Append(sizeof(int32), &batch_tensor_shape[2]);
+
+    s.Append(sizeof(int32), &space_tensor_spatial_shape[0]);
+
+    s.Append(sizeof(int32), &pad_start[0]);
+
+    s.Append(sizeof(int32), &block_shape[0]);
+  }
+#endif
+};
+
+// specialization for NUM_BLOCK_DIMS=2
+template <>
+struct S2BParameters<2> {
+  int32 space_tensor_batch;
+  int32 batch_tensor_shape[4];
+  int32 space_tensor_spatial_shape[2];
+  int32 pad_start[2];
+  int32 block_shape[2];
+
+  S2BParameters() {}
+
+#ifdef __HCC__
+  __attribute__((annotate("user_deserialize")))
+  S2BParameters(int32 v0,
+                int32 v10, int32 v11, int32 v12, int32 v13,
+                int32 v20, int32 v21,
+                int32 v30, int32 v31,
+                int32 v40, int32 v41) [[cpu]][[hc]] {
+    space_tensor_batch = v0;
+
+    batch_tensor_shape[0] = v10;
+    batch_tensor_shape[1] = v11;
+    batch_tensor_shape[2] = v12;
+    batch_tensor_shape[3] = v13;
+
+    space_tensor_spatial_shape[0] = v20;
+    space_tensor_spatial_shape[1] = v21;
+
+    pad_start[0] = v30;
+    pad_start[1] = v31;
+
+    block_shape[0] = v40;
+    block_shape[1] = v41;
+  }
+
+  __attribute__((annotate("serialize")))
+  void __cxxamp_serialize(Kalmar::Serialize &s) const {
+    s.Append(sizeof(int32), &space_tensor_batch);
+
+    s.Append(sizeof(int32), &batch_tensor_shape[0]);
+    s.Append(sizeof(int32), &batch_tensor_shape[1]);
+    s.Append(sizeof(int32), &batch_tensor_shape[2]);
+    s.Append(sizeof(int32), &batch_tensor_shape[3]);
+
+    s.Append(sizeof(int32), &space_tensor_spatial_shape[0]);
+    s.Append(sizeof(int32), &space_tensor_spatial_shape[1]);
+
+    s.Append(sizeof(int32), &pad_start[0]);
+    s.Append(sizeof(int32), &pad_start[1]);
+
+    s.Append(sizeof(int32), &block_shape[0]);
+    s.Append(sizeof(int32), &block_shape[1]);
+  }
+#endif
+};
+
+// specialization for NUM_BLOCK_DIMS=3
+template <>
+struct S2BParameters<3> {
+  int32 space_tensor_batch;
+  int32 batch_tensor_shape[5];
+  int32 space_tensor_spatial_shape[3];
+  int32 pad_start[3];
+  int32 block_shape[3];
+
+  S2BParameters() {}
+
+#ifdef __HCC__
+  __attribute__((annotate("user_deserialize")))
+  S2BParameters(int32 v0,
+                int32 v10, int32 v11, int32 v12, int32 v13, int32 v14,
+                int32 v20, int32 v21, int32 v22,
+                int32 v30, int32 v31, int32 v32,
+                int32 v40, int32 v41, int32 v42) [[cpu]][[hc]] {
+    space_tensor_batch = v0;
+
+    batch_tensor_shape[0] = v10;
+    batch_tensor_shape[1] = v11;
+    batch_tensor_shape[2] = v12;
+    batch_tensor_shape[3] = v13;
+    batch_tensor_shape[4] = v14;
+
+    space_tensor_spatial_shape[0] = v20;
+    space_tensor_spatial_shape[1] = v21;
+    space_tensor_spatial_shape[2] = v22;
+
+    pad_start[0] = v30;
+    pad_start[1] = v31;
+    pad_start[2] = v32;
+
+    block_shape[0] = v40;
+    block_shape[1] = v41;
+    block_shape[2] = v42;
+  }
+
+  __attribute__((annotate("serialize")))
+  void __cxxamp_serialize(Kalmar::Serialize &s) const {
+    s.Append(sizeof(int32), &space_tensor_batch);
+
+    s.Append(sizeof(int32), &batch_tensor_shape[0]);
+    s.Append(sizeof(int32), &batch_tensor_shape[1]);
+    s.Append(sizeof(int32), &batch_tensor_shape[2]);
+    s.Append(sizeof(int32), &batch_tensor_shape[3]);
+    s.Append(sizeof(int32), &batch_tensor_shape[4]);
+
+    s.Append(sizeof(int32), &space_tensor_spatial_shape[0]);
+    s.Append(sizeof(int32), &space_tensor_spatial_shape[1]);
+    s.Append(sizeof(int32), &space_tensor_spatial_shape[2]);
+
+    s.Append(sizeof(int32), &pad_start[0]);
+    s.Append(sizeof(int32), &pad_start[1]);
+    s.Append(sizeof(int32), &pad_start[2]);
+
+    s.Append(sizeof(int32), &block_shape[0]);
+    s.Append(sizeof(int32), &block_shape[1]);
+    s.Append(sizeof(int32), &block_shape[2]);
+  }
+#endif
+};
+
+// specialization for NUM_BLOCK_DIMS=4
+template <>
+struct S2BParameters<4> {
+  int32 space_tensor_batch;
+  int32 batch_tensor_shape[6];
+  int32 space_tensor_spatial_shape[4];
+  int32 pad_start[4];
+  int32 block_shape[4];
+
+  S2BParameters() {}
+
+#ifdef __HCC__
+  __attribute__((annotate("user_deserialize")))
+  S2BParameters(int32 v0,
+                int32 v10, int32 v11, int32 v12, int32 v13, int32 v14, int32 v15,
+                int32 v20, int32 v21, int32 v22, int32 v23,
+                int32 v30, int32 v31, int32 v32, int32 v33,
+                int32 v40, int32 v41, int32 v42, int32 v43) [[cpu]][[hc]] {
+    space_tensor_batch = v0;
+
+    batch_tensor_shape[0] = v10;
+    batch_tensor_shape[1] = v11;
+    batch_tensor_shape[2] = v12;
+    batch_tensor_shape[3] = v13;
+    batch_tensor_shape[4] = v14;
+    batch_tensor_shape[5] = v15;
+
+    space_tensor_spatial_shape[0] = v20;
+    space_tensor_spatial_shape[1] = v21;
+    space_tensor_spatial_shape[2] = v22;
+    space_tensor_spatial_shape[3] = v23;
+
+    pad_start[0] = v30;
+    pad_start[1] = v31;
+    pad_start[2] = v32;
+    pad_start[3] = v33;
+
+    block_shape[0] = v40;
+    block_shape[1] = v41;
+    block_shape[2] = v42;
+    block_shape[3] = v43;
+  }
+
+  __attribute__((annotate("serialize")))
+  void __cxxamp_serialize(Kalmar::Serialize &s) const {
+    s.Append(sizeof(int32), &space_tensor_batch);
+
+    s.Append(sizeof(int32), &batch_tensor_shape[0]);
+    s.Append(sizeof(int32), &batch_tensor_shape[1]);
+    s.Append(sizeof(int32), &batch_tensor_shape[2]);
+    s.Append(sizeof(int32), &batch_tensor_shape[3]);
+    s.Append(sizeof(int32), &batch_tensor_shape[4]);
+    s.Append(sizeof(int32), &batch_tensor_shape[5]);
+
+    s.Append(sizeof(int32), &space_tensor_spatial_shape[0]);
+    s.Append(sizeof(int32), &space_tensor_spatial_shape[1]);
+    s.Append(sizeof(int32), &space_tensor_spatial_shape[2]);
+    s.Append(sizeof(int32), &space_tensor_spatial_shape[3]);
+
+    s.Append(sizeof(int32), &pad_start[0]);
+    s.Append(sizeof(int32), &pad_start[1]);
+    s.Append(sizeof(int32), &pad_start[2]);
+    s.Append(sizeof(int32), &pad_start[3]);
+
+    s.Append(sizeof(int32), &block_shape[0]);
+    s.Append(sizeof(int32), &block_shape[1]);
+    s.Append(sizeof(int32), &block_shape[2]);
+    s.Append(sizeof(int32), &block_shape[3]);
+  }
+#endif
 };
 
 // GPU kernel for space-to-batch (if B2S = false) and batch-to-space conversion
@@ -45,7 +297,8 @@ struct S2BParameters {
 // To simplify template implementation given lack of constexpr if, both the
 // input and output pointers are non-const.
 template <typename T, int NUM_BLOCK_DIMS, bool B2S>
-__global__ void S2B(const int32 nthreads, T* space_tensor_ptr,
+__global__ void S2B(hipLaunchParm lp,
+                    const int32 nthreads, T* space_tensor_ptr,
                     S2BParameters<NUM_BLOCK_DIMS> args, T* batch_tensor_ptr) {
   CUDA_1D_KERNEL_LOOP(batch_tensor_idx, nthreads) {
     int32 remaining_batch_tensor_idx = batch_tensor_idx;
@@ -141,8 +394,7 @@ struct SpaceToBatchFunctor<GPUDevice, T, NUM_BLOCK_DIMS, B2S> {
     }
     CudaLaunchConfig config =
         GetCudaLaunchConfig(static_cast<int32>(total_count), d);
-    S2B<T, NUM_BLOCK_DIMS,
-        B2S><<<config.block_count, config.thread_per_block, 0, d.stream()>>>(
+    hipLaunchKernel(HIP_KERNEL_NAME(S2B<T, NUM_BLOCK_DIMS,B2S>), dim3(config.block_count), dim3(config.thread_per_block), 0, d.stream(), 
         config.virtual_thread_count, const_cast<T*>(space_tensor.data()), args,
         const_cast<T*>(batch_tensor.data()));
     return Status::OK();

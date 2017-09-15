@@ -17,15 +17,15 @@ limitations under the License.
 #define EIGEN_USE_GPU
 #include "third_party/eigen3/unsupported/Eigen/CXX11/Tensor"
 
-__global__ void AddOneKernel(const int* in, const int N, int* out) {
-  for (int i = blockIdx.x * blockDim.x + threadIdx.x; i < N;
-       i += blockDim.x * gridDim.x) {
+__global__ void AddOneKernel(hipLaunchParm lp, const int* in, const int N, int* out) {
+  for (int i = hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x; i < N;
+       i += hipBlockDim_x * hipGridDim_x) {
     out[i] = in[i] + 1;
   }
 }
 
 void AddOneKernelLauncher(const int* in, const int N, int* out) {
-  AddOneKernel<<<32, 256>>>(in, N, out);
+  hipLaunchKernel(HIP_KERNEL_NAME(AddOneKernel), dim3(32), dim3(256), 0, 0, in, N, out);
 }
 
 #endif

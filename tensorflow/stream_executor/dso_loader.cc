@@ -41,34 +41,38 @@ string GetCudaVersion() { return TF_CUDA_VERSION; }
 string GetCudnnVersion() { return TF_CUDNN_VERSION; }
 
 /* static */ port::Status DsoLoader::GetCublasDsoHandle(void** dso_handle) {
-  return GetDsoHandle(FindDsoPath(port::Env::Default()->FormatLibraryFileName(
-                                      "cublas", GetCudaVersion()),
+  return GetDsoHandle(FindDsoPath("libhipblas.so",
                                   GetCudaLibraryDirPath()),
-                      dso_handle);
+                                  dso_handle);
 }
 
 /* static */ port::Status DsoLoader::GetCudnnDsoHandle(void** dso_handle) {
   // libcudnn is versioned differently than the other libraries and may have a
   // different version number than other CUDA libraries.  See b/22397368 for
   // some details about the complications surrounding this.
+#ifdef __HIP_PLATFORM_NVCC__ 
   return GetDsoHandle(FindDsoPath(port::Env::Default()->FormatLibraryFileName(
                                       "cudnn", GetCudnnVersion()),
                                   GetCudaLibraryDirPath()),
                       dso_handle);
+#elif defined(__HIP_PLATFORM_HCC__)
+  return GetDsoHandle(FindDsoPath("libMIOpen.so",
+                                  GetCudaLibraryDirPath()),
+                                  dso_handle);
+#endif
+
 }
 
 /* static */ port::Status DsoLoader::GetCufftDsoHandle(void** dso_handle) {
-  return GetDsoHandle(FindDsoPath(port::Env::Default()->FormatLibraryFileName(
-                                      "cufft", GetCudaVersion()),
+  return GetDsoHandle(FindDsoPath("libhipfft.so",
                                   GetCudaLibraryDirPath()),
-                      dso_handle);
+                                  dso_handle);
 }
 
 /* static */ port::Status DsoLoader::GetCurandDsoHandle(void** dso_handle) {
-  return GetDsoHandle(FindDsoPath(port::Env::Default()->FormatLibraryFileName(
-                                      "curand", GetCudaVersion()),
+  return GetDsoHandle(FindDsoPath("libhiprng.so",
                                   GetCudaLibraryDirPath()),
-                      dso_handle);
+                                  dso_handle);
 }
 
 /* static */ port::Status DsoLoader::GetLibcudaDsoHandle(void** dso_handle) {
@@ -79,8 +83,8 @@ string GetCudnnVersion() { return TF_CUDNN_VERSION; }
       dso_handle);
 #else
   port::Status status = GetDsoHandle(
-      FindDsoPath(port::Env::Default()->FormatLibraryFileName("cuda", "1"),
-                  GetCudaDriverLibraryPath()),
+      FindDsoPath("libhip_hcc.so",
+                  GetCudaLibraryDirPath()),
       dso_handle);
 #if defined(__APPLE__)
   // On Mac OS X, CUDA sometimes installs libcuda.dylib instead of
@@ -200,11 +204,7 @@ static std::vector<string>* CreatePrimordialRpaths() {
 }
 
 /* static */ string DsoLoader::GetCudaLibraryDirPath() {
-#if defined(__APPLE__)
   return "external/local_config_cuda/cuda/lib";
-#else
-  return "external/local_config_cuda/cuda/lib64";
-#endif
 }
 
 /* static */ string DsoLoader::GetCudaDriverLibraryPath() {

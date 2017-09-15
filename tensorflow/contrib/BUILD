@@ -37,7 +37,6 @@ py_library(
         "//tensorflow/contrib/lookup:lookup_py",
         "//tensorflow/contrib/losses:losses_py",
         "//tensorflow/contrib/metrics:metrics_py",
-        "//tensorflow/contrib/nccl:nccl_py",
         "//tensorflow/contrib/ndlstm",
         "//tensorflow/contrib/nn:nn_py",
         "//tensorflow/contrib/opt:opt_py",

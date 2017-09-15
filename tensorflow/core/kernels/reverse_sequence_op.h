@@ -36,6 +36,8 @@ class ReverseGenerator {
         seq_dim_(seq_dim),
         seq_lengths_(seq_lengths) {}
 
+  EIGEN_DEVICE_FUNC ~ReverseGenerator() {}
+
   EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE T
   operator()(const Eigen::array<Eigen::DenseIndex, Dims>& coords) const {
     Eigen::array<Eigen::DenseIndex, Dims> new_coords = coords;

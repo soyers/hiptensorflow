@@ -28,7 +28,7 @@ namespace tensorflow {
 typedef Eigen::GpuDevice GPUDevice;
 
 template <typename dtype>
-__global__ void D2S(const int32 nthreads, const dtype* input_ptr,
+__global__ void D2S(hipLaunchParm lp, const int32 nthreads, const dtype* input_ptr,
                     const int block_size, const int batch_size,
                     const int input_height, const int input_width,
                     const int input_depth, const int output_height,
@@ -72,7 +72,7 @@ struct DepthToSpaceOpFunctor<GPUDevice, T> {
     const int total_count =
         batch_size * output_height * output_width * output_depth;
     CudaLaunchConfig config = GetCudaLaunchConfig(total_count, d);
-    D2S<<<config.block_count, config.thread_per_block, 0, d.stream()>>>(
+    hipLaunchKernel(HIP_KERNEL_NAME(D2S), dim3(config.block_count), dim3(config.thread_per_block), 0, d.stream(), 
         config.virtual_thread_count, input.data(), block_size, batch_size,
         input_height, input_width, input_depth, output_height, output_width,
         output_depth, output.data());

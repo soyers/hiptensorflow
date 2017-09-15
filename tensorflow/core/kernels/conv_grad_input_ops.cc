@@ -761,6 +761,8 @@ class Conv2DSlowBackpropInputOp : public OpKernel {
     if (cudnn_use_autotune_ &&
         !AutoTuneConvBwdData::GetInstance()->Find(conv_parameters,
                                                   &algorithm_config)) {
+    LOG(INFO) << "running auto-tune for Backward-Data";
+#if 0 // CUDNN path:
       std::vector<AlgorithmType> algorithms;
       CHECK(stream->parent()->GetConvolveBackwardDataAlgorithms(&algorithms));
       ProfileResult best_result;
@@ -795,6 +797,7 @@ class Conv2DSlowBackpropInputOp : public OpKernel {
       OP_REQUIRES(context, best_result.is_valid() &&
                                best_result.algorithm() != kDefaultAlgorithm,
                   errors::NotFound("No algorithm worked!"));
+
       OP_REQUIRES(context,
                   best_result_no_scratch.is_valid() &&
                       best_result_no_scratch.algorithm() != kDefaultAlgorithm,
@@ -802,6 +805,29 @@ class Conv2DSlowBackpropInputOp : public OpKernel {
       algorithm_config.set_algorithm(best_result.algorithm());
       algorithm_config.set_algorithm_no_scratch(
           best_result_no_scratch.algorithm());
+#else
+      ProfileResult profile_result;
+      // MIOpen has its own Find and autotuner so use it here, passing kDefaultAlgorithm to force a search
+      CudnnScratchAllocator scratch_allocator(ConvolveBackwardDataScratchSize,
+                                                context);
+      bool miopen_find_status =
+        stream
+            ->ThenConvolveBackwardDataWithAlgorithm(
+                filter_desc, filter_ptr, output_desc, out_backprop_ptr,
+                conv_desc, input_desc, &in_backprop_ptr, &scratch_allocator,
+                AlgorithmConfig(kDefaultAlgorithm), &profile_result)
+            .ok();
+      OP_REQUIRES(context, miopen_find_status && profile_result.is_valid() &&
+                             profile_result.algorithm() != kDefaultAlgorithm,
+                  errors::NotFound("Failed to find backwards-data algorithm!"));
+
+
+      algorithm_config.set_algorithm(profile_result.algorithm());
+      algorithm_config.set_algorithm_scratch_size(profile_result.scratch_size());
+      // TODO - Add support for no-scratch algorithm
+      algorithm_config.set_algorithm_no_scratch(kDefaultAlgorithm);
+#endif
+
       AutoTuneConvBwdData::GetInstance()->Insert(conv_parameters,
                                                  algorithm_config);
     }

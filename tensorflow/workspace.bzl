@@ -52,6 +52,7 @@ temp_workaround_http_archive = repository_rule(
       "strip_prefix": attr.string(default = ""),
    })
 
+EIGEN_PATH = "/opt/rocm/hipeigen"
 # If TensorFlow is linked as a submodule.
 # path_prefix and tf_repo_name are no longer used.
 def tf_workspace(path_prefix = "", tf_repo_name = ""):
@@ -62,15 +63,21 @@ def tf_workspace(path_prefix = "", tf_repo_name = ""):
   if tf_repo_name:
     print("tf_repo_name was specified to tf_workspace but is no longer used and will be removed in the future.")
 
-  native.new_http_archive(
-      name = "eigen_archive",
-      urls = [
-          "http://bazel-mirror.storage.googleapis.com/bitbucket.org/eigen/eigen/get/60578b474802.tar.gz",
-          "https://bitbucket.org/eigen/eigen/get/60578b474802.tar.gz",
-      ],
-      sha256 = "7527cda827aff351981ebd910012e16be4d899c28a9ae7f143ae60e7f3f7b83d",
-      strip_prefix = "eigen-eigen-60578b474802",
-      build_file = str(Label("//third_party:eigen.BUILD")),
+ #native.new_http_archive(
+ #     name = "eigen_archive",
+ #     urls = [
+ #         "http://bazel-mirror.storage.googleapis.com/bitbucket.org/eigen/eigen/get/60578b474802.tar.gz",
+ #         "https://bitbucket.org/eigen/eigen/get/60578b474802.tar.gz",
+ #     ],
+ #     sha256 = "7527cda827aff351981ebd910012e16be4d899c28a9ae7f143ae60e7f3f7b83d",
+ #     strip_prefix = "eigen-eigen-60578b474802",
+ #     build_file = str(Label("//third_party:eigen.BUILD")),
+ # )
+
+  native.new_local_repository(
+    name = "eigen_archive",
+    path = EIGEN_PATH,
+    build_file = str(Label("//third_party:eigen.BUILD")),
   )
 
   native.new_http_archive(
@@ -383,14 +390,6 @@ def tf_workspace(path_prefix = "", tf_repo_name = ""):
   native.bind(
       name = "zlib",
       actual = "@zlib_archive//:zlib",
-  )
-
-  native.new_http_archive(
-      name = "nccl_archive",
-      url = "https://github.com/nvidia/nccl/archive/024d1e267845f2ed06f3e2e42476d50f04a00ee6.tar.gz",
-      sha256 = "6787f0eed88d52ee8e32956fa4947d92c139da469f1d8e311c307f27d641118e",
-      strip_prefix = "nccl-024d1e267845f2ed06f3e2e42476d50f04a00ee6",
-      build_file = str(Label("//third_party:nccl.BUILD")),
   )
 
   # Make junit-4.12 available as //external:junit

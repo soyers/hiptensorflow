@@ -57,7 +57,10 @@ def load_tensor_from_event_file(event_file_path):
     if (event.summary.value[0].tensor.tensor_content or
         event.summary.value[0].tensor.string_val):
       # Initialized tensor.
-      tensor_value = tensor_util.MakeNdarray(event.summary.value[0].tensor)
+      try:
+        tensor_value = tensor_util.MakeNdarray(event.summary.value[0].tensor)
+      except KeyError:
+        tensor_value =None
     else:
       # Uninitialized tensor.
       tensor_value = None

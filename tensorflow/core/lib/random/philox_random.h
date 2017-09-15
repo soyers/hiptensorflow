@@ -25,7 +25,7 @@ limitations under the License.
 #include "tensorflow/core/platform/types.h"
 
 // Function qualifiers that need to work on both CPU and GPU.
-#if defined(__CUDACC__)
+#if defined(__HIPCC__)
 // For nvcc.
 #define PHILOX_DEVICE_FUNC __host__ __device__
 #define PHILOX_INLINE __inline__
@@ -49,22 +49,96 @@ namespace random {
 template <typename T, int ElementCount>
 class Array {
  public:
-  PHILOX_DEVICE_INLINE Array() {
+  PHILOX_DEVICE_FUNC PHILOX_DEVICE_INLINE Array() {
     for (int i = 0; i < ElementCount; ++i) {
       data_[i] = T(0);
     }
   }
 
-  PHILOX_DEVICE_INLINE const T& operator[](int index) const {
+  PHILOX_DEVICE_FUNC PHILOX_DEVICE_INLINE const T& operator[](int index) const {
     return data_[index];
   }
 
-  PHILOX_DEVICE_INLINE T& operator[](int index) { return data_[index]; }
+  PHILOX_DEVICE_FUNC PHILOX_DEVICE_INLINE T& operator[](int index) { return data_[index]; }
 
-  size_t size() const { return ElementCount; }
+  PHILOX_DEVICE_FUNC size_t size() const { return ElementCount; }
 
  private:
   T data_[ElementCount];
+};
+
+// Specialize for Array<uint32, 2>
+template<>
+class Array<uint32, 2> {
+ public:
+  PHILOX_DEVICE_FUNC PHILOX_DEVICE_INLINE Array() {
+    for (int i = 0; i < 2; ++i) {
+      data_[i] = uint32(0);
+    }
+  }
+
+  PHILOX_DEVICE_FUNC PHILOX_DEVICE_INLINE const uint32& operator[](int index) const {
+    return data_[index];
+  }
+
+  PHILOX_DEVICE_FUNC PHILOX_DEVICE_INLINE uint32& operator[](int index) { return data_[index]; }
+
+  PHILOX_DEVICE_FUNC size_t size() const { return 2; }
+
+#ifdef __HCC__
+  __attribute__((annotate("user_deserialize")))
+  Array(uint32 v0, uint32 v1) [[cpu]][[hc]] {
+    data_[0] = v0;
+    data_[1] = v1;
+  }
+  __attribute__((annotate("serialize")))
+  void __cxxamp_serialize(Kalmar::Serialize &s) const {
+    s.Append(sizeof(uint32), &data_[0]);
+    s.Append(sizeof(uint32), &data_[1]);
+  }
+#endif
+
+ private:
+  uint32 data_[2];
+};
+
+// Specialize for Array<uint32, 4>
+template<>
+class Array<uint32, 4> {
+ public:
+  PHILOX_DEVICE_FUNC PHILOX_DEVICE_INLINE Array() {
+    for (int i = 0; i < 4; ++i) {
+      data_[i] = uint32(0);
+    }
+  }
+
+  PHILOX_DEVICE_FUNC PHILOX_DEVICE_INLINE const uint32& operator[](int index) const {
+    return data_[index];
+  }
+
+  PHILOX_DEVICE_FUNC PHILOX_DEVICE_INLINE uint32& operator[](int index) { return data_[index]; }
+
+  PHILOX_DEVICE_FUNC size_t size() const { return 4; }
+
+#ifdef __HCC__
+  __attribute__((annotate("user_deserialize")))
+  Array(uint32 v0, uint32 v1, uint32 v2, uint32 v3) [[cpu]][[hc]] {
+    data_[0] = v0;
+    data_[1] = v1;
+    data_[2] = v2;
+    data_[3] = v3;
+  }
+  __attribute__((annotate("serialize")))
+  void __cxxamp_serialize(Kalmar::Serialize &s) const {
+    s.Append(sizeof(uint32), &data_[0]);
+    s.Append(sizeof(uint32), &data_[1]);
+    s.Append(sizeof(uint32), &data_[2]);
+    s.Append(sizeof(uint32), &data_[3]);
+  }
+#endif
+
+ private:
+  uint32 data_[4];
 };
 
 // A class that encapsulates all the states for a random number generator using
@@ -108,16 +182,16 @@ class PhiloxRandom {
   // Cost of generation of a single element (in cycles).
   static const int kElementCost = 10;
 
-  PHILOX_DEVICE_INLINE
+  PHILOX_DEVICE_FUNC PHILOX_DEVICE_INLINE
   PhiloxRandom() {}
 
-  PHILOX_DEVICE_INLINE
+  PHILOX_DEVICE_FUNC PHILOX_DEVICE_INLINE
   explicit PhiloxRandom(uint64 seed) {
     key_[0] = static_cast<uint32>(seed);
     key_[1] = static_cast<uint32>(seed >> 32);
   }
 
-  PHILOX_DEVICE_INLINE
+  PHILOX_DEVICE_FUNC PHILOX_DEVICE_INLINE
   explicit PhiloxRandom(uint64 seed_lo, uint64 seed_hi) {
     key_[0] = static_cast<uint32>(seed_lo);
     key_[1] = static_cast<uint32>(seed_lo >> 32);
@@ -125,8 +199,16 @@ class PhiloxRandom {
     counter_[3] = static_cast<uint32>(seed_hi >> 32);
   }
 
+  PHILOX_DEVICE_FUNC PHILOX_DEVICE_INLINE
+  explicit PhiloxRandom(unsigned int *seed_lo, unsigned int *seed_hi) {
+    key_[0] = static_cast<uint32>(seed_lo[0]);
+    key_[1] = static_cast<uint32>(seed_lo[1]);
+    counter_[2] = static_cast<uint32>(seed_hi[0]);
+    counter_[3] = static_cast<uint32>(seed_hi[1]);
+  }
+
   // Skip the specified number of samples of 128-bits in the current stream.
-  PHILOX_DEVICE_INLINE
+  PHILOX_DEVICE_FUNC PHILOX_DEVICE_INLINE
   void Skip(uint64 count) {
     const uint32 count_lo = static_cast<uint32>(count);
     uint32 count_hi = static_cast<uint32>(count >> 32);
@@ -146,7 +228,7 @@ class PhiloxRandom {
 
   // Returns a group of four random numbers using the underlying Philox
   // algorithm.
-  PHILOX_DEVICE_INLINE ResultType operator()() {
+  PHILOX_DEVICE_FUNC PHILOX_DEVICE_INLINE ResultType operator()() {
     ResultType counter = counter_;
     Key key = key_;
 
@@ -189,7 +271,7 @@ class PhiloxRandom {
   static const uint32 kPhiloxM4x32B = 0xCD9E8D57;
 
   // Helper function to skip the next sample of 128-bits in the current stream.
-  PHILOX_DEVICE_INLINE void SkipOne() {
+  PHILOX_DEVICE_FUNC PHILOX_DEVICE_INLINE void SkipOne() {
     if (++counter_[0] == 0) {
       if (++counter_[1] == 0) {
         if (++counter_[2] == 0) {
@@ -201,10 +283,10 @@ class PhiloxRandom {
 
   // Helper function to return the lower and higher 32-bits from two 32-bit
   // integer multiplications.
-  PHILOX_DEVICE_INLINE
+  PHILOX_DEVICE_FUNC PHILOX_DEVICE_INLINE
   static void MultiplyHighLow(uint32 a, uint32 b, uint32* result_low,
                               uint32* result_high) {
-#ifndef __CUDA_ARCH__
+#ifndef __HIP_DEVICE_COMPILE__
     const uint64 product = static_cast<uint64>(a) * b;
     *result_low = static_cast<uint32>(product);
     *result_high = static_cast<uint32>(product >> 32);
@@ -215,7 +297,7 @@ class PhiloxRandom {
   }
 
   // Helper function for a single round of the underlying Philox algorithm.
-  PHILOX_DEVICE_INLINE static ResultType ComputeSingleRound(
+  PHILOX_DEVICE_FUNC PHILOX_DEVICE_INLINE static ResultType ComputeSingleRound(
       const ResultType& counter, const Key& key) {
     uint32 lo0;
     uint32 hi0;
@@ -233,7 +315,7 @@ class PhiloxRandom {
     return result;
   }
 
-  PHILOX_DEVICE_INLINE void RaiseKey(Key* key) {
+  PHILOX_DEVICE_FUNC PHILOX_DEVICE_INLINE void RaiseKey(Key* key) {
     (*key)[0] += kPhiloxW32A;
     (*key)[1] += kPhiloxW32B;
   }

@@ -22,14 +22,14 @@ typedef Eigen::GpuDevice GPUDevice;
 
 std::function<void(OpKernelContext*, const Tensor&, Tensor*)>
 GetCpuCastFromComplex64(DataType dst_dtype) {
-  CURRY_TYPES3(CAST_CASE, CPUDevice, std::complex<float>);
+  //CURRY_TYPES3(CAST_CASE, CPUDevice, std::complex<float>);
   return nullptr;
 }
 
 #if GOOGLE_CUDA
 std::function<void(OpKernelContext*, const Tensor&, Tensor*)>
 GetGpuCastFromComplex64(DataType dst_dtype) {
-  CURRY_TYPES3(CAST_CASE, GPUDevice, std::complex<float>);
+  //CURRY_TYPES3(CAST_CASE, GPUDevice, std::complex<float>);
   return nullptr;
 }
 #endif  // GOOGLE_CUDA

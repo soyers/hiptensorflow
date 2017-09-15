@@ -37,7 +37,8 @@ using GPUDevice = Eigen::GpuDevice;
 
 // Kernel for Multinomial op.  Data is interpreted to have the following shapes:
 //   scores: [B, S, C];  maxima: [B, S];  output: [B, S].
-__global__ void MultinomialKernel(int32 nthreads, const int32 num_classes,
+__global__ void MultinomialKernel(hipLaunchParm lp,
+                                  int32 nthreads, const int32 num_classes,
                                   const int32 num_samples, const float* scores,
                                   const float* maxima, int64* output) {
   CUDA_1D_KERNEL_LOOP(index, nthreads) {
@@ -99,8 +100,7 @@ struct MultinomialFunctor<GPUDevice, T> {
 
     const int32 work_items = batch_size * num_samples * num_classes;
     CudaLaunchConfig config = GetCudaLaunchConfig(work_items, d);
-    MultinomialKernel<<<config.block_count, config.thread_per_block, 0,
-                        d.stream()>>>(config.virtual_thread_count, num_classes,
+    hipLaunchKernel(HIP_KERNEL_NAME(MultinomialKernel), dim3(config.block_count), dim3(config.thread_per_block), 0, d.stream(), config.virtual_thread_count, num_classes,
                                       num_samples, scores.data(), maxima.data(),
                                       output.data());
   }

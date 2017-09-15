@@ -48,9 +48,10 @@ import pipes
 # Template values set by cuda_autoconf.
 CPU_COMPILER = ('%{cpu_compiler}')
 GCC_HOST_COMPILER_PATH = ('%{gcc_host_compiler_path}')
+GPU_PLATFORM = ('%{gpu_platform}') 
 
 CURRENT_DIR = os.path.dirname(sys.argv[0])
-NVCC_PATH = CURRENT_DIR + '/../../../cuda/bin/nvcc'
+NVCC_PATH = CURRENT_DIR + '/../../../cuda/bin/hipcc'
 LLVM_HOST_COMPILER_PATH = ('/usr/bin/gcc')
 PREFIX_DIR = os.path.dirname(GCC_HOST_COMPILER_PATH)
 NVCC_VERSION = '%{cuda_version}'
@@ -108,8 +109,8 @@ def GetHostCompilerOptions(argv):
     opts += ' -iquote ' + ' -iquote '.join(sum(args.iquote, []))
   if args.g:
     opts += ' -g' + ' -g'.join(sum(args.g, []))
-  if args.fno_canonical_system_headers:
-    opts += ' -fno-canonical-system-headers'
+  #if args.fno_canonical_system_headers:
+  #  opts += ' -fno-canonical-system-headers'
   if args.sysroot:
     opts += ' --sysroot ' + args.sysroot[0]
 
@@ -137,6 +138,9 @@ def GetNvccOptions(argv):
   parser.add_argument('-nvcc_options', nargs='*', action='append')
 
   args, _ = parser.parse_known_args(argv)
+
+  if GPU_PLATFORM == "AMD":
+    return ''
 
   if args.nvcc_options:
     options = _update_options(sum(args.nvcc_options, []))
@@ -198,38 +202,45 @@ def InvokeNvcc(argv, log=False):
 
   supported_cuda_compute_capabilities = [ %{cuda_compute_capabilities} ]
   nvccopts = '-D_FORCE_INLINES '
-  for capability in supported_cuda_compute_capabilities:
-    capability = capability.replace('.', '')
-    nvccopts += r'-gencode=arch=compute_%s,\"code=sm_%s,compute_%s\" ' % (
-        capability, capability, capability)
+  #for capability in supported_cuda_compute_capabilities:
+  #  capability = capability.replace('.', '')
+  #  if GPU_PLATFORM == "NVIDIA":
+  #    nvccopts += r'-gencode arch=compute_%s,\"code=sm_%s\" ' % (
+  #        capability, capability)
+  
   nvccopts += ' ' + nvcc_compiler_options
   nvccopts += undefines
   nvccopts += defines
   nvccopts += std_options
   nvccopts += m_options
+  compileropt = ' '
+  compilerbindir = ' '
+  #if GPU_PLATFORM == "NVIDIA":
+  #  compileropt = ' --compiler-options'
+  #  compilerbindir = ' --compiler-bindir='
 
   if depfiles:
     # Generate the dependency file
     depfile = depfiles[0]
     cmd = (NVCC_PATH + ' ' + nvccopts +
-           ' --compiler-options "' + host_compiler_options + '"' +
-           ' --compiler-bindir=' + GCC_HOST_COMPILER_PATH +
+           host_compiler_options +
+           compilerbindir + GCC_HOST_COMPILER_PATH +
            ' -I .' +
-           ' -x cu ' + includes + ' ' + srcs + ' -M -o ' + depfile)
+           ' ' + includes + ' ' + srcs + ' -M -o ' + depfile)
     if log: Log(cmd)
     exit_status = os.system(cmd)
     if exit_status != 0:
       return exit_status
 
-  cmd = (NVCC_PATH + ' ' + nvccopts +
-         ' --compiler-options "' + host_compiler_options + ' -fPIC"' +
-         ' --compiler-bindir=' + GCC_HOST_COMPILER_PATH +
+  cmd = (NVCC_PATH + ' ' + nvccopts + compileropt +
+         host_compiler_options + ' -fPIC' +
+         compilerbindir + GCC_HOST_COMPILER_PATH +
          ' -I .' +
-         ' -x cu ' + opt + includes + ' -c ' + srcs + out)
+         ' ' + opt + includes + ' -c ' + srcs + out)
 
   # TODO(zhengxq): for some reason, 'gcc' needs this help to find 'as'.
   # Need to investigate and fix.
-  cmd = 'PATH=' + PREFIX_DIR + ' ' + cmd
+  #cmd = 'PATH=' + PREFIX_DIR + ' ' + cmd
   if log: Log(cmd)
   return os.system(cmd)
 
@@ -238,6 +249,7 @@ def main():
   parser = ArgumentParser()
   parser.add_argument('-x', nargs=1)
   parser.add_argument('--cuda_log', action='store_true')
+  parser.add_argument('-pass-exit-codes', action='store_true')
   args, leftover = parser.parse_known_args(sys.argv[1:])
 
   if args.x and args.x[0] == 'cuda':
@@ -246,6 +258,16 @@ def main():
     if args.cuda_log: Log('using nvcc')
     return InvokeNvcc(leftover, log=args.cuda_log)
 
+  # XXX use hipcc to link
+  if args.pass_exit_codes:
+    #Log('XXX LINKER COMMAND FOUND!')
+    GPU_COMPILER = '/opt/rocm/hip/bin/hipcc'
+    gpu_compiler_flags = [flag for flag in sys.argv[1:]
+                               if not flag.startswith(('-pass-exit-codes'))]
+    #Log('Tool: %s' % GPU_COMPILER)
+    #Log('Command: %s' % (' '.join([GPU_COMPILER] + gpu_compiler_flags)))
+    return subprocess.call([GPU_COMPILER] + gpu_compiler_flags)
+
   # Strip our flags before passing through to the CPU compiler for files which
   # are not -x cuda. We can't just pass 'leftover' because it also strips -x.
   # We not only want to pass -x to the CPU compiler, but also keep it in its
@@ -253,7 +275,6 @@ def main():
   # this).
   cpu_compiler_flags = [flag for flag in sys.argv[1:]
                              if not flag.startswith(('--cuda_log'))]
-
   return subprocess.call([CPU_COMPILER] + cpu_compiler_flags)
 
 if __name__ == '__main__':

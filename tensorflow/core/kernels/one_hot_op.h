@@ -36,6 +36,8 @@ class OneGenerator {
                const typename TTypes<T>::ConstScalar& off_value)
       : indices_(indices), on_value_(on_value), off_value_(off_value) {}
 
+  EIGEN_DEVICE_FUNC ~OneGenerator() {}
+
   EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE T
   operator()(const Eigen::array<Eigen::DenseIndex, 3>& pre_depth_suff) const {
     return (indices_(pre_depth_suff[0], pre_depth_suff[2]) == pre_depth_suff[1])

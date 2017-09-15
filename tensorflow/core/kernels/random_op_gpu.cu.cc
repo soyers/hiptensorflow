@@ -131,8 +131,8 @@ struct FillPhiloxRandomKernel<Distribution, false> {
                               Distribution dist) {
     const int kGroupSize = Distribution::kResultElementCount;
 
-    const int32 thread_id = blockIdx.x * blockDim.x + threadIdx.x;
-    const int32 total_thread_count = gridDim.x * blockDim.x;
+    const int32 thread_id = hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x;
+    const int32 total_thread_count = hipGridDim_x * hipBlockDim_x;
     int32 offset = thread_id * kGroupSize;
     gen.Skip(thread_id);
 
@@ -172,8 +172,8 @@ struct FillPhiloxRandomKernel<Distribution, true> {
                                              kReservedSamplesPerOutput /
                                              PhiloxRandom::kResultElementCount;
 
-    const int32 thread_id = blockIdx.x * blockDim.x + threadIdx.x;
-    const int32 total_thread_count = gridDim.x * blockDim.x;
+    const int32 thread_id = hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x;
+    const int32 total_thread_count = hipGridDim_x * hipBlockDim_x;
     int64 group_index = thread_id;
     int64 offset = group_index * kGroupSize;
 
@@ -200,10 +200,12 @@ struct FillPhiloxRandomKernel<Distribution, true> {
   }
 };
 
+#define MAX_PHILOX_GROUP_SIZE 256
+
 // A simple launch pad to call the correct function templates to fill the data
 template <class Distribution>
-__global__ void __launch_bounds__(1024)
-    FillPhiloxRandomKernelLaunch(random::PhiloxRandom base_gen,
+__global__ __launch_bounds__(MAX_PHILOX_GROUP_SIZE, 1) void
+    FillPhiloxRandomKernelLaunch(hipLaunchParm lp, random::PhiloxRandom base_gen,
                                  typename Distribution::ResultElementType* data,
                                  int64 size, Distribution dist) {
   FillPhiloxRandomKernel<Distribution,
@@ -217,13 +219,13 @@ void FillPhiloxRandom<GPUDevice, Distribution>::operator()(
     OpKernelContext*, const GPUDevice& d, random::PhiloxRandom gen,
     typename Distribution::ResultElementType* data, int64 size,
     Distribution dist) {
-  const int32 block_size = d.maxCudaThreadsPerBlock();
+  //const int32 block_size = d.maxHipThreadsPerBlock();
+  const int32 block_size = MAX_PHILOX_GROUP_SIZE;
   const int32 num_blocks =
-      (d.getNumCudaMultiProcessors() * d.maxCudaThreadsPerMultiProcessor()) /
+      (d.getNumHipMultiProcessors() * d.maxHipThreadsPerMultiProcessor()) /
       block_size;
 
-  FillPhiloxRandomKernelLaunch<
-      Distribution><<<num_blocks, block_size, 0, d.stream()>>>(gen, data, size,
+  hipLaunchKernel(HIP_KERNEL_NAME(FillPhiloxRandomKernelLaunch<Distribution>), dim3(num_blocks), dim3(block_size), 0, d.stream(), gen, data, size,
                                                                dist);
 };
 

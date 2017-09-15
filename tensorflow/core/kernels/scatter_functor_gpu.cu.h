@@ -30,7 +30,7 @@ namespace tensorflow {
 typedef Eigen::GpuDevice GPUDevice;
 
 template <typename T, typename Index, scatter_op::UpdateOp op>
-__global__ void ScatterOpCustomKernel(
+__global__ void ScatterOpCustomKernel(hipLaunchParm lp,
     T* params, const T* updates, const Index* indices,
     Index first_dim_size, Index updates_size, Index indices_size) {
   Index update_block = updates_size / indices_size;
@@ -83,8 +83,7 @@ struct ScatterFunctor<GPUDevice, T, Index, op> {
     const Index indices_size = indices.size();
     const Index updates_size = updates.size();
     CudaLaunchConfig config = GetCudaLaunchConfig(updates_size, d);
-    ScatterOpCustomKernel<T, Index, op>
-        <<<config.block_count, config.thread_per_block, 0, d.stream()>>>(
+    hipLaunchKernel(HIP_KERNEL_NAME(ScatterOpCustomKernel<T, Index, op>), dim3(config.block_count), dim3(config.thread_per_block), 0, d.stream(), 
             params.data(), updates.data(), indices.data(),
             first_dim_size, updates_size, indices_size);
     return -1;

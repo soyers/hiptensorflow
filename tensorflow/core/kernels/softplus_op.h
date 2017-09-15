@@ -38,7 +38,7 @@ struct Softplus {
     // true softplus(x).  Offset of 2 from machine epsilon checked
     // experimentally for float16, float32, float64.  Checked against
     // softplus implemented with numpy's log1p and numpy's logaddexp.
-    static const T threshold =
+    const T threshold =
         Eigen::numext::log(Eigen::NumTraits<T>::epsilon()) + T(2);
     // Value above which exp(x) may overflow, but softplus(x) == x
     // is within machine epsilon.

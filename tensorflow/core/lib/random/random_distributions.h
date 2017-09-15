@@ -31,11 +31,11 @@ namespace tensorflow {
 namespace random {
 
 // Helper function to convert a 16-bit integer to a half between [0..1).
-PHILOX_DEVICE_INLINE Eigen::half Uint16ToHalf(uint16 x);
+PHILOX_DEVICE_FUNC PHILOX_DEVICE_INLINE Eigen::half Uint16ToHalf(uint16 x);
 // Helper function to convert a 32-bit integer to a float between [0..1).
-PHILOX_DEVICE_INLINE float Uint32ToFloat(uint32 x);
+PHILOX_DEVICE_FUNC PHILOX_DEVICE_INLINE float Uint32ToFloat(uint32 x);
 // Helper function to convert two 32-bit integers to a double between [0..1).
-PHILOX_DEVICE_INLINE double Uint64ToDouble(uint32 x0, uint32 x1);
+PHILOX_DEVICE_FUNC PHILOX_DEVICE_INLINE double Uint64ToDouble(uint32 x0, uint32 x1);
 
 // A class that generates uniform distribution random numbers from the
 // underlying random integer generator.
@@ -64,7 +64,7 @@ class UniformDistribution<Generator, Eigen::half> {
   typedef Array<Eigen::half, kResultElementCount> ResultType;
   typedef Eigen::half ResultElementType;
 
-  PHILOX_DEVICE_INLINE
+  PHILOX_DEVICE_FUNC PHILOX_DEVICE_INLINE
   ResultType operator()(Generator* gen) {
     typename Generator::ResultType sample = (*gen)();
     ResultType result;
@@ -88,7 +88,7 @@ class UniformDistribution<Generator, float> {
   typedef Array<float, kResultElementCount> ResultType;
   typedef float ResultElementType;
 
-  PHILOX_DEVICE_INLINE
+  PHILOX_DEVICE_FUNC PHILOX_DEVICE_INLINE
   ResultType operator()(Generator* gen) {
     typename Generator::ResultType sample = (*gen)();
     ResultType result;
@@ -112,7 +112,7 @@ class UniformDistribution<Generator, double> {
   typedef Array<double, kResultElementCount> ResultType;
   typedef double ResultElementType;
 
-  PHILOX_DEVICE_INLINE
+  PHILOX_DEVICE_FUNC PHILOX_DEVICE_INLINE
   ResultType operator()(Generator* gen) {
     typename Generator::ResultType sample = (*gen)();
     ResultType result;
@@ -137,9 +137,11 @@ class UniformDistribution<Generator, int32> {
   typedef int32 ResultElementType;
 
   // Must have lo < hi
-  UniformDistribution(int32 lo, int32 hi) : lo_(lo), range_(hi - lo) {}
+  PHILOX_DEVICE_FUNC UniformDistribution(int32 lo, int32 hi) : lo_(lo), range_(hi - lo) {}
 
-  PHILOX_DEVICE_INLINE
+  PHILOX_DEVICE_FUNC ~UniformDistribution() {}
+
+  PHILOX_DEVICE_FUNC PHILOX_DEVICE_INLINE
   ResultType operator()(Generator* gen) {
     typename Generator::ResultType sample = (*gen)();
     ResultType result;
@@ -171,9 +173,11 @@ class UniformDistribution<Generator, int64> {
   typedef int64 ResultElementType;
 
   // Must have lo < hi
-  UniformDistribution(int64 lo, int64 hi) : lo_(lo), range_(hi - lo) {}
+  PHILOX_DEVICE_FUNC UniformDistribution(int64 lo, int64 hi) : lo_(lo), range_(hi - lo) {}
 
-  PHILOX_DEVICE_INLINE
+  PHILOX_DEVICE_FUNC ~UniformDistribution() {}
+
+  PHILOX_DEVICE_FUNC PHILOX_DEVICE_INLINE
   ResultType operator()(Generator* gen) {
     typename Generator::ResultType sample = (*gen)();
     ResultType result;
@@ -208,7 +212,7 @@ class SingleSampleAdapter {
   explicit SingleSampleAdapter(Generator* gen)
       : generator_(gen), used_result_index_(Generator::kResultElementCount) {}
 
-  PHILOX_DEVICE_INLINE
+  PHILOX_DEVICE_FUNC PHILOX_DEVICE_INLINE
   ResultType operator()() {
     if (used_result_index_ == Generator::kResultElementCount) {
       unused_results_ = (*generator_)();
@@ -238,10 +242,10 @@ class SingleSampleAdapter {
 template <class Generator, typename RealType>
 class NormalDistribution;
 
-PHILOX_DEVICE_INLINE
+PHILOX_DEVICE_FUNC PHILOX_DEVICE_INLINE
 void BoxMullerFloat(uint32 x0, uint32 x1, float* f0, float* f1);
 
-PHILOX_DEVICE_INLINE
+PHILOX_DEVICE_FUNC PHILOX_DEVICE_INLINE
 void BoxMullerDouble(uint32 x0, uint32 x1, uint32 x2, uint32 x3, double* d0,
                      double* d1);
 
@@ -261,7 +265,7 @@ class NormalDistribution<Generator, Eigen::half> {
   typedef Array<Eigen::half, kResultElementCount> ResultType;
   typedef Eigen::half ResultElementType;
 
-  PHILOX_DEVICE_INLINE
+  PHILOX_DEVICE_FUNC PHILOX_DEVICE_INLINE
   ResultType operator()(Generator* gen) {
     typename Generator::ResultType sample = (*gen)();
     ResultType result;
@@ -288,7 +292,7 @@ class NormalDistribution<Generator, float> {
   typedef Array<float, kResultElementCount> ResultType;
   typedef float ResultElementType;
 
-  PHILOX_DEVICE_INLINE
+  PHILOX_DEVICE_FUNC PHILOX_DEVICE_INLINE
   ResultType operator()(Generator* gen) {
     typename Generator::ResultType sample = (*gen)();
     ResultType result;
@@ -312,7 +316,7 @@ class NormalDistribution<Generator, double> {
   typedef Array<double, kResultElementCount> ResultType;
   typedef double ResultElementType;
 
-  PHILOX_DEVICE_INLINE
+  PHILOX_DEVICE_FUNC PHILOX_DEVICE_INLINE
   ResultType operator()(Generator* gen) {
     typename Generator::ResultType sample = (*gen)();
     ResultType result;
@@ -359,7 +363,7 @@ class TruncatedNormalDistribution<SingleSampleGenerator, Eigen::half> {
   typedef Array<Eigen::half, kResultElementCount> ResultType;
   typedef Eigen::half ResultElementType;
 
-  PHILOX_DEVICE_INLINE
+  PHILOX_DEVICE_FUNC PHILOX_DEVICE_INLINE
   ResultType operator()(SingleSampleGenerator* gen) {
     ResultType results;
     int index = 0;
@@ -402,7 +406,7 @@ class TruncatedNormalDistribution<SingleSampleGenerator, float> {
   typedef Array<float, kResultElementCount> ResultType;
   typedef float ResultElementType;
 
-  PHILOX_DEVICE_INLINE
+  PHILOX_DEVICE_FUNC PHILOX_DEVICE_INLINE
   ResultType operator()(SingleSampleGenerator* gen) {
     ResultType results;
     int index = 0;
@@ -445,7 +449,7 @@ class TruncatedNormalDistribution<SingleSampleGenerator, double> {
   typedef double ResultElementType;
   const double kTruncateValue = 2.0;
 
-  PHILOX_DEVICE_INLINE
+  PHILOX_DEVICE_FUNC PHILOX_DEVICE_INLINE
   ResultType operator()(SingleSampleGenerator* gen) {
     ResultType results;
     int index = 0;
@@ -471,7 +475,7 @@ class TruncatedNormalDistribution<SingleSampleGenerator, double> {
 
 // Helper function to convert two 32-bit uniform integers to two floats
 // under the unit normal distribution.
-PHILOX_DEVICE_INLINE
+PHILOX_DEVICE_FUNC PHILOX_DEVICE_INLINE
 void BoxMullerFloat(uint32 x0, uint32 x1, float* f0, float* f1) {
   // This function implements the Box-Muller transform:
   // http://en.wikipedia.org/wiki/Box%E2%80%93Muller_transform#Basic_form
@@ -496,7 +500,7 @@ void BoxMullerFloat(uint32 x0, uint32 x1, float* f0, float* f1) {
 
 // Helper function to convert four 32-bit uniform integers to two doubles
 // under the unit normal distribution.
-PHILOX_DEVICE_INLINE
+PHILOX_DEVICE_FUNC PHILOX_DEVICE_INLINE
 void BoxMullerDouble(uint32 x0, uint32 x1, uint32 x2, uint32 x3, double* d0,
                      double* d1) {
   // This function implements the Box-Muller transform:
@@ -521,7 +525,7 @@ void BoxMullerDouble(uint32 x0, uint32 x1, uint32 x2, uint32 x3, double* d0,
 }
 
 // Helper function to convert an 16-bit integer to a half between [0..1).
-PHILOX_DEVICE_INLINE Eigen::half Uint16ToHalf(uint16 x) {
+PHILOX_DEVICE_FUNC PHILOX_DEVICE_INLINE Eigen::half Uint16ToHalf(uint16 x) {
   // IEEE754 halfs are formatted as follows (MSB first):
   //    sign(1) exponent(5) mantissa(10)
   // Conceptually construct the following:
@@ -538,7 +542,7 @@ PHILOX_DEVICE_INLINE Eigen::half Uint16ToHalf(uint16 x) {
 }
 
 // Helper function to convert an 32-bit integer to a float between [0..1).
-PHILOX_DEVICE_INLINE float Uint32ToFloat(uint32 x) {
+PHILOX_DEVICE_FUNC PHILOX_DEVICE_INLINE float Uint32ToFloat(uint32 x) {
   // IEEE754 floats are formatted as follows (MSB first):
   //    sign(1) exponent(8) mantissa(23)
   // Conceptually construct the following:
@@ -556,7 +560,7 @@ PHILOX_DEVICE_INLINE float Uint32ToFloat(uint32 x) {
 }
 
 // Helper function to convert two 32-bit integers to a double between [0..1).
-PHILOX_DEVICE_INLINE double Uint64ToDouble(uint32 x0, uint32 x1) {
+PHILOX_DEVICE_FUNC PHILOX_DEVICE_INLINE double Uint64ToDouble(uint32 x0, uint32 x1) {
   // IEEE754 doubles are formatted as follows (MSB first):
   //    sign(1) exponent(11) mantissa(52)
   // Conceptually construct the following:

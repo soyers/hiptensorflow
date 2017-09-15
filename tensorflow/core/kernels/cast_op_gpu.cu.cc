@@ -45,8 +45,8 @@ struct CastFunctor<GPUDevice, O, I> {
   DEFINE(in_type, Eigen::half);         \
   DEFINE(in_type, float);               \
   DEFINE(in_type, double);              \
-  DEFINE(in_type, std::complex<float>); \
-  DEFINE(in_type, std::complex<double>)
+  //DEFINE(in_type, std::complex<float>); \
+  //DEFINE(in_type, std::complex<double>)
 
 DEFINE_ALL_FROM(bool);
 DEFINE_ALL_FROM(uint8);
@@ -58,8 +58,8 @@ DEFINE_ALL_FROM(int64);
 DEFINE_ALL_FROM(Eigen::half);
 DEFINE_ALL_FROM(float);
 DEFINE_ALL_FROM(double);
-DEFINE_ALL_FROM(std::complex<float>);
-DEFINE_ALL_FROM(std::complex<double>);
+//DEFINE_ALL_FROM(std::complex<float>);
+//DEFINE_ALL_FROM(std::complex<double>);
 DEFINE(bfloat16, float);
 DEFINE(float, bfloat16);
 

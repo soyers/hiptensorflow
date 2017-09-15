@@ -59,8 +59,8 @@ cc_library(
 
 cc_library(
     name = "cudart",
-    srcs = ["lib/%{cudart_lib}"],
-    data = ["lib/%{cudart_lib}"],
+    #srcs = ["lib/%{cudart_lib}"],
+    #data = ["lib/%{cudart_lib}"],
     includes = ["include/"],
     linkstatic = 1,
     visibility = ["//visibility:public"],
@@ -129,7 +129,7 @@ cc_library(
 
 cc_library(
     name = "cupti_dsos",
-    data = ["lib/%{cupti_lib}"],
+    #data = ["lib/%{cupti_lib}"],
     visibility = ["//visibility:public"],
 )
 

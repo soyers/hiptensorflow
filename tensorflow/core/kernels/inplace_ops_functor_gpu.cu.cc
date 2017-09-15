@@ -27,7 +27,8 @@ namespace functor {
 typedef Eigen::GpuDevice Device;
 
 template <typename T>
-__global__ void DoParallelConcatOpKernel(int nthreads, const int64 rows,
+__global__ void DoParallelConcatOpKernel(hipLaunchParm lp,
+                                         int nthreads, const int64 rows,
                                          const int64 cols, int32 loc,
                                          const T* src, T* dst) {
   CUDA_1D_KERNEL_LOOP(idx, nthreads) {
@@ -49,8 +50,7 @@ Status DoParallelConcatUpdate(const Device& d, const Tensor& value, int32 loc,
   const int64 ncols = Toutput.dimension(1);
   const T* src = value.flat<T>().data();
   T* dst = output->flat<T>().data();
-  DoParallelConcatOpKernel<T>
-      <<<cfg.block_count, cfg.thread_per_block, 0, d.stream()>>>(
+  hipLaunchKernel(HIP_KERNEL_NAME(DoParallelConcatOpKernel<T>), dim3(cfg.block_count), dim3(cfg.thread_per_block), 0, d.stream(), 
           cfg.virtual_thread_count, nrows, ncols, loc, src, dst);
   return Status::OK();
 }

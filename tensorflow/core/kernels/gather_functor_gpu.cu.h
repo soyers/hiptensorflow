@@ -30,7 +30,8 @@ namespace tensorflow {
 typedef Eigen::GpuDevice GPUDevice;
 
 template <typename T, typename Index>
-__global__ void GatherOpKernel(const T* params, const Index* indices, T* out,
+__global__ void GatherOpKernel(hipLaunchParm lp,
+                               const T* params, const Index* indices, T* out,
                                int64 first_dim_size, int64 indices_size,
                                int64 out_size) {
   const int32 slice_size = out_size / indices_size;
@@ -67,8 +68,7 @@ struct GatherFunctor<GPUDevice, T, Index> {
     const int64 indices_size = indices.size();
     CudaLaunchConfig config = GetCudaLaunchConfig(out_size, d);
     // clang-format off
-    GatherOpKernel<T, Index>
-        <<<config.block_count, config.thread_per_block, 0, d.stream()>>>(
+    hipLaunchKernel(HIP_KERNEL_NAME(GatherOpKernel<T, Index>), dim3(config.block_count), dim3(config.thread_per_block), 0, d.stream(), 
             params.data(), indices.data(), out.data(), first_dim_size,
             indices_size, out_size);
     // clang-format on

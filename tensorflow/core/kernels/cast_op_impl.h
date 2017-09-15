@@ -46,8 +46,8 @@ struct CastFunctor<Eigen::ThreadPoolDevice, O, I> {
   FN(arg0, arg1, Eigen::half);         \
   FN(arg0, arg1, float);               \
   FN(arg0, arg1, double);              \
-  FN(arg0, arg1, std::complex<float>); \
-  FN(arg0, arg1, std::complex<double>)
+  //FN(arg0, arg1, std::complex<float>); \
+  //FN(arg0, arg1, std::complex<double>)
 
 #define CAST_CASE(DEVICE, IN, OUT)                                         \
   if (DataTypeToEnum<OUT>::value == dst_dtype) {                           \

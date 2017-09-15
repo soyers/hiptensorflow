@@ -30,10 +30,8 @@ namespace tensorflow {
 
 typedef Eigen::GpuDevice GPUDevice;
 
-namespace {
-
 template <typename T>
-__global__ void CropAndResizeKernel(
+__global__ void CropAndResizeKernel(hipLaunchParm lp,
     const int32 nthreads, const T* image_ptr, const float* boxes_ptr,
     const int32* box_ind_ptr, int num_boxes, int batch, int image_height,
     int image_width, int crop_height, int crop_width, int depth,
@@ -115,7 +113,7 @@ __global__ void CropAndResizeKernel(
 }
 
 template <typename T>
-__global__ void CropAndResizeBackpropImageKernel(
+__global__ void CropAndResizeBackpropImageKernel(hipLaunchParm lp,
     const int32 nthreads, const float* grads_ptr, const float* boxes_ptr,
     const int32* box_ind_ptr, int num_boxes, int batch, int image_height,
     int image_width, int crop_height, int crop_width, int depth,
@@ -199,7 +197,7 @@ __global__ void CropAndResizeBackpropImageKernel(
 }
 
 template <typename T>
-__global__ void CropAndResizeBackpropBoxesKernel(
+__global__ void CropAndResizeBackpropBoxesKernel(hipLaunchParm lp,
     const int32 nthreads, const float* grads_ptr, const T* image_ptr,
     const float* boxes_ptr, const int32* box_ind_ptr, int num_boxes, int batch,
     int image_height, int image_width, int crop_height, int crop_width,
@@ -314,8 +312,6 @@ __global__ void CropAndResizeBackpropBoxesKernel(
   }
 }
 
-}  // namespace
-
 namespace functor {
 
 template <typename T>
@@ -338,8 +334,7 @@ struct CropAndResize<GPUDevice, T> {
 
     if (total_count > 0) {
       CudaLaunchConfig config = GetCudaLaunchConfig(total_count, d);
-      CropAndResizeKernel<<<config.block_count, config.thread_per_block, 0,
-                            d.stream()>>>(
+      hipLaunchKernel(HIP_KERNEL_NAME(CropAndResizeKernel), dim3(config.block_count), dim3(config.thread_per_block), 0, d.stream(), 
           config.virtual_thread_count, image.data(), boxes.data(),
           box_ind.data(), num_boxes, batch, image_height, image_width,
           crop_height, crop_width, depth, extrapolation_value, crops.data());
@@ -371,7 +366,7 @@ struct CropAndResizeBackpropImage<GPUDevice, T> {
     total_count = batch * image_height * image_width * depth;
     if (total_count > 0) {
       config = GetCudaLaunchConfig(total_count, d);
-      SetZero<<<config.block_count, config.thread_per_block, 0, d.stream()>>>(
+      hipLaunchKernel(HIP_KERNEL_NAME(SetZero), dim3(config.block_count), dim3(config.thread_per_block), 0, d.stream(), 
           config.virtual_thread_count, grads_image.data());
     }
 
@@ -379,8 +374,7 @@ struct CropAndResizeBackpropImage<GPUDevice, T> {
     total_count = num_boxes * crop_height * crop_width * depth;
     if (total_count > 0) {
       config = GetCudaLaunchConfig(total_count, d);
-      CropAndResizeBackpropImageKernel<<<
-          config.block_count, config.thread_per_block, 0, d.stream()>>>(
+      hipLaunchKernel(HIP_KERNEL_NAME(CropAndResizeBackpropImageKernel), dim3(config.block_count), dim3(config.thread_per_block), 0, d.stream(), 
           config.virtual_thread_count, grads.data(), boxes.data(),
           box_ind.data(), num_boxes, batch, image_height, image_width,
           crop_height, crop_width, depth, grads_image.data());
@@ -413,7 +407,7 @@ struct CropAndResizeBackpropBoxes<GPUDevice, T> {
     total_count = num_boxes * 4;
     if (total_count > 0) {
       config = GetCudaLaunchConfig(total_count, d);
-      SetZero<<<config.block_count, config.thread_per_block, 0, d.stream()>>>(
+      hipLaunchKernel(HIP_KERNEL_NAME(SetZero), dim3(config.block_count), dim3(config.thread_per_block), 0, d.stream(), 
           config.virtual_thread_count, grads_boxes.data());
     }
 
@@ -421,8 +415,7 @@ struct CropAndResizeBackpropBoxes<GPUDevice, T> {
     total_count = num_boxes * crop_height * crop_width * depth;
     if (total_count > 0) {
       config = GetCudaLaunchConfig(total_count, d);
-      CropAndResizeBackpropBoxesKernel<<<
-          config.block_count, config.thread_per_block, 0, d.stream()>>>(
+      hipLaunchKernel(HIP_KERNEL_NAME(CropAndResizeBackpropBoxesKernel), dim3(config.block_count), dim3(config.thread_per_block), 0, d.stream(), 
           config.virtual_thread_count, grads.data(), image.data(), boxes.data(),
           box_ind.data(), num_boxes, batch, image_height, image_width,
           crop_height, crop_width, depth, grads_boxes.data());

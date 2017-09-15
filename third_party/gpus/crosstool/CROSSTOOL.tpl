@@ -56,7 +56,9 @@ toolchain {
   cxx_flag: "-std=c++11"
   linker_flag: "-Wl,-no-as-needed"
   linker_flag: "-lstdc++"
-  linker_flag: "-B/usr/bin/"
+  #linker_flag: "-B/usr/bin/"
+  linker_flag: "-B/opt/rocm/hcc/compiler/bin"
+  linker_flag: "-Wl,-Bsymbolic"
 
 %{gcc_host_compiler_includes}
   tool_path { name: "gcov" path: "/usr/bin/gcov" }
@@ -81,17 +83,18 @@ toolchain {
   unfiltered_cxx_flag: "-D__DATE__=\"redacted\""
   unfiltered_cxx_flag: "-D__TIMESTAMP__=\"redacted\""
   unfiltered_cxx_flag: "-D__TIME__=\"redacted\""
+  unfiltered_cxx_flag: "-D__HIP_PLATFORM_HCC__"
 
   # Security hardening on by default.
   # Conservative choice; -D_FORTIFY_SOURCE=2 may be unsafe in some cases.
   # We need to undef it before redefining it as some distributions now have
   # it enabled by default.
-  compiler_flag: "-U_FORTIFY_SOURCE"
-  compiler_flag: "-D_FORTIFY_SOURCE=1"
-  compiler_flag: "-fstack-protector"
-  compiler_flag: "-fPIE"
-  linker_flag: "-pie"
-  linker_flag: "-Wl,-z,relro,-z,now"
+  #compiler_flag: "-U_FORTIFY_SOURCE"
+  #compiler_flag: "-D_FORTIFY_SOURCE=1"
+  #compiler_flag: "-fstack-protector"
+  #compiler_flag: "-fPIE"
+  #linker_flag: "-pie"
+  #linker_flag: "-Wl,-z,relro,-z,now"
 
   # Enable coloring even if there's no attached terminal. Bazel removes the
   # escape sequences if --nocolor is specified. This isn't supported by gcc
@@ -121,7 +124,18 @@ toolchain {
   # linker_flag: "-Wl,--detect-odr-violations"
 
   # Include directory for cuda headers.
-  cxx_builtin_include_directory: "%{cuda_include_path}"
+  #cxx_builtin_include_directory: "%{cuda_include_path}"
+  cxx_builtin_include_directory: "/usr/local/cuda/include"
+  cxx_builtin_include_directory: "/opt/rocm/hip/include"
+  cxx_builtin_include_directory: "/opt/rocm/hipblas/include"
+  cxx_builtin_include_directory: "/opt/rocm/hipfft/include"
+  cxx_builtin_include_directory: "/opt/rocm/hiprng/include"
+  cxx_builtin_include_directory: "/opt/rocm/hcc/include"
+  cxx_builtin_include_directory: "/opt/rocm/hcc-1.0/compiler/lib/clang/5.0.0/include/"
+  cxx_builtin_include_directory: "/opt/rocm/hcc-1.0/lib/clang/5.0.0/include"
+  cxx_builtin_include_directory: "/opt/rocm/hcc-1.0/compiler/lib/clang/6.0.0/include/"
+  cxx_builtin_include_directory: "/opt/rocm/hcc-1.0/lib/clang/6.0.0/include"
+
 
   compilation_mode_flags {
     mode: DBG
@@ -221,6 +235,10 @@ toolchain {
 
   # Include directory for cuda headers.
   cxx_builtin_include_directory: "%{cuda_include_path}"
+  cxx_builtin_include_directory: "/opt/rocm/hip/include"
+  cxx_builtin_include_directory: "/opt/rocm/hipblas/include"
+  cxx_builtin_include_directory: "/opt/rocm/hipfft/include"
+  cxx_builtin_include_directory: "/opt/rocm/hiprng/include"
 
   compilation_mode_flags {
     mode: DBG

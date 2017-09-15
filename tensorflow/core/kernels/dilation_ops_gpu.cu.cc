@@ -33,10 +33,9 @@ namespace tensorflow {
 
 typedef Eigen::GpuDevice GPUDevice;
 
-namespace {
-
 template <typename T>
-__global__ void DilationKernel(const int32 nthreads, const T* input_ptr,
+__global__ void DilationKernel(hipLaunchParm lp,
+                               const int32 nthreads, const T* input_ptr,
                                const T* filter_ptr, int batch, int input_rows,
                                int input_cols, int depth, int filter_rows,
                                int filter_cols, int output_rows,
@@ -77,7 +76,7 @@ __global__ void DilationKernel(const int32 nthreads, const T* input_ptr,
 }
 
 template <typename T>
-__global__ void DilationBackpropInputKernel(
+__global__ void DilationBackpropInputKernel(hipLaunchParm lp,
     const int32 nthreads, const T* input_ptr, const T* filter_ptr,
     const T* out_backprop_ptr, int batch, int input_rows, int input_cols,
     int depth, int filter_rows, int filter_cols, int output_rows,
@@ -127,7 +126,7 @@ __global__ void DilationBackpropInputKernel(
 }
 
 template <typename T>
-__global__ void DilationBackpropFilterKernel(
+__global__ void DilationBackpropFilterKernel(hipLaunchParm lp,
     const int32 nthreads, const T* input_ptr, const T* filter_ptr,
     const T* out_backprop_ptr, int batch, int input_rows, int input_cols,
     int depth, int filter_rows, int filter_cols, int output_rows,
@@ -175,8 +174,6 @@ __global__ void DilationBackpropFilterKernel(
   }
 }
 
-}  // namespace
-
 namespace functor {
 
 template <typename T>
@@ -199,8 +196,7 @@ struct Dilation<GPUDevice, T> {
     const int total_count = batch * output_rows * output_cols * depth;
     CudaLaunchConfig config = GetCudaLaunchConfig(total_count, d);
 
-    DilationKernel<<<config.block_count, config.thread_per_block, 0,
-                     d.stream()>>>(
+    hipLaunchKernel(HIP_KERNEL_NAME(DilationKernel), dim3(config.block_count), dim3(config.thread_per_block), 0, d.stream(), 
         config.virtual_thread_count, input.data(), filter.data(), batch,
         input_rows, input_cols, depth, filter_rows, filter_cols, output_rows,
         output_cols, stride_rows, stride_cols, rate_rows, rate_cols, pad_top,
@@ -233,14 +229,13 @@ struct DilationBackpropInput<GPUDevice, T> {
     // Initialize in_backprop with all zeros.
     total_count = batch * input_rows * input_cols * depth;
     config = GetCudaLaunchConfig(total_count, d);
-    SetZero<<<config.block_count, config.thread_per_block, 0, d.stream()>>>(
+    hipLaunchKernel(HIP_KERNEL_NAME(SetZero), dim3(config.block_count), dim3(config.thread_per_block), 0, d.stream(), 
         total_count, in_backprop.data());
 
     // Accumulate.
     total_count = batch * output_rows * output_cols * depth;
     config = GetCudaLaunchConfig(total_count, d);
-    DilationBackpropInputKernel<<<config.block_count, config.thread_per_block,
-                                  0, d.stream()>>>(
+    hipLaunchKernel(HIP_KERNEL_NAME(DilationBackpropInputKernel), dim3(config.block_count), dim3(config.thread_per_block), 0, d.stream(), 
         config.virtual_thread_count, input.data(), filter.data(),
         out_backprop.data(), batch, input_rows, input_cols, depth, filter_rows,
         filter_cols, output_rows, output_cols, stride_rows, stride_cols,
@@ -273,14 +268,13 @@ struct DilationBackpropFilter<GPUDevice, T> {
     // Initialize filter_backprop with all zeros.
     total_count = filter_rows * filter_cols * depth;
     config = GetCudaLaunchConfig(total_count, d);
-    SetZero<<<config.block_count, config.thread_per_block, 0, d.stream()>>>(
+    hipLaunchKernel(HIP_KERNEL_NAME(SetZero), dim3(config.block_count), dim3(config.thread_per_block), 0, d.stream(), 
         total_count, filter_backprop.data());
 
     // Accumulate.
     total_count = batch * output_rows * output_cols * depth;
     config = GetCudaLaunchConfig(total_count, d);
-    DilationBackpropFilterKernel<<<config.block_count, config.thread_per_block,
-                                   0, d.stream()>>>(
+    hipLaunchKernel(HIP_KERNEL_NAME(DilationBackpropFilterKernel), dim3(config.block_count), dim3(config.thread_per_block), 0, d.stream(), 
         config.virtual_thread_count, input.data(), filter.data(),
         out_backprop.data(), batch, input_rows, input_cols, depth, filter_rows,
         filter_cols, output_rows, output_cols, stride_rows, stride_cols,

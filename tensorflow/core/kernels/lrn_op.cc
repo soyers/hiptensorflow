@@ -31,7 +31,8 @@ limitations under the License.
 #endif
 
 #if GOOGLE_CUDA
-#include "cuda/include/cuda.h"
+#include "cuda/include/hip/hip_runtime.h"
+#include "tensorflow/core/common_runtime/gpu/gpu_util.h"
 #include "tensorflow/core/platform/stream_executor.h"
 #include "tensorflow/core/util/stream_executor_util.h"
 #endif  // GOOGLE_CUDA
@@ -286,7 +287,8 @@ TF_CALL_half(REGISTER_CPU);
 
 #undef REGISTER_CPU
 
-#if GOOGLE_CUDA
+// XXX FIXME Disable LRN on GPU
+#if 0 && GOOGLE_CUDA
 
 #define REGISTER_GPU(T)                                      \
   REGISTER_KERNEL_BUILDER(                                   \
@@ -423,11 +425,18 @@ struct LaunchLRNGrad<GPUDevice, T> {
     auto* stream = context->op_device_context()->stream();
     OP_REQUIRES(context, stream, errors::Internal("No GPU stream available."));
 
+    static int64 NormalizeBackwardScratchSize = GetCudnnWorkspaceLimit(
+        // default value is in bytes despite the name of the environment variable
+        "TF_CUDNN_WORKSPACE_LIMIT_IN_MB", 1LL << 32  // 4GB
+        );
+
+    CudnnScratchAllocator scratch_allocator(NormalizeBackwardScratchSize, context);
     bool status =
         stream
             ->ThenNormalizeBackwardWithDimensions(
                 normalize_desc, dimensions_desc, input_image_data,
-                output_image_data, input_grads_data, &output_grads_data)
+                output_image_data, input_grads_data, &output_grads_data,
+                &scratch_allocator)
             .ok();
     OP_REQUIRES(
         context, status,
@@ -508,7 +517,8 @@ TF_CALL_half(REGISTER_CPU);
 
 #undef REGISTER_CPU
 
-#if GOOGLE_CUDA
+// XXX FIXME Disable LRNGrad on GPU
+#if 0 && GOOGLE_CUDA
 
 #define REGISTER_GPU(T)                                          \
   REGISTER_KERNEL_BUILDER(                                       \

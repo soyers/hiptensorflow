@@ -38,8 +38,9 @@ class CopyOp : public OpKernel {
   void Compute(OpKernelContext* context) override {
     const Tensor& src_tensor = context->input(0);
 
-    if (src_tensor.IsInitialized()) {
-      // Source tensor is initialized. Make a copy.
+    if (src_tensor.IsInitialized() &&
+        DataTypeCanUseMemcpy(src_tensor.dtype())) {
+      // Source tensor is initialized and is mem-copyable. Make a copy.
       Tensor* copied_tensor;
       OP_REQUIRES_OK(context, context->allocate_output(0, src_tensor.shape(),
                                                        &copied_tensor));

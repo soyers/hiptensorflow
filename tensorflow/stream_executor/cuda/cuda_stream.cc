@@ -53,7 +53,7 @@ CUDAStream *AsCUDAStream(Stream *stream) {
   return static_cast<CUDAStream *>(stream->implementation());
 }
 
-CUstream AsCUDAStreamValue(Stream *stream) {
+hipStream_t AsCUDAStreamValue(Stream *stream) {
   DCHECK(stream != nullptr);
   return AsCUDAStream(stream)->cuda_stream();
 }

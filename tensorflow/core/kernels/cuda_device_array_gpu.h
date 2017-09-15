@@ -31,6 +31,34 @@ struct CudaDeviceArrayStruct {
   // used if size <= MaxInlineValues;
   ValueType inline_values[MaxInlineValues];
   ValueType* out_of_line_values = nullptr;  // used if size > MaxInlineValues;
+
+#ifdef __HCC__
+  __attribute__((annotate("user_deserialize")))
+  CudaDeviceArrayStruct(int32 vs,
+                        ValueType v0, ValueType v1, ValueType v2, ValueType v3,
+                        ValueType v4, ValueType v5, ValueType v6, ValueType v7,
+                        ValueType* v8) [[cpu]][[hc]] {
+    size = vs;
+    inline_values[0] = v0;
+    inline_values[1] = v1;
+    inline_values[2] = v2;
+    inline_values[3] = v3;
+    inline_values[4] = v4;
+    inline_values[5] = v5;
+    inline_values[6] = v6;
+    inline_values[7] = v7;
+    out_of_line_values = v8;
+  }
+
+  __attribute__((annotate("serialize")))
+  void __cxxamp_serialize(Kalmar::Serialize &s) const {
+    s.Append(sizeof(int32), &size);
+    for (int i = 0; i < MaxInlineValues; ++i) {
+      s.Append(sizeof(ValueType), &inline_values[i]);
+    }
+    s.Append(sizeof(ValueType*), &out_of_line_values);
+  }
+#endif
 };
 
 template <typename ValueType, int MaxInlineValues = 8>

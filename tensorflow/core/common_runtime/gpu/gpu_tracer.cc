@@ -14,8 +14,7 @@ limitations under the License.
 ==============================================================================*/
 
 #include "tensorflow/core/common_runtime/gpu/gpu_tracer.h"
-
-#if GOOGLE_CUDA
+#if 0 && GOOGLE_CUDA
 
 #include <stdlib.h>
 

@@ -96,7 +96,7 @@ struct ThreadPool::Impl : Eigen::ThreadPoolTempl<EigenEnvironment> {
     CHECK_EQ(total, (int64)(Eigen::Index)total);
     Eigen::ThreadPoolDevice device(this, this->NumThreads());
     device.parallelFor(
-        total, Eigen::TensorOpCost(0, 0, cost_per_unit),
+        total, Eigen::TensorOpCost(0, 0, cost_per_unit, 0),
         [&fn](Eigen::Index first, Eigen::Index last) { fn(first, last); });
   }
 };

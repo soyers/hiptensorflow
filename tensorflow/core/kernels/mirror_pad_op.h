@@ -69,6 +69,8 @@ class TensorMirrorPadOp
                     Index offset)
       : xpr_(expr), padding_dims_(padding_dims), offset_(offset) {}
 
+  EIGEN_DEVICE_FUNC ~TensorMirrorPadOp() {}
+
   EIGEN_DEVICE_FUNC
   const PaddingDimensions& padding() const { return padding_dims_; }
 
@@ -146,6 +148,8 @@ struct TensorEvaluator<const TensorMirrorPadOp<PaddingDimensions, ArgType>,
       }
     }
   }
+
+  EIGEN_DEVICE_FUNC ~TensorEvaluator() {}
 
   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE const Dimensions& dimensions() const {
     return dimensions_;

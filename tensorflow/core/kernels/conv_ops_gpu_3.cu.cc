@@ -20,7 +20,7 @@ limitations under the License.
 #include <algorithm>
 #include <array>
 
-#include "cuda/include/cuda.h"
+#include "cuda/include/hip/hip_runtime.h"
 #include "tensorflow/core/framework/register_types.h"
 #include "tensorflow/core/kernels/conv_2d.h"
 #include "tensorflow/core/util/cuda_kernel_helper.h"
@@ -76,6 +76,238 @@ struct Array {
   T data[IndexCount];
 };
 
+// Specialize array for Dimension<2>
+template <>
+struct Array<int, 2, 1> {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE const int& operator[](int index) const {
+    return data[index];
+  }
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE int& operator[](int index) {
+    return data[index];
+  }
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Array() {
+    for (int i = 0; i < 2; i++) {
+      data[i] = 1;
+    }
+  }
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Array(int a0) {
+    data[0] = a0;
+    for (int i = 1; i < 2; i++) {
+      data[i] = 1;
+    }
+  }
+#ifdef __HCC__
+  __attribute__((annotate("user_deserialize")))
+#endif
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Array(int a0, int a1)
+#ifdef __HCC__
+    [[cpu]][[hc]]
+#endif
+  {
+    data[0] = a0;
+    data[1] = a1;
+    for (int i = 2; i < 2; i++) {
+      data[i] = 1;
+    }
+  }
+  EIGEN_STRONG_INLINE Array(const std::array<int, 2>& array) {
+    for (int i = 0; i < 2; i++) {
+      data[i] = array[i];
+    }
+  }
+  int data[2];
+
+#ifdef __HCC__
+  __attribute__((annotate("serialize")))
+  void __cxxamp_serialize(Kalmar::Serialize &s) const {
+    s.Append(sizeof(int), &data[0]);
+    s.Append(sizeof(int), &data[1]);
+  }
+#endif
+};
+
+// Specialize array for Dimension<3>
+template <>
+struct Array<int, 3, 1> {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE const int& operator[](int index) const {
+    return data[index];
+  }
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE int& operator[](int index) {
+    return data[index];
+  }
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Array() {
+    for (int i = 0; i < 3; i++) {
+      data[i] = 1;
+    }
+  }
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Array(int a0) {
+    data[0] = a0;
+    for (int i = 1; i < 3; i++) {
+      data[i] = 1;
+    }
+  }
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Array(int a0, int a1) {
+    data[0] = a0;
+    data[1] = a1;
+    for (int i = 2; i < 3; i++) {
+      data[i] = 1;
+    }
+  }
+#ifdef __HCC__
+  __attribute__((annotate("user_deserialize")))
+#endif
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Array(int a0, int a1, int a2)
+#ifdef __HCC__
+    [[cpu]][[hc]]
+#endif
+  {
+    data[0] = a0;
+    data[1] = a1;
+    data[2] = a2;
+  }
+  EIGEN_STRONG_INLINE Array(const std::array<int, 3>& array) {
+    for (int i = 0; i < 3; i++) {
+      data[i] = array[i];
+    }
+  }
+  int data[3];
+
+#ifdef __HCC__
+  __attribute__((annotate("serialize")))
+  void __cxxamp_serialize(Kalmar::Serialize &s) const {
+    s.Append(sizeof(int), &data[0]);
+    s.Append(sizeof(int), &data[1]);
+    s.Append(sizeof(int), &data[2]);
+  }
+#endif
+};
+
+// Specialize array for Dimension<4>
+template <>
+struct Array<int, 4, 1> {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE const int& operator[](int index) const {
+    return data[index];
+  }
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE int& operator[](int index) {
+    return data[index];
+  }
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Array() {
+    for (int i = 0; i < 4; i++) {
+      data[i] = 1;
+    }
+  }
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Array(int a0) {
+    data[0] = a0;
+    for (int i = 1; i < 4; i++) {
+      data[i] = 1;
+    }
+  }
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Array(int a0, int a1) {
+    data[0] = a0;
+    data[1] = a1;
+    for (int i = 2; i < 4; i++) {
+      data[i] = 1;
+    }
+  }
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Array(int a0, int a1, int a2) {
+    data[0] = a0;
+    data[1] = a1;
+    data[2] = a2;
+    for (int i = 3; i < 4; i++) {
+      data[i] = 1;
+    }
+  }
+  EIGEN_STRONG_INLINE Array(const std::array<int, 4>& array) {
+    for (int i = 0; i < 4; i++) {
+      data[i] = array[i];
+    }
+  }
+  int data[4];
+
+#ifdef __HCC__
+  __attribute__((annotate("user_deserialize")))
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Array(int a0, int a1, int a2, int a3)
+    [[cpu]][[hc]]
+  {
+    data[0] = a0;
+    data[1] = a1;
+    data[2] = a2;
+    data[3] = a3;
+  }
+  __attribute__((annotate("serialize")))
+  void __cxxamp_serialize(Kalmar::Serialize &s) const {
+    s.Append(sizeof(int), &data[0]);
+    s.Append(sizeof(int), &data[1]);
+    s.Append(sizeof(int), &data[2]);
+    s.Append(sizeof(int), &data[3]);
+  }
+#endif
+};
+
+// Specialize array for Dimension<5>
+template <>
+struct Array<int, 5, 1> {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE const int& operator[](int index) const {
+    return data[index];
+  }
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE int& operator[](int index) {
+    return data[index];
+  }
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Array() {
+    for (int i = 0; i < 5; i++) {
+      data[i] = 1;
+    }
+  }
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Array(int a0) {
+    data[0] = a0;
+    for (int i = 1; i < 5; i++) {
+      data[i] = 1;
+    }
+  }
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Array(int a0, int a1) {
+    data[0] = a0;
+    data[1] = a1;
+    for (int i = 2; i < 5; i++) {
+      data[i] = 1;
+    }
+  }
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Array(int a0, int a1, int a2) {
+    data[0] = a0;
+    data[1] = a1;
+    data[2] = a2;
+    for (int i = 3; i < 5; i++) {
+      data[i] = 1;
+    }
+  }
+  EIGEN_STRONG_INLINE Array(const std::array<int, 5>& array) {
+    for (int i = 0; i < 5; i++) {
+      data[i] = array[i];
+    }
+  }
+  int data[5];
+
+#ifdef __HCC__
+  __attribute__((annotate("user_deserialize")))
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Array(int a0, int a1, int a2, int a3, int a4)
+    [[cpu]][[hc]]
+  {
+    data[0] = a0;
+    data[1] = a1;
+    data[2] = a2;
+    data[3] = a3;
+    data[4] = a4;
+  }
+  __attribute__((annotate("serialize")))
+  void __cxxamp_serialize(Kalmar::Serialize &s) const {
+    s.Append(sizeof(int), &data[0]);
+    s.Append(sizeof(int), &data[1]);
+    s.Append(sizeof(int), &data[2]);
+    s.Append(sizeof(int), &data[3]);
+    s.Append(sizeof(int), &data[4]);
+  }
+#endif
+};
+
 // A dimension type with compile-time known size.
 template <int IndexCount>
 struct Dimension : Array<int, IndexCount, 1> {
@@ -88,6 +320,8 @@ struct Dimension : Array<int, IndexCount, 1> {
       : Base(a0, a1, a2) {}
   EIGEN_STRONG_INLINE Dimension(const std::array<int, IndexCount>& array)
       : Base(array) {}
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Dimension(const int* array)
+      : Base(array[0], array[1]) {}
 };
 
 // An index type with compile-time known size.
@@ -126,7 +360,8 @@ EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Index<IndexCount> FlatToTensorIndex(
 
 // A Cuda custom kernel that swaps dimension-0 and dimension-2 of a 3D tensor.
 template <typename T>
-__global__ void SwapDimension0And2InTensor3(int nthreads, const T* input,
+__global__ void SwapDimension0And2InTensor3(hipLaunchParm lp,
+                                            int nthreads, const T* input,
                                             Dimension<3> input_dims,
                                             T* output) {
   Dimension<3> output_dims;
@@ -152,7 +387,8 @@ __global__ void SwapDimension0And2InTensor3(int nthreads, const T* input,
 
 // A Cuda custom kernel that swaps dimension-1 and dimension-2 of a 3D tensor.
 template <typename T>
-__global__ void SwapDimension1And2InTensor3(int nthreads, const T* input,
+__global__ void SwapDimension1And2InTensor3(hipLaunchParm lp,
+                                            int nthreads, const T* input,
                                             Dimension<3> input_dims,
                                             T* output) {
   Dimension<3> output_dims;
@@ -186,7 +422,8 @@ __global__ void SwapDimension1And2InTensor3(int nthreads, const T* input,
 // threads in a warp (32 in nvidia GPUs).  With a TileSize of 32, NumSubTiles ==
 // 4 or 8 seems to get the best performance on K40 GPUs.
 template <typename T, int TileSize, int NumSubTiles>
-__global__ void SwapDimension1And2InTensor3UsingTiles(const T* input,
+__global__ void SwapDimension1And2InTensor3UsingTiles(hipLaunchParm lp,
+                                                      const T* input,
                                                       Dimension<3> input_dims,
                                                       T* output) {
   // One extra line in the inner dimension to avoid share memory bank conflict.
@@ -194,17 +431,17 @@ __global__ void SwapDimension1And2InTensor3UsingTiles(const T* input,
 
   static_assert(TileSize % NumSubTiles == 0,
                 "TileSize must be divisible by NumSubTiles");
-  eigen_assert(blockDim.x == TileSize);
-  eigen_assert(blockDim.y == NumSubTiles);
-  eigen_assert(blockDim.z == 1);
-  eigen_assert(gridDim.y == 1);
-  eigen_assert(gridDim.z == 1);
+  eigen_assert(hipBlockDim_x == TileSize);
+  eigen_assert(hipBlockDim_y == NumSubTiles);
+  eigen_assert(hipBlockDim_z == 1);
+  eigen_assert(hipGridDim_y == 1);
+  eigen_assert(hipGridDim_z == 1);
 
   // We break down the tile into NumSubTiles groups, so each thread processes
   // kSubTileSize elements (except at the edges of the input).
   const int kSubTileSize = TileSize / NumSubTiles;
 
-  int x = threadIdx.x;
+  int x = hipThreadIdx_x;
 
   Dimension<3> output_dims = {
       input_dims[0], input_dims[2], input_dims[1],
@@ -216,7 +453,7 @@ __global__ void SwapDimension1And2InTensor3UsingTiles(const T* input,
   };
 
   Index<3> input_tile_index =
-      FlatToTensorIndex(blockIdx.x, input_dims_in_tiles);
+      FlatToTensorIndex(hipBlockIdx_x, input_dims_in_tiles);
 
   Index<3> input_tile_origin = {
       input_tile_index[0], input_tile_index[1] * TileSize,
@@ -237,7 +474,7 @@ __global__ void SwapDimension1And2InTensor3UsingTiles(const T* input,
   }
 
   int input_flat_index = input_origin_flat_index + x;
-  int y_start = static_cast<int>(threadIdx.y) * kSubTileSize;
+  int y_start = static_cast<int>(hipThreadIdx_y) * kSubTileSize;
 
   // Load the data from input memory to the shared memory tile.
   if (x < tile_width) {
@@ -275,7 +512,8 @@ __global__ void SwapDimension1And2InTensor3UsingTiles(const T* input,
 // A Cuda custom kernel that convert input to output, given proper padding on
 // the left and the top. The padded value is zero.
 template <typename T, int NDIMS>
-__global__ void PadInputCustomKernelNHWC(int nthreads, const T* input,
+__global__ void PadInputCustomKernelNHWC(hipLaunchParm lp,
+                                         int nthreads, const T* input,
                                          Dimension<NDIMS> input_dims, T* output,
                                          Dimension<NDIMS> output_dims,
                                          Dimension<NDIMS - 2> padding_left) {
@@ -304,7 +542,8 @@ __global__ void PadInputCustomKernelNHWC(int nthreads, const T* input,
 }
 
 template <typename T, int NDIMS>
-__global__ void PadInputCustomKernelNCHW(int nthreads, const T* input,
+__global__ void PadInputCustomKernelNCHW(hipLaunchParm lp,
+                                         int nthreads, const T* input,
                                          Dimension<NDIMS> input_dims, T* output,
                                          Dimension<NDIMS> output_dims,
                                          Dimension<NDIMS - 2> padding_left) {
@@ -348,8 +587,7 @@ struct TransformFilter<GPUDevice, T, int, NDIMS> {
     combined_dims[1] = in.dimension(NDIMS - 2);  // input filters
     combined_dims[2] = in.dimension(NDIMS - 1);  // output filters
     CudaLaunchConfig config = GetCudaLaunchConfig(out.size(), d);
-    SwapDimension0And2InTensor3<
-        T><<<config.block_count, config.thread_per_block, 0, d.stream()>>>(
+    hipLaunchKernel(HIP_KERNEL_NAME(SwapDimension0And2InTensor3<T>), dim3(config.block_count), dim3(config.thread_per_block), 0, d.stream(), 
         config.virtual_thread_count, in.data(), combined_dims, out.data());
   }
 };
@@ -368,8 +606,7 @@ struct ReverseTransformFilter<GPUDevice, T, NDIMS> {
       combined_dims[2] *= in.dimension(i);
     }
     CudaLaunchConfig config = GetCudaLaunchConfig(out.size(), d);
-    SwapDimension0And2InTensor3<
-        T><<<config.block_count, config.thread_per_block, 0, d.stream()>>>(
+    hipLaunchKernel(HIP_KERNEL_NAME(SwapDimension0And2InTensor3<T>), dim3(config.block_count), dim3(config.thread_per_block), 0, d.stream(), 
         config.virtual_thread_count, in.data(), combined_dims, out.data());
   }
 };
@@ -398,13 +635,11 @@ struct PadInput<GPUDevice, T, int, NDIMS> {
     const Dimension<NDIMS - 2> padding_left_dim(padding_left);
 
     if (format == FORMAT_NHWC) {
-      PadInputCustomKernelNHWC<T, NDIMS><<<
-          config.block_count, config.thread_per_block, 0, d.stream()>>>(
+      hipLaunchKernel(HIP_KERNEL_NAME(PadInputCustomKernelNHWC<T, NDIMS>), dim3(config.block_count), dim3(config.thread_per_block), 0, d.stream(), 
           config.virtual_thread_count, in.data(), input_dims, out.data(),
           output_dims, padding_left_dim);
     } else if (format == FORMAT_NCHW) {
-      PadInputCustomKernelNCHW<T, NDIMS><<<
-          config.block_count, config.thread_per_block, 0, d.stream()>>>(
+      hipLaunchKernel(HIP_KERNEL_NAME(PadInputCustomKernelNCHW<T, NDIMS>), dim3(config.block_count), dim3(config.thread_per_block), 0, d.stream(), 
           config.virtual_thread_count, in.data(), input_dims, out.data(),
           output_dims, padding_left_dim);
     } else {
@@ -436,14 +671,12 @@ void RunSwapDimension1And2InTensor3(const GPUDevice& d, const T* input,
     };
     int total_tiles_count = input_dims_in_tiles[0] * input_dims_in_tiles[1] *
                             input_dims_in_tiles[2];
-    SwapDimension1And2InTensor3UsingTiles<T, TileSize, NumSubTiles><<<
-        total_tiles_count, dim3(TileSize, NumSubTiles), 0, d.stream()>>>(
+    hipLaunchKernel(HIP_KERNEL_NAME(SwapDimension1And2InTensor3UsingTiles<T, TileSize, NumSubTiles>), dim3(total_tiles_count), dim3(TileSize, NumSubTiles), 0, d.stream(), 
         input, input_dims, output);
   } else {
     int total_element_count = input_dims[0] * input_dims[1] * input_dims[2];
     CudaLaunchConfig config = GetCudaLaunchConfig(total_element_count, d);
-    SwapDimension1And2InTensor3<
-        T><<<config.block_count, config.thread_per_block, 0, d.stream()>>>(
+    hipLaunchKernel(HIP_KERNEL_NAME(SwapDimension1And2InTensor3<T>), dim3(config.block_count), dim3(config.thread_per_block), 0, d.stream(), 
         config.virtual_thread_count, input, input_dims, output);
   }
 }
