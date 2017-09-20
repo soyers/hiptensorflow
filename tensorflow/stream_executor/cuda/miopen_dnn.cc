@@ -2037,17 +2037,8 @@ bool CudnnSupport::DoBatchNormalizationForwardImpl(
         const_cast<void*>(offset.opaque()), 1.0,
         batch_mean->opaque(), batch_var->opaque(), epsilon,
         saved_mean->opaque(), saved_inv_var->opaque());
-#if 1//MIOPEN_VERSION < 5000
-    CHECK(inv_var_to_var);
-    inv_var_to_var();
-#endif
   } else {
-#if 1//MIOPEN_VERSION < 5000
-    CHECK(var_to_inv_var);
-    const void* maybe_inv_var = var_to_inv_var().opaque();
-#else
     const void* maybe_inv_var = estimated_variance.opaque();
-#endif
     status = dynload::miopenBatchNormalizationForwardInference(
         parent_, ToHandle(dnn_handle_), mode, &one, &zero,
         x_descriptor.handle(), x.opaque(), x_descriptor.handle(), y->opaque(),
