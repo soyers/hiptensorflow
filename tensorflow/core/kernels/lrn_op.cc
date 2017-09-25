@@ -73,8 +73,9 @@ struct LaunchLRN;
 
 template <typename T>
 struct LaunchLRN<CPUDevice, T> {
-  LaunchLRN(int depth_radius, T bias, T alpha, T beta)
-      : depth_radius_(depth_radius), bias_(bias), alpha_(alpha), beta_(beta) {}
+  LaunchLRN(int depth_radius, T bias, T alpha, T beta, TensorFormat data_format)
+      : depth_radius_(depth_radius), bias_(bias), alpha_(alpha), beta_(beta),
+        data_format_(data_format) {}
 
   void launch(OpKernelContext* context, OpKernel* kernel, const Tensor& in,
               Tensor* output) {
@@ -83,6 +84,9 @@ struct LaunchLRN<CPUDevice, T> {
     const int cols = static_cast<int>(in.dim_size(2));
     const int depth = static_cast<int>(in.dim_size(3));
     const int nodes = cols * rows;
+
+    OP_REQUIRES(context, data_format_ == FORMAT_NHWC,
+                errors::InvalidArgument("CPU LRN Op only supports NHWC."));
 
 #if defined(IS_MOBILE_PLATFORM)
     SingleThreadedLRN(in, batch, rows, cols, depth, output);
@@ -161,82 +165,131 @@ struct LaunchLRN<CPUDevice, T> {
   T bias_;
   T alpha_;
   T beta_;
+  TensorFormat data_format_;
 };
 
 #if GOOGLE_CUDA
 
 template <typename T>
 struct LaunchLRN<GPUDevice, T> {
-  LaunchLRN(int depth_radius, T bias, T alpha, T beta)
-      : depth_radius_(depth_radius), bias_(bias), alpha_(alpha), beta_(beta) {}
+  LaunchLRN(int depth_radius, T bias, T alpha, T beta, TensorFormat data_format)
+      : depth_radius_(depth_radius), bias_(bias), alpha_(alpha), beta_(beta),
+        data_format_(data_format) {}
 
   void launch(OpKernelContext* context, OpKernel* kernel, const Tensor& in,
               Tensor* output) {
-    // Cast to platform-specific int to avoid conversion warnings.
-    const int batch = static_cast<int>(in.dim_size(0));
-    const int rows = static_cast<int>(in.dim_size(1));
-    const int cols = static_cast<int>(in.dim_size(2));
-    const int depth = static_cast<int>(in.dim_size(3));
+    if (data_format_ == FORMAT_NHWC) {
+      // For NHWC input/output tensors, convert to NCHW because it's the only
+      // supported format in MIOpen for now.
 
-    Tensor transformed_input;
-    OP_REQUIRES_OK(context, context->allocate_temp(
-                                DataTypeToEnum<T>::value,
-                                ShapeFromFormat(FORMAT_NCHW,
-                                                in.shape(), FORMAT_NHWC),
-                                &transformed_input));
-    functor::NHWCToNCHW<GPUDevice, T, 4>()(context->eigen_device<GPUDevice>(),
-                                           in.tensor<T, 4>(),
-                                           transformed_input.tensor<T, 4>());
+      // Cast to platform-specific int to avoid conversion warnings.
+      const int batch = static_cast<int>(in.dim_size(0));
+      const int rows = static_cast<int>(in.dim_size(1));
+      const int cols = static_cast<int>(in.dim_size(2));
+      const int depth = static_cast<int>(in.dim_size(3));
 
-    Tensor transformed_output;
-    OP_REQUIRES_OK(context, context->allocate_temp(
-                                DataTypeToEnum<T>::value,
-                                ShapeFromFormat(FORMAT_NCHW,
-                                                output->shape(), FORMAT_NHWC),
-                                &transformed_output));
+      Tensor transformed_input;
+      OP_REQUIRES_OK(context, context->allocate_temp(
+                                  DataTypeToEnum<T>::value,
+                                  ShapeFromFormat(FORMAT_NCHW,
+                                                  in.shape(), FORMAT_NHWC),
+                                  &transformed_input));
+      functor::NHWCToNCHW<GPUDevice, T, 4>()(context->eigen_device<GPUDevice>(),
+                                             in.tensor<T, 4>(),
+                                             transformed_input.tensor<T, 4>());
 
-    perftools::gputools::dnn::BatchDescriptor dimensions_desc;
-    dimensions_desc.set_count(batch)
-        .set_height(rows)
-        .set_width(cols)
-        .set_feature_map_count(depth)
-        .set_layout(perftools::gputools::dnn::DataLayout::kBatchDepthYX);
+      Tensor transformed_output;
+      OP_REQUIRES_OK(context, context->allocate_temp(
+                                  DataTypeToEnum<T>::value,
+                                  ShapeFromFormat(FORMAT_NCHW,
+                                                  output->shape(), FORMAT_NHWC),
+                                  &transformed_output));
 
-    perftools::gputools::dnn::NormalizeDescriptor normalize_desc;
-    normalize_desc.set_bias(bias_)
-        .set_range(depth_radius_)
-        .set_alpha(alpha_)
-        .set_beta(beta_);
+      perftools::gputools::dnn::BatchDescriptor dimensions_desc;
+      dimensions_desc.set_count(batch)
+          .set_height(rows)
+          .set_width(cols)
+          .set_feature_map_count(depth)
+          .set_layout(perftools::gputools::dnn::DataLayout::kBatchDepthYX);
 
-    auto input_data =
-        AsDeviceMemory(transformed_input.template flat<T>().data(),
-                       transformed_input.template flat<T>().size());
-    auto output_data =
-        AsDeviceMemory(transformed_output.template flat<T>().data(),
-                       transformed_output.template flat<T>().size());
+      perftools::gputools::dnn::NormalizeDescriptor normalize_desc;
+      normalize_desc.set_bias(bias_)
+          .set_range(depth_radius_)
+          .set_alpha(alpha_)
+          .set_beta(beta_);
 
-    auto* stream = context->op_device_context()->stream();
-    OP_REQUIRES(context, stream, errors::Internal("No GPU stream available."));
+      auto input_data =
+          AsDeviceMemory(transformed_input.template flat<T>().data(),
+                         transformed_input.template flat<T>().size());
+      auto output_data =
+          AsDeviceMemory(transformed_output.template flat<T>().data(),
+                         transformed_output.template flat<T>().size());
 
-    bool status =
-        stream
-            ->ThenNormalizeWithDimensions(normalize_desc, dimensions_desc,
-                                          input_data, &output_data)
-            .ok();
-    OP_REQUIRES(context, status,
-                errors::Internal("NormalizeWithDimensions launch failed"));
+      auto* stream = context->op_device_context()->stream();
+      OP_REQUIRES(context, stream, errors::Internal("No GPU stream available."));
 
-    auto toConstTensor = [](const Tensor& x) -> const Tensor { return x; };
-    functor::NCHWToNHWC<GPUDevice, T, 4>()(
-        context->eigen_device<GPUDevice>(),
-        toConstTensor(transformed_output).template tensor<T, 4>(),
-        output->tensor<T, 4>());
+      bool status =
+          stream
+              ->ThenNormalizeWithDimensions(normalize_desc, dimensions_desc,
+                                            input_data, &output_data)
+              .ok();
+      OP_REQUIRES(context, status,
+                  errors::Internal("NormalizeWithDimensions launch failed"));
+
+      // Need to convert it back to NHWC once MIOpen kernels finishes.
+      auto toConstTensor = [](const Tensor& x) -> const Tensor { return x; };
+      functor::NCHWToNHWC<GPUDevice, T, 4>()(
+          context->eigen_device<GPUDevice>(),
+          toConstTensor(transformed_output).template tensor<T, 4>(),
+          output->tensor<T, 4>());
+
+    } else {
+      // For NCHW input/ouput tensors no conversions are needed.
+
+      // Cast to platform-specific int to avoid conversion warnings.
+      const int batch = static_cast<int>(in.dim_size(0));
+      const int depth = static_cast<int>(in.dim_size(1));
+      const int rows = static_cast<int>(in.dim_size(2));
+      const int cols = static_cast<int>(in.dim_size(3));
+
+      perftools::gputools::dnn::BatchDescriptor dimensions_desc;
+      dimensions_desc.set_count(batch)
+          .set_height(rows)
+          .set_width(cols)
+          .set_feature_map_count(depth)
+          .set_layout(perftools::gputools::dnn::DataLayout::kBatchDepthYX);
+
+      perftools::gputools::dnn::NormalizeDescriptor normalize_desc;
+      normalize_desc.set_bias(bias_)
+          .set_range(depth_radius_)
+          .set_alpha(alpha_)
+          .set_beta(beta_);
+
+      auto input_data =
+          AsDeviceMemory(in.template flat<T>().data(),
+                         in.template flat<T>().size());
+      auto output_data =
+          AsDeviceMemory(output->template flat<T>().data(),
+                         output->template flat<T>().size());
+
+      auto* stream = context->op_device_context()->stream();
+      OP_REQUIRES(context, stream, errors::Internal("No GPU stream available."));
+
+      bool status =
+          stream
+              ->ThenNormalizeWithDimensions(normalize_desc, dimensions_desc,
+                                            input_data, &output_data)
+              .ok();
+      OP_REQUIRES(context, status,
+                  errors::Internal("NormalizeWithDimensions launch failed"));
+    }
   }
 
   int depth_radius_;
   T bias_;
   T alpha_;
   T beta_;
+  TensorFormat data_format_;
 };
 
 #endif  // GOOGLE_CUDA
@@ -259,6 +312,14 @@ class LRNOp : public OpKernel {
     alpha_ = T(tmp);
     OP_REQUIRES_OK(context, context->GetAttr("beta", &tmp));
     beta_ = T(tmp);
+
+    string data_format;
+    if (context->GetAttr("data_format", &data_format).ok()) {
+      OP_REQUIRES(context, FormatFromString(data_format, &data_format_),
+                  errors::InvalidArgument("Invalid data format"));
+    } else {
+      data_format_ = FORMAT_NHWC;
+    }
   }
 
   void Compute(OpKernelContext* context) override {
@@ -268,11 +329,21 @@ class LRNOp : public OpKernel {
     OP_REQUIRES(context, FastBoundsCheck(in.NumElements(),
                                          std::numeric_limits<int>::max()),
                 errors::InvalidArgument("argument to LRN too large"));
-    // Cast to platform-specific int to avoid conversion warnings.
-    const int batch = static_cast<int>(in.dim_size(0));
-    const int rows = static_cast<int>(in.dim_size(1));
-    const int cols = static_cast<int>(in.dim_size(2));
-    const int depth = static_cast<int>(in.dim_size(3));
+
+    int batch, rows, cols, depth;
+    if (data_format_ == FORMAT_NHWC) {
+      // Cast to platform-specific int to avoid conversion warnings.
+      batch = static_cast<int>(in.dim_size(0));
+      rows = static_cast<int>(in.dim_size(1));
+      cols = static_cast<int>(in.dim_size(2));
+      depth = static_cast<int>(in.dim_size(3));
+    } else {
+      // Cast to platform-specific int to avoid conversion warnings.
+      batch = static_cast<int>(in.dim_size(0));
+      depth = static_cast<int>(in.dim_size(1));
+      rows = static_cast<int>(in.dim_size(2));
+      cols = static_cast<int>(in.dim_size(3));
+    }
 
     OP_REQUIRES(context,
                 (depth + depth_radius_) <= std::numeric_limits<int>::max(),
@@ -284,7 +355,8 @@ class LRNOp : public OpKernel {
                    context->allocate_output(
                        0, TensorShape({batch, rows, cols, depth}), &output));
 
-    LaunchLRN<Device, T> launcher(depth_radius_, bias_, alpha_, beta_);
+    LaunchLRN<Device, T> launcher(depth_radius_, bias_, alpha_, beta_,
+                                  data_format_);
     launcher.launch(context, this, in, output);
   }
 
@@ -293,6 +365,7 @@ class LRNOp : public OpKernel {
   T bias_;
   T alpha_;
   T beta_;
+  TensorFormat data_format_;
 };
 
 #define REGISTER_CPU(T)                                      \
@@ -323,8 +396,9 @@ struct LaunchLRNGrad;
 
 template <typename T>
 struct LaunchLRNGrad<CPUDevice, T> {
-  LaunchLRNGrad(int depth_radius, T bias, T alpha, T beta)
-      : depth_radius_(depth_radius), bias_(bias), alpha_(alpha), beta_(beta) {}
+  LaunchLRNGrad(int depth_radius, T bias, T alpha, T beta, TensorFormat data_format)
+      : depth_radius_(depth_radius), bias_(bias), alpha_(alpha), beta_(beta),
+        data_format_(data_format) {}
 
   void launch(OpKernelContext* context, OpKernel* kernel,
               const Tensor& in_grads, const Tensor& in_image,
@@ -334,6 +408,10 @@ struct LaunchLRNGrad<CPUDevice, T> {
     const int64 cols = in_grads.dim_size(2);
     const int64 depth = in_grads.dim_size(3);
     const auto nodes = cols * rows;
+
+    OP_REQUIRES(context, data_format_ == FORMAT_NHWC,
+                errors::InvalidArgument("CPU LRNGrad Op only supports NHWC."));
+
     auto grads_shaped = in_grads.shaped<T, 2>({nodes * batch, depth});
     auto in_shaped = in_image.shaped<T, 2>({nodes * batch, depth});
     auto activations = out_image.shaped<T, 2>({nodes * batch, depth});
@@ -391,117 +469,178 @@ struct LaunchLRNGrad<CPUDevice, T> {
   T bias_;
   T alpha_;
   T beta_;
+  TensorFormat data_format_;
 };
 
 #if GOOGLE_CUDA
 
 template <typename T>
 struct LaunchLRNGrad<GPUDevice, T> {
-  LaunchLRNGrad(int depth_radius, T bias, T alpha, T beta)
-      : depth_radius_(depth_radius), bias_(bias), alpha_(alpha), beta_(beta) {}
+  LaunchLRNGrad(int depth_radius, T bias, T alpha, T beta,
+                TensorFormat data_format)
+      : depth_radius_(depth_radius), bias_(bias), alpha_(alpha), beta_(beta),
+        data_format_(data_format) {}
 
   void launch(OpKernelContext* context, OpKernel* kernel,
               const Tensor& in_grads, const Tensor& in_image,
               const Tensor& out_image, Tensor* output) {
-    const int64 batch = in_grads.dim_size(0);
-    const int64 rows = in_grads.dim_size(1);
-    const int64 cols = in_grads.dim_size(2);
-    const int64 depth = in_grads.dim_size(3);
+    if (data_format_ == FORMAT_NHWC)  {
+      // For NHWC input/output tensors, convert to NCHW because it's the only
+      // supported format in MIOpen for now.
+      const int64 batch = in_grads.dim_size(0);
+      const int64 rows = in_grads.dim_size(1);
+      const int64 cols = in_grads.dim_size(2);
+      const int64 depth = in_grads.dim_size(3);
 
-    Tensor transformed_in_grads;
-    OP_REQUIRES_OK(context, context->allocate_temp(
-                                DataTypeToEnum<T>::value,
-                                ShapeFromFormat(FORMAT_NCHW,
-                                                in_grads.shape(), FORMAT_NHWC),
-                                &transformed_in_grads));
-    functor::NHWCToNCHW<GPUDevice, T, 4>()(context->eigen_device<GPUDevice>(),
-                                           in_grads.tensor<T, 4>(),
-                                           transformed_in_grads.tensor<T, 4>());
+      Tensor transformed_in_grads;
+      OP_REQUIRES_OK(context, context->allocate_temp(
+                                  DataTypeToEnum<T>::value,
+                                  ShapeFromFormat(FORMAT_NCHW,
+                                                  in_grads.shape(), FORMAT_NHWC),
+                                  &transformed_in_grads));
+      functor::NHWCToNCHW<GPUDevice, T, 4>()(context->eigen_device<GPUDevice>(),
+                                             in_grads.tensor<T, 4>(),
+                                             transformed_in_grads.tensor<T, 4>());
 
-    Tensor transformed_in_image;
-    OP_REQUIRES_OK(context, context->allocate_temp(
-                                DataTypeToEnum<T>::value,
-                                ShapeFromFormat(FORMAT_NCHW,
-                                                in_image.shape(), FORMAT_NHWC),
-                                &transformed_in_image));
-    functor::NHWCToNCHW<GPUDevice, T, 4>()(context->eigen_device<GPUDevice>(),
-                                           in_image.tensor<T, 4>(),
-                                           transformed_in_image.tensor<T, 4>());
+      Tensor transformed_in_image;
+      OP_REQUIRES_OK(context, context->allocate_temp(
+                                  DataTypeToEnum<T>::value,
+                                  ShapeFromFormat(FORMAT_NCHW,
+                                                  in_image.shape(), FORMAT_NHWC),
+                                  &transformed_in_image));
+      functor::NHWCToNCHW<GPUDevice, T, 4>()(context->eigen_device<GPUDevice>(),
+                                             in_image.tensor<T, 4>(),
+                                             transformed_in_image.tensor<T, 4>());
 
-    Tensor transformed_out_image;
-    OP_REQUIRES_OK(context, context->allocate_temp(
-                                DataTypeToEnum<T>::value,
-                                ShapeFromFormat(FORMAT_NCHW,
-                                                out_image.shape(), FORMAT_NHWC),
-                                &transformed_out_image));
-    functor::NHWCToNCHW<GPUDevice, T, 4>()(context->eigen_device<GPUDevice>(),
-                                           out_image.tensor<T, 4>(),
-                                           transformed_out_image.tensor<T, 4>());
+      Tensor transformed_out_image;
+      OP_REQUIRES_OK(context, context->allocate_temp(
+                                  DataTypeToEnum<T>::value,
+                                  ShapeFromFormat(FORMAT_NCHW,
+                                                  out_image.shape(), FORMAT_NHWC),
+                                  &transformed_out_image));
+      functor::NHWCToNCHW<GPUDevice, T, 4>()(context->eigen_device<GPUDevice>(),
+                                             out_image.tensor<T, 4>(),
+                                             transformed_out_image.tensor<T, 4>());
 
-    Tensor transformed_output;
-    OP_REQUIRES_OK(context, context->allocate_temp(
-                                DataTypeToEnum<T>::value,
-                                ShapeFromFormat(FORMAT_NCHW,
-                                                output->shape(), FORMAT_NHWC),
-                                &transformed_output));
+      Tensor transformed_output;
+      OP_REQUIRES_OK(context, context->allocate_temp(
+                                  DataTypeToEnum<T>::value,
+                                  ShapeFromFormat(FORMAT_NCHW,
+                                                  output->shape(), FORMAT_NHWC),
+                                  &transformed_output));
 
-    perftools::gputools::dnn::BatchDescriptor dimensions_desc;
-    dimensions_desc.set_count(batch)
-        .set_height(rows)
-        .set_width(cols)
-        .set_feature_map_count(depth)
-        .set_layout(perftools::gputools::dnn::DataLayout::kBatchDepthYX);
+      perftools::gputools::dnn::BatchDescriptor dimensions_desc;
+      dimensions_desc.set_count(batch)
+          .set_height(rows)
+          .set_width(cols)
+          .set_feature_map_count(depth)
+          .set_layout(perftools::gputools::dnn::DataLayout::kBatchDepthYX);
 
-    perftools::gputools::dnn::NormalizeDescriptor normalize_desc;
-    normalize_desc.set_bias(bias_)
-        .set_range(depth_radius_)
-        .set_alpha(alpha_)
-        .set_beta(beta_);
+      perftools::gputools::dnn::NormalizeDescriptor normalize_desc;
+      normalize_desc.set_bias(bias_)
+          .set_range(depth_radius_)
+          .set_alpha(alpha_)
+          .set_beta(beta_);
 
-    auto input_grads_data =
-        AsDeviceMemory(transformed_in_grads.template flat<T>().data(),
-                       transformed_in_grads.template flat<T>().size());
-    auto input_image_data =
-        AsDeviceMemory(transformed_in_image.template flat<T>().data(),
-                       transformed_in_image.template flat<T>().size());
-    auto output_image_data =
-        AsDeviceMemory(transformed_out_image.template flat<T>().data(),
-                       transformed_out_image.template flat<T>().size());
-    auto output_grads_data =
-        AsDeviceMemory(transformed_output.template flat<T>().data(),
-                       transformed_output.template flat<T>().size());
+      auto input_grads_data =
+          AsDeviceMemory(transformed_in_grads.template flat<T>().data(),
+                         transformed_in_grads.template flat<T>().size());
+      auto input_image_data =
+          AsDeviceMemory(transformed_in_image.template flat<T>().data(),
+                         transformed_in_image.template flat<T>().size());
+      auto output_image_data =
+          AsDeviceMemory(transformed_out_image.template flat<T>().data(),
+                         transformed_out_image.template flat<T>().size());
+      auto output_grads_data =
+          AsDeviceMemory(transformed_output.template flat<T>().data(),
+                         transformed_output.template flat<T>().size());
 
-    auto* stream = context->op_device_context()->stream();
-    OP_REQUIRES(context, stream, errors::Internal("No GPU stream available."));
+      auto* stream = context->op_device_context()->stream();
+      OP_REQUIRES(context, stream, errors::Internal("No GPU stream available."));
 
-    static int64 NormalizeBackwardScratchSize = GetCudnnWorkspaceLimit(
-        // default value is in bytes despite the name of the environment variable
-        "TF_CUDNN_WORKSPACE_LIMIT_IN_MB", 1LL << 32  // 4GB
-        );
+      static int64 NormalizeBackwardScratchSize = GetCudnnWorkspaceLimit(
+          // default value is in bytes despite the name of the environment variable
+          "TF_CUDNN_WORKSPACE_LIMIT_IN_MB", 1LL << 32  // 4GB
+          );
 
-    CudnnScratchAllocator scratch_allocator(NormalizeBackwardScratchSize, context);
-    bool status =
-        stream
-            ->ThenNormalizeBackwardWithDimensions(
-                normalize_desc, dimensions_desc, input_image_data,
-                output_image_data, input_grads_data, &output_grads_data,
-                &scratch_allocator)
-            .ok();
-    OP_REQUIRES(
-        context, status,
-        errors::Internal("NormalizeBackwardWithDimensions launch failed"));
+      CudnnScratchAllocator scratch_allocator(NormalizeBackwardScratchSize, context);
+      bool status =
+          stream
+              ->ThenNormalizeBackwardWithDimensions(
+                  normalize_desc, dimensions_desc, input_image_data,
+                  output_image_data, input_grads_data, &output_grads_data,
+                  &scratch_allocator)
+              .ok();
+      OP_REQUIRES(
+          context, status,
+          errors::Internal("NormalizeBackwardWithDimensions launch failed"));
 
-    auto toConstTensor = [](const Tensor& x) -> const Tensor { return x; };
-    functor::NCHWToNHWC<GPUDevice, T, 4>()(
-        context->eigen_device<GPUDevice>(),
-        toConstTensor(transformed_output).template tensor<T, 4>(),
-        output->tensor<T, 4>());
+      // Need to convert it back to NHWC once MIOpen kernels finishes.
+      auto toConstTensor = [](const Tensor& x) -> const Tensor { return x; };
+      functor::NCHWToNHWC<GPUDevice, T, 4>()(
+          context->eigen_device<GPUDevice>(),
+          toConstTensor(transformed_output).template tensor<T, 4>(),
+          output->tensor<T, 4>());
+    } else {
+      // For NCHW input/ouput tensors no conversions are needed.
+      const int64 batch = in_grads.dim_size(0);
+      const int64 depth = in_grads.dim_size(1);
+      const int64 rows = in_grads.dim_size(2);
+      const int64 cols = in_grads.dim_size(3);
+
+      perftools::gputools::dnn::BatchDescriptor dimensions_desc;
+      dimensions_desc.set_count(batch)
+          .set_height(rows)
+          .set_width(cols)
+          .set_feature_map_count(depth)
+          .set_layout(perftools::gputools::dnn::DataLayout::kBatchDepthYX);
+
+      perftools::gputools::dnn::NormalizeDescriptor normalize_desc;
+      normalize_desc.set_bias(bias_)
+          .set_range(depth_radius_)
+          .set_alpha(alpha_)
+          .set_beta(beta_);
+
+      auto input_grads_data =
+          AsDeviceMemory(in_grads.template flat<T>().data(),
+                         in_grads.template flat<T>().size());
+      auto input_image_data =
+          AsDeviceMemory(in_image.template flat<T>().data(),
+                         in_image.template flat<T>().size());
+      auto output_image_data =
+          AsDeviceMemory(out_image.template flat<T>().data(),
+                         out_image.template flat<T>().size());
+      auto output_grads_data =
+          AsDeviceMemory(output->template flat<T>().data(),
+                         output->template flat<T>().size());
+
+      auto* stream = context->op_device_context()->stream();
+      OP_REQUIRES(context, stream, errors::Internal("No GPU stream available."));
+
+      static int64 NormalizeBackwardScratchSize = GetCudnnWorkspaceLimit(
+          // default value is in bytes despite the name of the environment variable
+          "TF_CUDNN_WORKSPACE_LIMIT_IN_MB", 1LL << 32  // 4GB
+          );
+
+      CudnnScratchAllocator scratch_allocator(NormalizeBackwardScratchSize, context);
+      bool status =
+          stream
+              ->ThenNormalizeBackwardWithDimensions(
+                  normalize_desc, dimensions_desc, input_image_data,
+                  output_image_data, input_grads_data, &output_grads_data,
+                  &scratch_allocator)
+              .ok();
+      OP_REQUIRES(
+          context, status,
+          errors::Internal("NormalizeBackwardWithDimensions launch failed"));
+    }
   }
 
   int depth_radius_;
   T bias_;
   T alpha_;
   T beta_;
+  TensorFormat data_format_;
 };
 
 #endif  // GOOGLE_CUDA
@@ -524,6 +663,14 @@ class LRNGradOp : public OpKernel {
     alpha_ = T(tmp);
     OP_REQUIRES_OK(context, context->GetAttr("beta", &tmp));
     beta_ = T(tmp);
+
+    string data_format;
+    if (context->GetAttr("data_format", &data_format).ok()) {
+      OP_REQUIRES(context, FormatFromString(data_format, &data_format_),
+                  errors::InvalidArgument("Invalid data format"));
+    } else {
+      data_format_ = FORMAT_NHWC;
+    }
   }
 
   void Compute(OpKernelContext* context) override {
@@ -533,26 +680,47 @@ class LRNGradOp : public OpKernel {
 
     OP_REQUIRES(context, in_grads.dims() == 4 && in_image.dims() == 4,
                 errors::InvalidArgument("inputs must be 4-dimensional"));
-    const int64 batch = in_grads.dim_size(0);
-    const int64 rows = in_grads.dim_size(1);
-    const int64 cols = in_grads.dim_size(2);
-    const int64 depth = in_grads.dim_size(3);
-    OP_REQUIRES(
-        context,
-        in_image.dim_size(0) == batch && in_image.dim_size(1) == rows &&
-            in_image.dim_size(2) == cols && in_image.dim_size(3) == depth &&
-            out_image.dim_size(0) == batch && out_image.dim_size(1) == rows &&
-            out_image.dim_size(2) == cols && out_image.dim_size(3) == depth,
-        errors::InvalidArgument(
-            "input_grads, input_image, and out_image should have the same "
-            "shape"));
+
+    int64 batch, rows, cols, depth;
+    if (data_format_ == FORMAT_NHWC) {
+      batch = in_grads.dim_size(0);
+      rows = in_grads.dim_size(1);
+      cols = in_grads.dim_size(2);
+      depth = in_grads.dim_size(3);
+
+      OP_REQUIRES(
+          context,
+          in_image.dim_size(0) == batch && in_image.dim_size(1) == rows &&
+              in_image.dim_size(2) == cols && in_image.dim_size(3) == depth &&
+              out_image.dim_size(0) == batch && out_image.dim_size(1) == rows &&
+              out_image.dim_size(2) == cols && out_image.dim_size(3) == depth,
+          errors::InvalidArgument(
+              "input_grads, input_image, and out_image should have the same "
+              "shape"));
+    } else {
+      batch = in_grads.dim_size(0);
+      depth = in_grads.dim_size(1);
+      rows = in_grads.dim_size(2);
+      cols = in_grads.dim_size(3);
+
+      OP_REQUIRES(
+          context,
+          in_image.dim_size(0) == batch && in_image.dim_size(2) == rows &&
+              in_image.dim_size(3) == cols && in_image.dim_size(1) == depth &&
+              out_image.dim_size(0) == batch && out_image.dim_size(2) == rows &&
+              out_image.dim_size(3) == cols && out_image.dim_size(1) == depth,
+          errors::InvalidArgument(
+              "input_grads, input_image, and out_image should have the same "
+              "shape"));
+    }
 
     Tensor* output = nullptr;
     OP_REQUIRES_OK(context,
                    context->allocate_output(
                        0, TensorShape({batch, rows, cols, depth}), &output));
 
-    LaunchLRNGrad<Device, T> launcher(depth_radius_, bias_, alpha_, beta_);
+    LaunchLRNGrad<Device, T> launcher(depth_radius_, bias_, alpha_, beta_,
+                                      data_format_);
     launcher.launch(context, this, in_grads, in_image, out_image, output);
   }
 
@@ -561,6 +729,7 @@ class LRNGradOp : public OpKernel {
   T bias_;
   T alpha_;
   T beta_;
+  TensorFormat data_format_;
 };
 
 #define REGISTER_CPU(T)                                          \
