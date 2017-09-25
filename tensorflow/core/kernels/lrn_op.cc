@@ -35,6 +35,8 @@ limitations under the License.
 #include "tensorflow/core/common_runtime/gpu/gpu_util.h"
 #include "tensorflow/core/platform/stream_executor.h"
 #include "tensorflow/core/util/stream_executor_util.h"
+#include "tensorflow/core/util/tensor_format.h"
+#include "tensorflow/core/kernels/conv_2d.h"
 #endif  // GOOGLE_CUDA
 
 namespace tensorflow {
@@ -170,30 +172,35 @@ struct LaunchLRN<GPUDevice, T> {
 
   void launch(OpKernelContext* context, OpKernel* kernel, const Tensor& in,
               Tensor* output) {
-    OP_REQUIRES(
-        context, beta_ >= 0.01,
-        errors::InvalidArgument("cuDNN requires beta >= 0.01, got: ", beta_));
-
-    OP_REQUIRES(
-        context, depth_radius_ > 0 && depth_radius_ <= 7,
-        errors::InvalidArgument("cuDNN requires depth_radius in [1, 7], got: ",
-                                depth_radius_));
-    OP_REQUIRES(
-        context, bias_ >= 1e-5,
-        errors::InvalidArgument("cuDNN requires bias >= 1e-5, got: ", bias_));
-
     // Cast to platform-specific int to avoid conversion warnings.
     const int batch = static_cast<int>(in.dim_size(0));
     const int rows = static_cast<int>(in.dim_size(1));
     const int cols = static_cast<int>(in.dim_size(2));
     const int depth = static_cast<int>(in.dim_size(3));
 
+    Tensor transformed_input;
+    OP_REQUIRES_OK(context, context->allocate_temp(
+                                DataTypeToEnum<T>::value,
+                                ShapeFromFormat(FORMAT_NCHW,
+                                                in.shape(), FORMAT_NHWC),
+                                &transformed_input));
+    functor::NHWCToNCHW<GPUDevice, T, 4>()(context->eigen_device<GPUDevice>(),
+                                           in.tensor<T, 4>(),
+                                           transformed_input.tensor<T, 4>());
+
+    Tensor transformed_output;
+    OP_REQUIRES_OK(context, context->allocate_temp(
+                                DataTypeToEnum<T>::value,
+                                ShapeFromFormat(FORMAT_NCHW,
+                                                output->shape(), FORMAT_NHWC),
+                                &transformed_output));
+
     perftools::gputools::dnn::BatchDescriptor dimensions_desc;
     dimensions_desc.set_count(batch)
         .set_height(rows)
         .set_width(cols)
         .set_feature_map_count(depth)
-        .set_layout(perftools::gputools::dnn::DataLayout::kBatchYXDepth);
+        .set_layout(perftools::gputools::dnn::DataLayout::kBatchDepthYX);
 
     perftools::gputools::dnn::NormalizeDescriptor normalize_desc;
     normalize_desc.set_bias(bias_)
@@ -201,8 +208,12 @@ struct LaunchLRN<GPUDevice, T> {
         .set_alpha(alpha_)
         .set_beta(beta_);
 
-    auto input_data = StreamExecutorUtil::AsDeviceMemory<T>(in);
-    auto output_data = StreamExecutorUtil::AsDeviceMemory<T>(*output);
+    auto input_data =
+        AsDeviceMemory(transformed_input.template flat<T>().data(),
+                       transformed_input.template flat<T>().size());
+    auto output_data =
+        AsDeviceMemory(transformed_output.template flat<T>().data(),
+                       transformed_output.template flat<T>().size());
 
     auto* stream = context->op_device_context()->stream();
     OP_REQUIRES(context, stream, errors::Internal("No GPU stream available."));
@@ -214,6 +225,12 @@ struct LaunchLRN<GPUDevice, T> {
             .ok();
     OP_REQUIRES(context, status,
                 errors::Internal("NormalizeWithDimensions launch failed"));
+
+    auto toConstTensor = [](const Tensor& x) -> const Tensor { return x; };
+    functor::NCHWToNHWC<GPUDevice, T, 4>()(
+        context->eigen_device<GPUDevice>(),
+        toConstTensor(transformed_output).template tensor<T, 4>(),
+        output->tensor<T, 4>());
   }
 
   int depth_radius_;
@@ -287,8 +304,7 @@ TF_CALL_half(REGISTER_CPU);
 
 #undef REGISTER_CPU
 
-// XXX FIXME Disable LRN on GPU
-#if 0 && GOOGLE_CUDA
+#if GOOGLE_CUDA
 
 #define REGISTER_GPU(T)                                      \
   REGISTER_KERNEL_BUILDER(                                   \
@@ -387,29 +403,54 @@ struct LaunchLRNGrad<GPUDevice, T> {
   void launch(OpKernelContext* context, OpKernel* kernel,
               const Tensor& in_grads, const Tensor& in_image,
               const Tensor& out_image, Tensor* output) {
-    OP_REQUIRES(
-        context, beta_ >= 0.01,
-        errors::InvalidArgument("cuDNN requires beta >= 0.01, got: ", beta_));
-
-    OP_REQUIRES(
-        context, depth_radius_ > 0 && depth_radius_ <= 7,
-        errors::InvalidArgument("cuDNN requires depth_radius in [1, 7], got: ",
-                                depth_radius_));
-    OP_REQUIRES(
-        context, bias_ >= 1e-5,
-        errors::InvalidArgument("cuDNN requires bias >= 1e-5, got: ", bias_));
-
     const int64 batch = in_grads.dim_size(0);
     const int64 rows = in_grads.dim_size(1);
     const int64 cols = in_grads.dim_size(2);
     const int64 depth = in_grads.dim_size(3);
+
+    Tensor transformed_in_grads;
+    OP_REQUIRES_OK(context, context->allocate_temp(
+                                DataTypeToEnum<T>::value,
+                                ShapeFromFormat(FORMAT_NCHW,
+                                                in_grads.shape(), FORMAT_NHWC),
+                                &transformed_in_grads));
+    functor::NHWCToNCHW<GPUDevice, T, 4>()(context->eigen_device<GPUDevice>(),
+                                           in_grads.tensor<T, 4>(),
+                                           transformed_in_grads.tensor<T, 4>());
+
+    Tensor transformed_in_image;
+    OP_REQUIRES_OK(context, context->allocate_temp(
+                                DataTypeToEnum<T>::value,
+                                ShapeFromFormat(FORMAT_NCHW,
+                                                in_image.shape(), FORMAT_NHWC),
+                                &transformed_in_image));
+    functor::NHWCToNCHW<GPUDevice, T, 4>()(context->eigen_device<GPUDevice>(),
+                                           in_image.tensor<T, 4>(),
+                                           transformed_in_image.tensor<T, 4>());
+
+    Tensor transformed_out_image;
+    OP_REQUIRES_OK(context, context->allocate_temp(
+                                DataTypeToEnum<T>::value,
+                                ShapeFromFormat(FORMAT_NCHW,
+                                                out_image.shape(), FORMAT_NHWC),
+                                &transformed_out_image));
+    functor::NHWCToNCHW<GPUDevice, T, 4>()(context->eigen_device<GPUDevice>(),
+                                           out_image.tensor<T, 4>(),
+                                           transformed_out_image.tensor<T, 4>());
+
+    Tensor transformed_output;
+    OP_REQUIRES_OK(context, context->allocate_temp(
+                                DataTypeToEnum<T>::value,
+                                ShapeFromFormat(FORMAT_NCHW,
+                                                output->shape(), FORMAT_NHWC),
+                                &transformed_output));
 
     perftools::gputools::dnn::BatchDescriptor dimensions_desc;
     dimensions_desc.set_count(batch)
         .set_height(rows)
         .set_width(cols)
         .set_feature_map_count(depth)
-        .set_layout(perftools::gputools::dnn::DataLayout::kBatchYXDepth);
+        .set_layout(perftools::gputools::dnn::DataLayout::kBatchDepthYX);
 
     perftools::gputools::dnn::NormalizeDescriptor normalize_desc;
     normalize_desc.set_bias(bias_)
@@ -417,10 +458,18 @@ struct LaunchLRNGrad<GPUDevice, T> {
         .set_alpha(alpha_)
         .set_beta(beta_);
 
-    auto input_grads_data = StreamExecutorUtil::AsDeviceMemory<T>(in_grads);
-    auto input_image_data = StreamExecutorUtil::AsDeviceMemory<T>(in_image);
-    auto output_image_data = StreamExecutorUtil::AsDeviceMemory<T>(out_image);
-    auto output_grads_data = StreamExecutorUtil::AsDeviceMemory<T>(*output);
+    auto input_grads_data =
+        AsDeviceMemory(transformed_in_grads.template flat<T>().data(),
+                       transformed_in_grads.template flat<T>().size());
+    auto input_image_data =
+        AsDeviceMemory(transformed_in_image.template flat<T>().data(),
+                       transformed_in_image.template flat<T>().size());
+    auto output_image_data =
+        AsDeviceMemory(transformed_out_image.template flat<T>().data(),
+                       transformed_out_image.template flat<T>().size());
+    auto output_grads_data =
+        AsDeviceMemory(transformed_output.template flat<T>().data(),
+                       transformed_output.template flat<T>().size());
 
     auto* stream = context->op_device_context()->stream();
     OP_REQUIRES(context, stream, errors::Internal("No GPU stream available."));
@@ -441,6 +490,12 @@ struct LaunchLRNGrad<GPUDevice, T> {
     OP_REQUIRES(
         context, status,
         errors::Internal("NormalizeBackwardWithDimensions launch failed"));
+
+    auto toConstTensor = [](const Tensor& x) -> const Tensor { return x; };
+    functor::NCHWToNHWC<GPUDevice, T, 4>()(
+        context->eigen_device<GPUDevice>(),
+        toConstTensor(transformed_output).template tensor<T, 4>(),
+        output->tensor<T, 4>());
   }
 
   int depth_radius_;
@@ -517,8 +572,7 @@ TF_CALL_half(REGISTER_CPU);
 
 #undef REGISTER_CPU
 
-// XXX FIXME Disable LRNGrad on GPU
-#if 0 && GOOGLE_CUDA
+#if GOOGLE_CUDA
 
 #define REGISTER_GPU(T)                                          \
   REGISTER_KERNEL_BUILDER(                                       \
