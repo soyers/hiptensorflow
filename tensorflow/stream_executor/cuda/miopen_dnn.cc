@@ -628,12 +628,12 @@ class ScopedNormalizeDescriptor {
     //
     //  U_i = V_i / ((bias +  alpha      * (sum_j V_j^2)) ^ beta)
     //
-    // but cuDNN defines it as
+    // but MIOpen defines it as
     //
     //  U_i = V_i / ((bias + (alpha / n) * (sum_j V_j^2)) ^ beta)
     //
     // i.e. there is a factor of n difference between the meaning of the alphas
-    // in the two contexts. The cuDNN alpha is n times the SE alpha.
+    // in the two contexts. The MIOpen alpha is n times the SE alpha.
     double lrnAlpha = lrnN * normalize_descriptor.alpha();
 
     double lrnBeta = normalize_descriptor.beta();
@@ -3249,35 +3249,10 @@ bool CudnnSupport::DoNormalizeWithDimensions(
   // Beta is the scaling factor for output.
   float beta = 0.0f;
 
-  DeviceMemory<uint8> workspace;
-  size_t workspace_size_in_bytes = 0;
-  status = dynload::miopenLRNGetWorkSpaceSize(parent_, dims.handle(),
-                                              &workspace_size_in_bytes);
-
-
-  if (status != miopenStatusSuccess) {
-    LOG(ERROR) << "failed to obtain workspace size for miopenLRNBackward";
-    return false;
-  }
-
-#if 0 //  enable when we pipe through the workspace allocator
-  // Allocate the workspace.
-  if (workspace_size_in_bytes > 0) {
-    assert(workspace_allocator);
-    auto allocated =
-        workspace_allocator->AllocateBytes(stream, workspace_size_in_bytes);
-    if (!allocated.ok() || (workspace = allocated.ValueOrDie()) == nullptr) {
-      LOG(ERROR) << "Failed to allocate backward pooling workspace";
-      return false;
-    }
-  }
-#endif
-
-
   status = dynload::miopenLRNForward(
       parent_, ToHandle(dnn_handle_), normalize.handle(),
       &alpha, dims.handle(), input_data.opaque(),
-      &beta, dims.handle(), output_data->opaque(), false, nullptr); // TODO - enable
+      &beta, dims.handle(), output_data->opaque(), false, nullptr);
   if (status != miopenStatusSuccess) {
     LOG(ERROR) << "failed to run miopenLRNForward";
     return false;
@@ -3335,6 +3310,42 @@ bool CudnnSupport::DoNormalizeBackwardWithDimensions(
       LOG(ERROR) << "Failed to allocate backward pooling workspace";
       return false;
     }
+  }
+
+  DeviceMemory<uint8> dest2; // duplicated dest from forward:
+  int dest2_size = 0;
+
+  // miopen requires the strides and dims to be ordered as BDYX.
+  std::vector<int64> dims64 =
+      dimensions.full_dims(dnn::DataLayout::kBatchDepthYX);
+
+  // miopen does not use strides and must have 4D tensor.
+  std::vector<int> dimsint(4);
+
+  std::transform(dims64.cbegin(), dims64.cend(), dimsint.begin(),
+                 &CheckedNarrowing<int64, int>);
+
+  dest2_size = dimsint[0] * dimsint[1] * dimsint[2] * dimsint[3] * sizeof(float);
+
+  if (dest2_size > 0) {
+    assert(workspace_allocator);
+    auto allocated = workspace_allocator->AllocateBytes(stream, dest2_size);
+    if (!allocated.ok() || (dest2 = allocated.ValueOrDie()) == nullptr) {
+      LOG(ERROR) << "Failed to allocate tensor to chain forward and backward LRN";
+      return false;
+    }
+  } else {
+    LOG(ERROR) << "Failed to calcuate tensor size to chain forward and backward LRN";
+  }
+
+  status = dynload::miopenLRNForward(
+      parent_, ToHandle(dnn_handle_), normalize.handle(),
+      &alpha, dims.handle(), raw_data.opaque(),
+      &beta, dims.handle(), dest2.opaque(), true, workspace.opaque());
+
+  if (status != miopenStatusSuccess) {
+    LOG(ERROR) << "failed to run miopenLRNForward";
+    return false;
   }
 
   status = dynload::miopenLRNBackward(
