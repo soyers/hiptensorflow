@@ -66,3 +66,7 @@ Hello, TensorFlow!
 * [TensorFlow MOOC on Udacity](https://www.udacity.com/course/deep-learning--ud730)
 
 The TensorFlow community has created amazing things with TensorFlow, please see the [resources section of tensorflow.org](https://www.tensorflow.org/versions/master/resources#community) for an incomplete list.
+
+
+## hipTensorflow:  the HIP Port of Tensorflow
+For details on the HIP Port of Tensorflow, please take a look at the [ROCm-specific README file](README.ROCm.md).
