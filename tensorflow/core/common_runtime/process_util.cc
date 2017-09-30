@@ -32,9 +32,7 @@ static thread::ThreadPool* InitComputePool(const SessionOptions& options) {
       options.config.inter_op_parallelism_threads();
   if (inter_op_parallelism_threads == 0) {
     // Default to using the number of cores available in the process.
-    //inter_op_parallelism_threads = port::NumSchedulableCPUs();
-    // XXX - limit inter-thread parallelism for stability
-    inter_op_parallelism_threads = 1;
+    inter_op_parallelism_threads = port::NumSchedulableCPUs();
   }
 
   return new thread::ThreadPool(Env::Default(), "Compute",

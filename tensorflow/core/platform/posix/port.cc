@@ -49,7 +49,6 @@ string Hostname() {
 
 int NumSchedulableCPUs() {
 #if defined(__linux__) && !defined(__ANDROID__)
-  return 1;
   cpu_set_t cpuset;
   if (sched_getaffinity(0, sizeof(cpu_set_t), &cpuset) == 0) {
     return CPU_COUNT(&cpuset);
