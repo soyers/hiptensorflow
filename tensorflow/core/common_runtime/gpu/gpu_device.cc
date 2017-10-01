@@ -854,6 +854,7 @@ Status BaseGPUDeviceFactory::GetValidDeviceIds(
   if(visible_gpu_order.size() > 1){ 
     LOG(ERROR) << "hipTensorflow currently only supports executation on single GPU. "
               << "Please set HIP_VISIBLE_DEVICES to choose the desired GPU Device.";
+    exit(1);
   }   
 
   for (int i = 0; i < visible_gpu_order.size(); ++i) {
