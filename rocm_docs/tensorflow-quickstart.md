@@ -8,6 +8,106 @@ For basic installation instructions for ROCm and Tensorflow, please see [this do
 
 ## Workloads
 
+### LeNet training on MNIST data
+
+Here are the basic instructions:  
+```
+cd ~/models/tutorials/image/mnist
+
+export HIP_VISIBLE_DEVICES=0
+export HSA_ENABLE_SDMA=0
+python ./convolutional.py 
+```
+
+And here is what we expect to see:  
+```
+Step 0 (epoch 0.00), 165.1 ms
+Minibatch loss: 8.334, learning rate: 0.010000
+Minibatch error: 85.9%
+Validation error: 84.6%
+Step 100 (epoch 0.12), 8.0 ms
+Minibatch loss: 3.232, learning rate: 0.010000
+Minibatch error: 4.7%
+Validation error: 7.6%
+Step 200 (epoch 0.23), 8.1 ms
+Minibatch loss: 3.355, learning rate: 0.010000
+Minibatch error: 9.4%
+Validation error: 4.4%
+Step 300 (epoch 0.35), 8.1 ms
+Minibatch loss: 3.147, learning rate: 0.010000
+Minibatch error: 3.1%
+Validation error: 2.9%
+
+...
+
+Step 8500 (epoch 9.89), 7.2 ms
+Minibatch loss: 1.609, learning rate: 0.006302
+Minibatch error: 0.0%
+Validation error: 1.0%
+Test error: 0.8%
+```
+
+### CifarNet training on CIFAR-10 data
+
+```
+export HIP_VISIBLE_DEVICES=0
+export HSA_ENABLE_SDMA=0
+```
+
+### ResNet training on CIFAR-10 data
+
+Details can be found at this [link](https://github.com/tensorflow/models/tree/master/research/resnet)
+
+Set up the CIFAR-10 dataset
+```
+curl -o cifar-10-binary.tar.gz https://www.cs.toronto.edu/~kriz/cifar-10-binary.tar.gz
+tar -xzf cifar-10-binary.tar.gz
+ln -s ./cifar-10-batches-bin ./cifar10
+```
+
+Train ResNet
+```
+export HIP_VISIBLE_DEVICES=0
+export HSA_ENABLE_SDMA=0
+python ./resnet_main.py --train_data_path=cifar10/data_batch* \
+                               --log_root=/tmp/resnet_model \
+                               --train_dir=/tmp/resnet_model/train \
+                               --dataset='cifar10' \
+                               --num_gpus=1
+```
+
+Here are the expected results (note the `precision` metric in particular):
+```
+INFO:tensorflow:loss = 2.53745, step = 1, precision = 0.125
+INFO:tensorflow:loss = 1.9379, step = 101, precision = 0.40625
+INFO:tensorflow:loss = 1.68374, step = 201, precision = 0.421875
+INFO:tensorflow:loss = 1.41583, step = 301, precision = 0.554688
+INFO:tensorflow:loss = 1.37645, step = 401, precision = 0.5625
+...
+INFO:tensorflow:loss = 0.485584, step = 4001, precision = 0.898438
+...
+```
+
+### Inception classification on ImageNet data
+Details can be found at this [link]( https://github.com/ROCmSoftwarePlatform/hiptensorflow/blob/hip-amd-nccl/tensorflow/g3doc/tutorials/image_recognition/index.md)
+
+Here's how to run the classification workload:  
+```
+export HIP_VISIBLE_DEVICES=0
+export HSA_ENABLE_SDMA=0
+
+cd models/tutorials/image/imagenet
+python ./classify_image.py
+```
+Here are the expected results:
+```
+giant panda, panda, panda bear, coon bear, Ailuropoda melanoleuca (score = 0.89107)
+indri, indris, Indri indri, Indri brevicaudatus (score = 0.00779)
+lesser panda, red panda, panda, bear cat, cat bear, Ailurus fulgens (score = 0.00296)
+custard apple (score = 0.00147)
+earthstar (score = 0.00117)
+```
+
 ### Soumith Convnet Benchmarks
 Details on the convnet benchmarks can be found at this [link](https://github.com/soumith/convnet-benchmarks).
 
@@ -22,6 +122,8 @@ cd hiptensorflow
 # Run the benchmarks
 rm -f $BENCHDIR/output_*.log
 MODELS="alexnet overfeat vgg googlenet"
+export HIP_VISIBLE_DEVICES=0
+export HSA_ENABLE_SDMA=0
 for m in $MODELS
 do
     python $BENCHDIR/benchmark_${m}.py 2>&1 | tee $BENCHDIR/output_${m}.log
