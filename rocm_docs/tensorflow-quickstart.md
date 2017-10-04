@@ -8,6 +8,12 @@ For basic installation instructions for ROCm and Tensorflow, please see [this do
 
 ## Workloads
 
+Now that we've got ROCm and Tensorflow installed, we'll want to clone the `tensorflow/models` repo that'll provide us with numerous useful workloads:
+```
+cd ~
+git clone https://github.com/tensorflow/models.git
+```
+
 ### LeNet training on MNIST data
 
 Here are the basic instructions:  
@@ -49,9 +55,50 @@ Test error: 0.8%
 
 ### CifarNet training on CIFAR-10 data
 
+Details for this workload can be found at this [link](https://www.tensorflow.org/tutorials/deep_cnn).
+
+Here, we'll be running two simultaneous processes from different terminals:  one for training and one for evaluation.
+
+#### Training (via terminal #1)
+
+Run the training:  
 ```
+cd ~/models/tutorials/image/cifar10
+
 export HIP_VISIBLE_DEVICES=0
 export HSA_ENABLE_SDMA=0
+python ./cifar10_train.py
+```
+
+You should see output similar to this:
+```
+2017-10-04 17:33:39.246053: step 0, loss = 4.66 (72.3 examples/sec; 1.770 sec/batch)
+2017-10-04 17:33:39.536988: step 10, loss = 4.64 (4399.5 examples/sec; 0.029 sec/batch)
+2017-10-04 17:33:39.794230: step 20, loss = 4.49 (4975.8 examples/sec; 0.026 sec/batch)
+2017-10-04 17:33:40.050329: step 30, loss = 4.33 (4998.1 examples/sec; 0.026 sec/batch)
+2017-10-04 17:33:40.255417: step 40, loss = 4.36 (6241.7 examples/sec; 0.021 sec/batch)
+2017-10-04 17:33:40.448037: step 50, loss = 4.40 (6644.5 examples/sec; 0.019 sec/batch)
+2017-10-04 17:33:40.640150: step 60, loss = 4.20 (6662.7 examples/sec; 0.019 sec/batch)
+2017-10-04 17:33:40.832118: step 70, loss = 4.23 (6667.8 examples/sec; 0.019 sec/batch)
+2017-10-04 17:33:41.017503: step 80, loss = 4.30 (6904.7 examples/sec; 0.019 sec/batch)
+2017-10-04 17:33:41.208288: step 90, loss = 4.21 (6709.0 examples/sec; 0.019 sec/batch)
+```
+
+#### Evaluation (via terminal #2)
+
+Run the evaluation:  
+```
+cd ~/models/tutorials/image/cifar10
+
+# Note: running evaluation on a 2nd GPU can be beneficial
+export HIP_VISIBLE_DEVICES=1
+export HSA_ENABLE_SDMA=0
+python ./cifar10_eval.py
+```
+
+Using the most recent training checkpoint, this script indicates how often the top prediction matches the true label of the image.  You should see periodic output similar to this:  
+```
+2017-10-04 16:23:30.494312: precision @ 1 = 0.860
 ```
 
 ### ResNet training on CIFAR-10 data
@@ -65,7 +112,7 @@ tar -xzf cifar-10-binary.tar.gz
 ln -s ./cifar-10-batches-bin ./cifar10
 ```
 
-Train ResNet
+Train ResNet:
 ```
 export HIP_VISIBLE_DEVICES=0
 export HSA_ENABLE_SDMA=0
