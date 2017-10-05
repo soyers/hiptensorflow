@@ -96,9 +96,16 @@ export HSA_ENABLE_SDMA=0
 python ./cifar10_eval.py
 ```
 
-Using the most recent training checkpoint, this script indicates how often the top prediction matches the true label of the image.  You should see periodic output similar to this:  
+Using the most recent training checkpoints, this script indicates how often the top prediction matches the true label of the image.  You should see periodic output similar to this:
 ```
-2017-10-04 16:23:30.494312: precision @ 1 = 0.860
+2017-10-05 18:34:40.288277: precision @ 1 = 0.118
+2017-10-05 18:39:45.989197: precision @ 1 = 0.118
+2017-10-05 18:44:51.644702: precision @ 1 = 0.836
+2017-10-05 18:49:57.354438: precision @ 1 = 0.836
+2017-10-05 18:55:02.960087: precision @ 1 = 0.856
+2017-10-05 19:00:08.752611: precision @ 1 = 0.856
+2017-10-05 19:05:14.307137: precision @ 1 = 0.861
+...
 ```
 
 ### ResNet training on CIFAR-10 data
