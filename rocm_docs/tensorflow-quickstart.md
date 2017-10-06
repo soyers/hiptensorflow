@@ -210,3 +210,6 @@ Expected result:
 
 ### Temp workaround:  Solutions when running out of memory
 As a temporary workaround, if your workload runs out of device memory, you can either reduce the batch size or set `config.gpu_options.allow_growth = True`.
+
+### Temp workaround:  Improving numerical stability
+As a temporary workaround, we currently recommend that you `export HSA_ENABLE_SDMA=0` to improve numerical stability when training Tensorflow models.  
