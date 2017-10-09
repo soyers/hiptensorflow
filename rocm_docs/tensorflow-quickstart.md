@@ -117,6 +117,8 @@ Details can be found at this [link](https://github.com/tensorflow/models/tree/ma
 
 Set up the CIFAR-10 dataset
 ```
+cd ~/models/research/resnet
+
 curl -o cifar-10-binary.tar.gz https://www.cs.toronto.edu/~kriz/cifar-10-binary.tar.gz
 tar -xzf cifar-10-binary.tar.gz
 ln -s ./cifar-10-batches-bin ./cifar10
