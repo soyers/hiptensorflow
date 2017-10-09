@@ -14,6 +14,8 @@ cd ~
 git clone https://github.com/tensorflow/models.git
 ```
 
+The following sections include the instructions for running various workloads.  They also include expected results, which may vary slightly from run to run.  
+
 ### LeNet training on MNIST data
 
 Here are the basic instructions:  
@@ -86,12 +88,13 @@ You should see output similar to this:
 
 #### Evaluation (via terminal #2)
 
-Run the evaluation:  
+Note: If you have a second GPU, you can run the evaluation in parallel with the training -- to do so, just change `HIP_VISIBLE_DEVICES` to your second GPU's ID.  If you only have a single GPU, it is best to wait until training is complete, otherwise you risk running out of device memory.  
+
+To run the evaluation, follow this:  
 ```
 cd ~/models/tutorials/image/cifar10
 
-# Note: running evaluation on a 2nd GPU can be beneficial
-export HIP_VISIBLE_DEVICES=1
+export HIP_VISIBLE_DEVICES=0
 export HSA_ENABLE_SDMA=0
 python ./cifar10_eval.py
 ```
