@@ -1767,7 +1767,7 @@ struct MIOpenAllocatorContext {
     Stream *		stream_;	
 };
 
-void * MIOpenAllocatorCallback(void * ctx, size_t size_in_bytes)
+void *MIOpenAllocatorCallback(void * ctx, size_t size_in_bytes)
 {
     auto *mac = static_cast<MIOpenAllocatorContext*> (ctx);
     printf ("TF/MIOpen allocator allocating %zu bytes\n", size_in_bytes);
@@ -1834,7 +1834,7 @@ bool CudnnSupport::DoConvolveImpl(
 
           assert (scratch_allocator);
 	  MIOpenAllocatorContext mac(scratch_allocator, stream);
-	  dynload::miopenSetAllocator(parent_, ToHandle(dnn_handle_),nullptr,nullptr,nullptr);
+	  dynload::miopenSetAllocator(parent_, ToHandle(dnn_handle_),MIOpenAllocatorCallback,MIOpenDeallocatorCallback,&mac);
           size_t size_in_bytes;
           status = dynload::miopenConvolutionForwardGetWorkSpaceSize(
               parent_, ToHandle(dnn_handle_), /*filterDesc=*/filter.handle(),
@@ -2280,7 +2280,8 @@ bool CudnnSupport::DoConvolveBackwardDataImpl(
         dnn_handle_mutex_) -> std::pair<miopenConvBwdDataAlgorithm_t, size_t> {
 
       assert (scratch_allocator);
-
+      MIOpenAllocatorContext mac(scratch_allocator, stream);
+      dynload::miopenSetAllocator(parent_, ToHandle(dnn_handle_),MIOpenAllocatorCallback,MIOpenDeallocatorCallback,&mac);
       size_t size_in_bytes;
       status = dynload::miopenConvolutionBackwardDataGetWorkSpaceSize(
           parent_, ToHandle(dnn_handle_),
@@ -2309,7 +2310,10 @@ bool CudnnSupport::DoConvolveBackwardDataImpl(
           /*requestCount=*/1, /*returnedAlgoCount=*/&returnedAlgoCount,
           /*preference=*/&preference, /*WorkSpace=*/scratch.opaque(),
           /*WorkSpaceSize=*/scratch.size(), /*exhaustiveSearch=*/false);
-      CHECK_EQ(status, miopenStatusSuccess) << "Unable to find a suitable "
+      
+       // Restore default allocator, note mac is stack temp 
+       dynload::miopenSetAllocator(parent_, ToHandle(dnn_handle_),nullptr,nullptr,nullptr);
+       CHECK_EQ(status, miopenStatusSuccess) << "Unable to find a suitable "
                                                 "algorithm for doing backward "
                                                 "filter convolution";
       return std::pair<miopenConvBwdDataAlgorithm_t , size_t> (preference.bwd_data_algo, preference.memory);
@@ -2489,6 +2493,8 @@ bool CudnnSupport::DoConvolveBackwardFilterImpl(
 
       assert (scratch_allocator);
 
+      MIOpenAllocatorContext mac(scratch_allocator, stream);	  
+      dynload::miopenSetAllocator(parent_, ToHandle(dnn_handle_),MIOpenAllocatorCallback,MIOpenDeallocatorCallback,&mac);
       size_t size_in_bytes;
       status = dynload::miopenConvolutionBackwardWeightsGetWorkSpaceSize(
           parent_, ToHandle(dnn_handle_), /*diffDesc=*/out_back_nd.handle(),
@@ -2515,7 +2521,10 @@ bool CudnnSupport::DoConvolveBackwardFilterImpl(
               /*requestAlgoCount=*/1, /*returnedAlgoCount=*/&returnedAlgoCount,
               /*preference=*/&preference, /*WorkSpace=*/scratch.opaque(),
               /*WorkSpaceSize=*/scratch.size(), /*exhaustiveSearch=*/false);
-      CHECK_EQ(status, miopenStatusSuccess) << "Unable to find a suitable "
+      
+       // Restore default allocator, note mac is stack temp 
+       dynload::miopenSetAllocator(parent_, ToHandle(dnn_handle_),nullptr,nullptr,nullptr);
+       CHECK_EQ(status, miopenStatusSuccess) << "Unable to find a suitable "
                                                 "algorithm for doing backward "
                                                 "filter convolution";
       return std::pair<miopenConvBwdWeightsAlgorithm_t , size_t> (preference.bwd_weights_algo, preference.memory);
