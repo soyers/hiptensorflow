@@ -265,7 +265,7 @@ if [ "$TF_NEED_HIP" == "1" ]; then
     fromuser=""
     if [ -z "$HIP_LIBRARY_PATH" ]; then
       default_hip_library_path=/opt/rocm
-      read -p "Please specify the location of the HIP Libraries (FFT,BLAS,RNG). [Default is $default_hip_library_path]: " HIP_LIBRARY_PATH
+      read -p "Please specify the location of the HIP Libraries (FFT,BLAS,RNG, RCCL). [Default is $default_hip_library_path]: " HIP_LIBRARY_PATH
       fromuser="1"
       if [ -z "$HIP_LIBRARY_PATH" ]; then
         HIP_LIBRARY_PATH=$default_hip_library_path
