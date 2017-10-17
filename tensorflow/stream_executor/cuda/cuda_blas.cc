@@ -270,7 +270,9 @@ PERFTOOLS_GPUTOOLS_HIPBLAS_V2_WRAP(hipblasSetStream)
 //PERFTOOLS_GPUTOOLS_HIPBLAS_V2_WRAP(hipblasSetPointerMode)
 //PERFTOOLS_GPUTOOLS_HIPBLAS_V2_WRAP(hipblasGetPointerMode)
 //PERFTOOLS_GPUTOOLS_HIPBLAS_WRAP(hipblasSgemmBatched)
+PERFTOOLS_GPUTOOLS_HIPBLAS_WRAP(hipblasSgemmStridedBatched)
 //PERFTOOLS_GPUTOOLS_HIPBLAS_WRAP(hipblasDgemmBatched)
+PERFTOOLS_GPUTOOLS_HIPBLAS_WRAP(hipblasDgemmStridedBatched)
 //PERFTOOLS_GPUTOOLS_HIPBLAS_WRAP(hipblasCgemmBatched)
 //PERFTOOLS_GPUTOOLS_HIPBLAS_WRAP(hipblasZgemmBatched)
 HIPBLAS_BLAS_ROUTINE_EACH(PERFTOOLS_GPUTOOLS_HIPBLAS_V2_WRAP)
@@ -1789,6 +1791,7 @@ port::Status CUDABlas::DoBlasGemmBatchedInternal(
     const port::ArraySlice<DeviceMemory<T> *> &b_ptrs_to_wrappers, int ldb,
     T beta, const port::ArraySlice<DeviceMemory<T> *> &c_ptrs_to_wrappers,
     int ldc, int batch_count, ScratchAllocator *scratch_allocator) {
+  // Allocate local vectors to hold device pointers to matrices
   std::vector<T *> a_raw_ptrs, b_raw_ptrs, c_raw_ptrs;
   for (int i = 0; i < batch_count; ++i) {
     a_raw_ptrs.push_back(static_cast<T *>(a_ptrs_to_wrappers[i]->opaque()));
@@ -1796,68 +1799,75 @@ port::Status CUDABlas::DoBlasGemmBatchedInternal(
     c_raw_ptrs.push_back(static_cast<T *>(c_ptrs_to_wrappers[i]->opaque()));
   }
 
-  typedef typename CUDAComplexT<T>::type CUDA_T;
+  //  batch_count <= 1 is base case, no definable matrix stride, set it same as ld*
+  long long bsa = lda;
+  long long bsb = ldb;
+  long long bsc = ldc;
+  bool bsa_is_constant = true;
+  bool bsb_is_constant = true;
+  bool bsc_is_constant = true;
 
-  const size_t size = batch_count * sizeof(CUDA_T *);
+  if( batch_count > 1 )
+  {
+    // Remember first stride; if any other stride is different that this one, KABLAM
+    bsa = a_raw_ptrs[1] - a_raw_ptrs[0];
+    bsb = b_raw_ptrs[1] - b_raw_ptrs[0];
+    bsc = c_raw_ptrs[1] - c_raw_ptrs[0];
 
-  // Device-side copy of pointers to matrices.
-  DeviceMemory<CUDA_T *> a;
-  DeviceMemory<CUDA_T *> b;
-  DeviceMemory<CUDA_T *> c;
+    //  Loop to verify that batched strides are constant
+    //  All the test cases from batch_matmul_op_test.py seem to satisfy this requirement of a constant
+    //  stride.  If this can be proven globally, then this loop check can be safely removed
+    for( int i=1; i < batch_count-1; ++i )
+    {
+      long long iterative_bsa = a_raw_ptrs[i+1] - a_raw_ptrs[i];
+      if( iterative_bsa != bsa)
+      {
+        bsa_is_constant = false;
+        break;
+      }
 
-  // If temporary space is allocated for device-side copies of pointers to
-  // matrices, that temporary space should not be freed until this function
-  // returns. Although the values for these unique_ptrs are not set here, they
-  // are declared at this scope so they will be destroyed when the function
-  // returns.
-  //
-  // If a scratch allocator is provided, these pointers will not be used at all.
-  std::unique_ptr<TemporaryDeviceMemory<CUDA_T *>> a_temporary;
-  std::unique_ptr<TemporaryDeviceMemory<CUDA_T *>> b_temporary;
-  std::unique_ptr<TemporaryDeviceMemory<CUDA_T *>> c_temporary;
+      long long iterative_bsb = b_raw_ptrs[i+1] - b_raw_ptrs[i];
+      if( iterative_bsb != bsb)
+      {
+        bsb_is_constant = false;
+        break;
+      }
 
-  // Decide how to allocate device-side copy of pointers to matrices based on
-  // whether a scratch allocator was passed.
-  if (scratch_allocator != nullptr) {
-    SE_ASSIGN_OR_RETURN(DeviceMemory<uint8> a_bytes,
-                        scratch_allocator->AllocateBytes(stream, size));
-    SE_ASSIGN_OR_RETURN(DeviceMemory<uint8> b_bytes,
-                        scratch_allocator->AllocateBytes(stream, size));
-    SE_ASSIGN_OR_RETURN(DeviceMemory<uint8> c_bytes,
-                        scratch_allocator->AllocateBytes(stream, size));
-    a = DeviceMemory<CUDA_T *>(a_bytes);
-    b = DeviceMemory<CUDA_T *>(b_bytes);
-    c = DeviceMemory<CUDA_T *>(c_bytes);
-  } else {
-    SE_ASSIGN_OR_RETURN(a_temporary,
-                        stream->AllocateTemporaryArray<CUDA_T *>(batch_count));
-    SE_ASSIGN_OR_RETURN(b_temporary,
-                        stream->AllocateTemporaryArray<CUDA_T *>(batch_count));
-    SE_ASSIGN_OR_RETURN(c_temporary,
-                        stream->AllocateTemporaryArray<CUDA_T *>(batch_count));
-    a = DeviceMemory<CUDA_T *>(*a_temporary->mutable_device_memory());
-    b = DeviceMemory<CUDA_T *>(*b_temporary->mutable_device_memory());
-    c = DeviceMemory<CUDA_T *>(*c_temporary->mutable_device_memory());
+      long long iterative_bsc = c_raw_ptrs[i+1] - c_raw_ptrs[i];
+      if( iterative_bsc != bsc)
+      {
+        bsc_is_constant = false;
+        break;
+      }
+    }
   }
 
-  if (!stream->ThenMemcpy(&a, a_raw_ptrs.data(), size).ok() ||
-      !stream->ThenMemcpy(&b, b_raw_ptrs.data(), size).ok() ||
-      !stream->ThenMemcpy(&c, c_raw_ptrs.data(), size).ok()) {
-    return port::Status(port::error::INTERNAL,
-                        "failed to copy memory from host to device in "
-                        "CUDABlas::DoBlasGemmBatched");
+  assert(!(ldc < m || bsc < ldc * n));
+
+  if (CUDABlasTranspose(transa) == HIPBLAS_OP_N)
+      assert(!(lda < m || bsa < lda * k));
+  else
+      assert(!(lda < k || bsa < lda * m));
+
+  if (CUDABlasTranspose(transb) == HIPBLAS_OP_N)
+      assert(!(ldb < k || bsb < ldb * n));
+  else
+      assert(!(ldb < n || bsc < ldc * k));
+
+  if(bsa_is_constant && bsb_is_constant && bsc_is_constant)
+  {
+    bool ok = DoBlasInternal(
+            hipblas_func, stream, true /* = pointer_mode_host */,
+            CUDABlasTranspose(transa), CUDABlasTranspose(transb), m, n, k,
+            CUDAComplex(&alpha), a_raw_ptrs[ 0 ], lda, bsa,
+            b_raw_ptrs[ 0 ], ldb, bsb, CUDAComplex(&beta),
+            c_raw_ptrs[ 0 ], ldc, bsc, batch_count);
+
+      if (ok) {
+        return port::Status::OK();
+      }
   }
 
-  bool ok = DoBlasInternal(
-      hipblas_func, stream, true /* = pointer_mode_host */,
-      CUDABlasTranspose(transa), CUDABlasTranspose(transb), m, n, k,
-      CUDAComplex(&alpha), const_cast<const CUDA_T **>(CUDAMemory(a)), lda,
-      const_cast<const CUDA_T **>(CUDAMemory(b)), ldb, CUDAComplex(&beta),
-      const_cast<CUDA_T **>(CUDAMemory(c)), ldc, batch_count);
-
-  if (ok) {
-    return port::Status::OK();
-  }
   return port::Status(port::error::INTERNAL,
                       "failed BLAS call, see log for details");
 }
@@ -1869,13 +1879,10 @@ bool CUDABlas::DoBlasGemmBatched(
     const port::ArraySlice<DeviceMemory<float> *> &b_array, int ldb, float beta,
     const port::ArraySlice<DeviceMemory<float> *> &c_array, int ldc,
     int batch_count, ScratchAllocator *scratch_allocator) {
-  return false;
-#if 0
-  SE_RETURN_STATUS_AS_BOOL(DoBlasGemmBatchedInternal(
-      dynload::hipblasSgemmBatched, stream, transa, transb, m, n, k, alpha,
-      a_array, lda, b_array, ldb, beta, c_array, ldc, batch_count,
-      scratch_allocator));
-#endif
+    SE_RETURN_STATUS_AS_BOOL( DoBlasGemmBatchedInternal(
+        dynload::hipblasSgemmStridedBatched, stream, transa, transb, m, n, k, alpha,
+        a_array, lda, b_array, ldb, beta, c_array, ldc,  batch_count,
+        scratch_allocator));
 }
 
 bool CUDABlas::DoBlasGemmBatched(
@@ -1885,13 +1892,10 @@ bool CUDABlas::DoBlasGemmBatched(
     const port::ArraySlice<DeviceMemory<double> *> &b_array, int ldb,
     double beta, const port::ArraySlice<DeviceMemory<double> *> &c_array,
     int ldc, int batch_count, ScratchAllocator *scratch_allocator) {
-  return false;
-#if 0
-  SE_RETURN_STATUS_AS_BOOL(DoBlasGemmBatchedInternal(
-      dynload::hipblasDgemmBatched, stream, transa, transb, m, n, k, alpha,
-      a_array, lda, b_array, ldb, beta, c_array, ldc, batch_count,
-      scratch_allocator));
-#endif
+      SE_RETURN_STATUS_AS_BOOL( DoBlasGemmBatchedInternal(
+          dynload::hipblasDgemmStridedBatched, stream, transa, transb, m, n, k, alpha,
+          a_array, lda, b_array, ldb, beta, c_array, ldc, batch_count,
+          scratch_allocator));
 }
 
 bool CUDABlas::DoBlasGemmBatched(
@@ -1903,13 +1907,11 @@ bool CUDABlas::DoBlasGemmBatched(
     int ldb, std::complex<float> beta,
     const port::ArraySlice<DeviceMemory<std::complex<float>> *> &c_array,
     int ldc, int batch_count, ScratchAllocator *scratch_allocator) {
-  return false;
-#if 0
-SE_RETURN_STATUS_AS_BOOL(DoBlasGemmBatchedInternal(
-      dynload::hipblasCgemmBatched, stream, transa, transb, m, n, k, alpha,
-      a_array, lda, b_array, ldb, beta, c_array, ldc, batch_count,
-      scratch_allocator));
-#endif
+return false;
+//SE_RETURN_STATUS_AS_BOOL(DoBlasGemmBatchedInternal(
+ //     dynload::hipblasCgemmBatched, stream, transa, transb, m, n, k, alpha,
+  //    a_array, lda, b_array, ldb, beta, c_array, ldc, batch_count,
+   //   scratch_allocator));
 }
 
 bool CUDABlas::DoBlasGemmBatched(
@@ -1921,7 +1923,7 @@ bool CUDABlas::DoBlasGemmBatched(
     int ldb, std::complex<double> beta,
     const port::ArraySlice<DeviceMemory<std::complex<double>> *> &c_array,
     int ldc, int batch_count, ScratchAllocator *scratch_allocator) {
-return false;  
+return false;
 //SE_RETURN_STATUS_AS_BOOL(DoBlasGemmBatchedInternal(
  //     dynload::hipblasZgemmBatched, stream, transa, transb, m, n, k, alpha,
   //    a_array, lda, b_array, ldb, beta, c_array, ldc, batch_count,
