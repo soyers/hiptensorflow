@@ -103,6 +103,15 @@ cc_library(
 )
 
 cc_library(
+    name = "rccl",
+    srcs = ["lib/%{rccl_lib}"],
+    data = ["lib/%{rccl_lib}"],
+    includes = ["include/"],
+    linkstatic = 1,
+    visibility = ["//visibility:public"],
+)
+
+cc_library(
     name = "cuda",
     deps = [
         ":cuda_headers",
@@ -111,6 +120,7 @@ cc_library(
         ":cudnn",
         ":cufft",
         ":curand",
+	":rccl",
     ],
     visibility = ["//visibility:public"],
 )

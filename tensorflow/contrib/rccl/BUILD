@@ -27,7 +27,6 @@ tf_custom_op_library(
     ],
     deps = [
 	"//tensorflow/core:gpu_headers_lib",
-	"@rccl_archive//:rccl",
     ],
 )
 
@@ -95,7 +94,6 @@ tf_cuda_cc_test(
     tags = ["manual"],  # Disabled until errors finding nvmlShutdown are found.
     deps = if_cuda(
         [
-            "@nccl_archive//:nccl",
             "//tensorflow/core",
             "//tensorflow/core:cuda",
         ],

@@ -53,6 +53,7 @@ temp_workaround_http_archive = repository_rule(
    })
 
 EIGEN_PATH = "/opt/rocm/hipeigen"
+RCCL_PATH = "/opt/rocm/rccl"
 # If TensorFlow is linked as a submodule.
 # path_prefix and tf_repo_name are no longer used.
 def tf_workspace(path_prefix = "", tf_repo_name = ""):

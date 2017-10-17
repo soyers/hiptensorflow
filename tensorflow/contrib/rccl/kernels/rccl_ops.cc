@@ -18,7 +18,7 @@ limitations under the License.
 #include <unordered_map>
 #include <vector>
 
-#include "external/rccl_archive/src/rccl.h"
+#include "/opt/rocm/rccl/include/rccl.h"
 #include "tensorflow/contrib/rccl/kernels/rccl_manager.h"
 #include "tensorflow/core/framework/op_kernel.h"
 

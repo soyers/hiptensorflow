@@ -452,6 +452,8 @@ def _lib_name_hip(lib, cpu_value, gpu_value):
         return "lib%s.so" % lib
       elif lib == "hiprng":
         return "lib%s.so" % lib
+      elif lib == "rccl":
+        return "lib%s.so" % lib
       else:
         return "lib%s_hcc.so" % lib
     if gpu_value == "NVIDIA":
@@ -645,6 +647,8 @@ def _find_libs_hip(repository_ctx, hip_config):
           "hipfft", repository_ctx, cpu_value, hip_config.hip_lib_path + "/hipfft"),
       "miopen": _find_hip_lib(
           "MIOpen", repository_ctx, cpu_value, hip_config.hip_lib_path + "/miopen"),
+      "rccl": _find_hip_lib(
+          "rccl", repository_ctx, cpu_value, hip_config.hip_lib_path + "/rccl"),
   }
 
 def _find_cudnn_header_dir(repository_ctx, cudnn_install_basedir):
@@ -927,6 +931,9 @@ def _create_cuda_repository(repository_ctx):
   #Including MLOpen header
   _symlink_dir(repository_ctx, hiplib_path + "/miopen/include/",
                          "cuda/include/")
+  _symlink_dir(repository_ctx, hiplib_path + "/rccl/include/",
+                         "cuda/include/")
+
   #cuda_libs = _find_libs(repository_ctx, cuda_config)
   #for lib in cuda_libs.values():
   #  repository_ctx.symlink(lib.path, "cuda/lib/" + lib.file_name)
@@ -953,6 +960,7 @@ def _create_cuda_repository(repository_ctx):
            "%{cudart_lib}": hip_libs["hip"].file_name,
            "%{cublas_lib}": hip_libs["hipblas"].file_name,
            "%{cudnn_lib}": hip_libs["miopen"].file_name,
+           "%{rccl_lib}": hip_libs["rccl"].file_name,
            "%{cufft_lib}": hip_libs["hipfft"].file_name,
            "%{curand_lib}": hip_libs["hiprng"].file_name,
            #"%{cupti_lib}": cuda_libs["cupti"].file_name,
