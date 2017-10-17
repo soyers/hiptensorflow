@@ -107,23 +107,17 @@ cd ~/ && wget https://github.com/bazelbuild/bazel/releases/download/0.4.5/bazel-
 sudo bash ~/bazel*.sh
 ```
 
-## Build hiptf
-```
-# Clone it
-cd ~ && git clone https://github.com/ROCmSoftwarePlatform/hiptensorflow.git
-
-# Configure hiptf, need to enable HIP in configure options
-cd ~/hiptensorflow && ./configure 
-
-# Build and install hipTF pip package
-bazel build -c opt --config=cuda //tensorflow/tools/pip_package:build_pip_package &&
-bazel-bin/tensorflow/tools/pip_package/build_pip_package /tmp/tensorflow_pkg &&
-pip uninstall tensorflow 
-sudo pip install /tmp/tensorflow_pkg/tensorflow-1.0.1-cp27-cp27mu-linux_x86_64.whl
-```
-
 ## Clone hiptf models and benchmarks
 ```
 cd ~ && git clone https://github.com/soumith/convnet-benchmarks.git
 cd ~ && git clone https://github.com/tensorflow/models.git
+```
+
+## Install hiptf
+```
+# Wget the hipTF whl package
+cd ~/ && wget http://repo.radeon.com/rocm/misc/tensorflow/tensorflow-1.0.1-cp27-cp27mu-linux_x86_64.whl
+
+# Pip install the whl package 
+cd ~ && sudo pip install tensorflow-1.0.1-cp27-cp27mu-linux_x86_64.whl && rm tensorflow-1.0.1-cp27-cp27mu-linux_x86_64.whl
 ```
