@@ -61,15 +61,6 @@ sudo apt-get update && \
     rocm-profiler cxlactivitylogger \
     miopen-hip miopengemm
 ```
-Add some path variables:  
-```
-export HCC_HOME=$ROCM_PATH/hcc
-export HIP_PATH=$ROCM_PATH/hip
-export OPENCL_ROOT=$ROCM_PATH/opencl
-export PATH="$HCC_HOME/bin:$HIP_PATH/bin:${PATH}"
-export PATH="$ROCM_PATH/bin:${PATH}"
-export PATH="$OPENCL_ROOT/bin:${PATH}"
-```
 
 Setup environment variables, and add those environment variables at the end of ~/.bashrc 
 ```
@@ -96,15 +87,6 @@ sudo apt-get update && sudo apt-get install -y \
     python-setuptools && \
     sudo apt-get clean && \
     sudo rm -rf /var/lib/apt/lists/*
-```
-
-## Install bazel
-```
-echo "deb [arch=amd64] http://storage.googleapis.com/bazel-apt stable jdk1.8" | sudo tee /etc/apt/sources.list.d/bazel.list
-curl https://bazel.build/bazel-release.pub.gpg | sudo apt-key add -
-sudo apt-get update && sudo apt-get install -y openjdk-8-jdk openjdk-8-jre unzip && sudo apt-get clean && sudo rm -rf /var/lib/apt/lists/* 
-cd ~/ && wget https://github.com/bazelbuild/bazel/releases/download/0.4.5/bazel-0.4.5-installer-linux-x86_64.sh 
-sudo bash ~/bazel*.sh
 ```
 
 ## Clone hiptf models and benchmarks

@@ -6,6 +6,9 @@ In this quickstart guide, we'll walk through the steps for ROCm installation, ru
 
 For basic installation instructions for ROCm and Tensorflow, please see [this doc](tensorflow-install-basic.md).
 
+We also have docker images for quick deployment with dockerhub:
+[https://hub.docker.com/r/rocm/hiptensorflow](https://hub.docker.com/r/rocm/hiptensorflow)
+
 ## Workloads
 
 Now that we've got ROCm and Tensorflow installed, we'll want to clone the `tensorflow/models` repo that'll provide us with numerous useful workloads:
