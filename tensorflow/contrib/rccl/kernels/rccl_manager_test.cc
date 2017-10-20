@@ -48,7 +48,7 @@ static std::vector<BaseGPUDevice*> GetGPUDevices() {
 class NcclManagerTest : public ::testing::Test {
  protected:
   static void SetUpTestCase() {
-    setenv("NCCL_DEBUG", "INFO", 1 /* replace */);
+    setenv("RCCL_DEBUG", "INFO", 1 /* replace */);
     devices = new std::vector<BaseGPUDevice*>(GetGPUDevices());
     CHECK(!devices->empty());
     LOG(ERROR) << "Running test with " << devices->size() << " gpus";

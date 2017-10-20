@@ -21,7 +21,7 @@ namespace tensorflow {
 using shape_inference::InferenceContext;
 using shape_inference::ShapeHandle;
 
-REGISTER_OP("NcclAllReduce")
+REGISTER_OP("RcclAllReduce")
     .Input("input: T")
     .Output("data: T")
     .Attr("reduction: {'min', 'max', 'prod', 'sum'}")
@@ -45,7 +45,7 @@ num_devices: The number of devices participating in this reduction.
 shared_name: Identifier that shared between ops of the same reduction.
 )doc");
 
-REGISTER_OP("NcclBroadcastSend")
+REGISTER_OP("RcclBroadcastSend")
     .Input("input: T")
     .Attr("T: {float, float64, int32, int64}")
     .Attr("num_devices: int")
@@ -53,10 +53,10 @@ REGISTER_OP("NcclBroadcastSend")
     .SetIsStateful()
     .SetShapeFn(shape_inference::NoOutputs)
     .Doc(R"doc(
-Sends `input` to the NcclBroadcastRecv ops registered in the same `shared_name`.
+Sends `input` to the RcclBroadcastRecv ops registered in the same `shared_name`.
 
-The graph should be constructed so that one device runs `NcclBroadcastSend` and
-`num_devices-1` devices run NcclBroadcastRecv ops with shared_name value `c`.
+The graph should be constructed so that one device runs `RcclBroadcastSend` and
+`num_devices-1` devices run RcclBroadcastRecv ops with shared_name value `c`.
 Failure to do so will cause the graph execution to fail to complete.
 
 input: The input to the broadcast
@@ -64,7 +64,7 @@ num_devices: The number of devices participating in this reduction.
 shared_name: Identifier that is shared between ops of the same broadcast.
     )doc");
 
-REGISTER_OP("NcclBroadcastRecv")
+REGISTER_OP("RcclBroadcastRecv")
     .Input("shape: int64")
     .Output("output: T")
     .Attr("T: {float, float64, int32, int64}")
@@ -78,15 +78,15 @@ REGISTER_OP("NcclBroadcastRecv")
       return Status::OK();
     })
     .Doc(R"doc(
-Sends data of shape `shape` from the NcclBroadcastSend op registered in the
+Sends data of shape `shape` from the RcclBroadcastSend op registered in the
 same `shared_name`.
 
-The graph should be constructed so that one device runs `NcclBroadcastSend` and
-`num_devices-1` devices run NcclBroadcastRecv ops with shared_name value `c`.
+The graph should be constructed so that one device runs `RcclBroadcastSend` and
+`num_devices-1` devices run RcclBroadcastRecv ops with shared_name value `c`.
 Failure to do so will cause the graph execution to fail to complete.
 
 shape: The shape of the output.
-output: The broadcast data received from the NcclBroadcastSend op.
+output: The broadcast data received from the RcclBroadcastSend op.
 num_devices: The number of devices participating in this reduction.
 shared_name: Identifier that is shared between ops of the same broadcast.
     )doc");

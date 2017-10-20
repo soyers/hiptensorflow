@@ -81,13 +81,13 @@ cuda_py_test(
 
 
 tf_cuda_cc_test(
-    name = "nccl_manager_test",
+    name = "rccl_manager_test",
     size = "medium",
     srcs = if_cuda(
         [
-            "kernels/nccl_manager.cc",
-            "kernels/nccl_manager.h",
-            "kernels/nccl_manager_test.cc",
+            "kernels/rccl_manager.cc",
+            "kernels/rccl_manager.h",
+            "kernels/rccl_manager_test.cc",
         ],
         [],
     ),

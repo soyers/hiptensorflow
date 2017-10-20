@@ -27,8 +27,10 @@ from tensorflow.python.framework import ops
 from tensorflow.python.ops import array_ops
 from tensorflow.python.platform import resource_loader
 
-_rccl_ops_so = loader.load_op_library(
-    resource_loader.get_path_to_datafile('_rccl_ops.so'))
+#_rccl_ops_so = loader.load_op_library(
+#    resource_loader.get_path_to_datafile('_rccl_ops.so'))
+
+_rccl_ops_so = loader.load_op_library('/opt/rocm/rccl/lib/librccl.so')
 
 
 def all_sum(tensors):
