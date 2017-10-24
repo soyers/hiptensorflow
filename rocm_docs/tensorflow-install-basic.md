@@ -8,7 +8,7 @@ This instruction provides a starting point for a ROCm installation of hiptensorf
 ```
 export ROCM_PATH=/opt/rocm
 export DEBIAN_FRONTEND noninteractive
-sudo apt update && apt install -y wget software-properties-common 
+sudo apt update && sudo apt install -y wget software-properties-common 
 ```
 
 Add the ROCm repository:  
